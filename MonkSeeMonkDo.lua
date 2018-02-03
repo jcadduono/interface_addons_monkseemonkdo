@@ -238,6 +238,7 @@ function Ability.add(spellId, buff, player, spellId2)
 		name = false,
 		icon = false,
 		requires_charge = false,
+		usable_moving = true,
 		triggers_gcd = true,
 		hasted_duration = false,
 		hasted_cooldown = false,
@@ -268,6 +269,9 @@ function Ability:usable(seconds)
 		return false
 	end
 	if self.requires_charge and self:charges() == 0 then
+		return false
+	end
+	if not self.usable_moving and GetUnitSpeed('player') ~= 0 then
 		return false
 	end
 	return self:ready(seconds)
@@ -526,6 +530,7 @@ TouchOfKarma.buff_duration = 10
 ------ Talents
 local ChiBurst = Ability.add(123986, false, true)
 ChiBurst.cooldown_duration = 30
+ChiBurst.usable_moving = false
 local ChiWave = Ability.add(115098, false, true)
 ChiWave.cooldown_duration = 15
 local EnergizingElixir = Ability.add(115288, false, true)
