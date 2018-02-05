@@ -1201,10 +1201,10 @@ local function ShouldHide()
 end
 
 local function Disappear()
-	var.main = nil
-	var.cd = nil
+	var.main, var.last_main = nil
+	var.cd, var.last_cd = nil
 	var.interrupt = nil
-	var.petcd = nil
+	var.petcd, var.last_petcd = nil
 	UpdateGlows()
 	msmdPanel:Hide()
 	msmdPanel.border:Hide()
@@ -1326,6 +1326,7 @@ local function UpdateHealthArray()
 end
 
 local function UpdateCombat()
+	abilityTimer = 0
 	UpdateVars()
 	var.main = APL[currentSpec]()
 	if var.main ~= var.last_main then
@@ -1369,7 +1370,6 @@ local function UpdateCombat()
 		UpdateInterrupt()
 	end
 	UpdateGlows()
-	abilityTimer = 0
 end
 
 function events:SPELL_UPDATE_COOLDOWN()
@@ -1460,9 +1460,9 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 end
 
 local function UpdateTargetInfo()
+	Disappear()
 	if ShouldHide() then
-		Disappear()
-		return false
+		return
 	end
 	local guid = UnitGUID('target')
 	if not guid then
@@ -1478,7 +1478,6 @@ local function UpdateTargetInfo()
 			msmdPanel:Show()
 			return true
 		end
-		Disappear()
 		return
 	end
 	if guid ~= Target.guid then
@@ -1496,7 +1495,6 @@ local function UpdateTargetInfo()
 		msmdPanel:Show()
 		return true
 	end
-	Disappear()
 end
 
 function events:PLAYER_TARGET_CHANGED()
