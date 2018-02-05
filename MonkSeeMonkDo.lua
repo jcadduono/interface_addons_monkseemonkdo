@@ -988,19 +988,19 @@ APL.WW_ST = function()
 		return BlackoutKick
 	end
 	if ChiWave.known and ChiWave:usable() and Chi() <= 3 and EnergyTimeToMax() > 1 and (RisingSunKick:cooldown() >= 5 or WhirlingDragonPunch:cooldown() >= 5) then
-		return ChiWave
+		UseCooldown(ChiWave)
 	end
 	if ChiBurst.known and ChiBurst:usable() and Chi() <= 3 and EnergyTimeToMax() > 1 and (RisingSunKick:cooldown() >= 5 or WhirlingDragonPunch:cooldown() >= 5) then
-		return ChiBurst
+		UseCooldown(ChiBurst)
 	end
 	if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and (ChiDeficit() >= 2 or EnergyTimeToMax() < 3) then
 		return TigerPalm
 	end
 	if ChiWave.known and ChiWave:usable() then
-		return ChiWave
+		UseCooldown(ChiWave)
 	end
 	if ChiBurst.known and ChiBurst:usable() then
-		return ChiBurst
+		UseCooldown(ChiBurst)
 	end
 end
 
@@ -1037,7 +1037,7 @@ APL.WW_AOE = function()
 		return RushingJadeWind
 	end
 	if ChiBurst.known and ChiBurst:usable() then
-		return ChiBurst
+		UseCooldown(ChiBurst)
 	end
 	if SpinningCraneKick:usable() and not SpinningCraneKick:previous() then
 		return SpinningCraneKick
@@ -1060,7 +1060,7 @@ APL.WW_AOE = function()
 		return TigerPalm
 	end
 	if ChiWave.known and ChiWave:usable() then
-		return ChiWave
+		UseCooldown(ChiWave)
 	end
 end
 
