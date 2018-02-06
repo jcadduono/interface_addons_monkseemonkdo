@@ -881,7 +881,7 @@ APL.WW_SERENITY = function()
 	if StrikeOfTheWindlord:usable() then
 		return StrikeOfTheWindlord
 	end
-	if BlackoutKick:usable() and not BlackoutKick:previous() and Enemies() < 2 and (StrikeOfTheWindLord:previous() or FistsOfFury:previous()) then
+	if BlackoutKick:usable() and not BlackoutKick:previous() and Enemies() < 2 and (StrikeOfTheWindlord:previous() or FistsOfFury:previous()) then
 		return BlackoutKick
 	end
 	if FistsOfFury:usable() and (RisingSunKick:cooldown() > 1 or Enemies() > 1) and (not ItemEquipped.DrinkingHornCover or BloodlustActive() or Serenity:remains() < 1 or (ItemEquipped.DrinkingHornCover and Tier.T20P >= 4 and PressurePoint:remains() < 2)) then
