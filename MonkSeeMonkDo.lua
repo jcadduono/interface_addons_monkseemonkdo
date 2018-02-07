@@ -1201,17 +1201,18 @@ local function ShouldHide()
 end
 
 local function Disappear()
-	var.main, var.last_main = nil
-	var.cd, var.last_cd = nil
-	var.interrupt = nil
-	var.petcd, var.last_petcd = nil
-	UpdateGlows()
 	msmdPanel:Hide()
+	msmdPanel.icon:Hide()
 	msmdPanel.border:Hide()
 	msmdPreviousPanel:Hide()
 	msmdCooldownPanel:Hide()
 	msmdInterruptPanel:Hide()
 	msmdPetCDPanel:Hide()
+	var.main, var.last_main = nil
+	var.cd, var.last_cd = nil
+	var.interrupt = nil
+	var.petcd, var.last_petcd = nil
+	UpdateGlows()
 end
 
 function MonkSeeMonkDo_ToggleTargetMode()
