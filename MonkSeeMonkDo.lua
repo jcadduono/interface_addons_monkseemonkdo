@@ -784,7 +784,7 @@ local function UpdateVars()
 	hp = UnitHealth('target')
 	table.remove(Target.healthArray, 1)
 	Target.healthArray[#Target.healthArray + 1] = hp
-	Target.timeToDieMax = hp / UnitHealthMax('player') * 10
+	Target.timeToDieMax = hp / UnitHealthMax('player') * 5
 	Target.healthPercentage = Target.guid == 0 and 100 or (hp / UnitHealthMax('target') * 100)
 	hp_lost = Target.healthArray[1] - hp
 	Target.timeToDie = hp_lost > 0 and min(Target.timeToDieMax, hp / (hp_lost / 3)) or Target.timeToDieMax
