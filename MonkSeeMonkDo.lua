@@ -836,7 +836,7 @@ APL[SPEC.WINDWALKER] = function()
 	if TouchOfDeath:usable() and Target.timeToDie < 12 and Target.timeToDie > 8 then
 		UseCooldown(TouchOfDeath)
 	end
-	if (Serenity.known and Serenity:ready()) or Serenity:up() then
+	if Serenity.known and (Serenity:ready() or Serenity:up()) then
 		local serenity = APL.WW_SERENITY()
 		if serenity then
 			return serenity
@@ -874,6 +874,7 @@ APL.WW_SERENITY = function()
 	APL.WW_CD()
 	if Serenity:usable() then
 		UseCooldown(Serenity)
+		return
 	end
 	if RisingSunKick:usable() and Enemies() < 3 then
 		return RisingSunKick
