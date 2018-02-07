@@ -1002,6 +1002,9 @@ APL.WW_ST = function()
 	if ChiBurst.known and ChiBurst:usable() then
 		UseCooldown(ChiBurst)
 	end
+	if Chi() == 0 and TigerPalm:usable() then
+		return TigerPalm
+	end
 end
 
 APL.WW_AOE = function()
@@ -1061,6 +1064,9 @@ APL.WW_AOE = function()
 	end
 	if ChiWave.known and ChiWave:usable() then
 		UseCooldown(ChiWave)
+	end
+	if Chi() == 0 and TigerPalm:usable() then
+		return TigerPalm
 	end
 end
 
