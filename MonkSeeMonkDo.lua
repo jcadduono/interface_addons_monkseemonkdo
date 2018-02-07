@@ -952,10 +952,10 @@ APL.WW_ST = function()
 	end
 	if FistsOfFury:usable() and EnergyTimeToMax() > 2 then
 		if Serenity.known then
-			if not ItemEquipped.DrinkingHornCover and Serenity:cooldown() >= 5 then
+			if not ItemEquipped.DrinkingHornCover and not Serenity:ready(5) then
 				return FistsOfFury
 			end
-			if ItemEquipped.DrinkingHornCover and (Serenity:cooldown() >= 15 or Serenity:ready(4)) then
+			if ItemEquipped.DrinkingHornCover and (not Serenity:ready(15) or Serenity:ready(4)) then
 				return FistsOfFury
 			end
 		else
@@ -974,6 +974,18 @@ APL.WW_ST = function()
 		end
 		if SpinningCraneKick:usable() and not SpinningCraneKick:previous() and (Enemies() >= 3 or (ChiDeficit() >= 0 and BlackoutKickProc:up())) then
 			return SpinningCraneKick
+		end
+	end
+	if TigerPalm:usable() and not TigerPalm:previous() and FistsOfFury:ready(GCD()) and Chi() < FistsOfFury:chiCost() then
+		if Serenity.known then
+			if not ItemEquipped.DrinkingHornCover and not Serenity:ready(4) then
+				return TigerPalm
+			end
+			if ItemEquipped.DrinkingHornCover and (not Serenity:ready(14) or Serenity:ready(3)) then
+				return TigerPalm
+			end
+		else
+			return TigerPalm
 		end
 	end
 	if ItemEquipped.TheEmperorsCapacitor and CracklingJadeLightning:usable() and EnergyTimeToMax() > 3 and (TheEmperorsCapacitor:stack() >= 19 or (Serenity.known and TheEmperorsCapacitor:stack() >= 14 and Serenity:ready(13))) then
@@ -1015,10 +1027,10 @@ APL.WW_AOE = function()
 	end
 	if FistsOfFury:usable() and EnergyTimeToMax() > 2 then
 		if Serenity.known then
-			if not ItemEquipped.DrinkingHornCover and Serenity:cooldown() >= 5 then
+			if not ItemEquipped.DrinkingHornCover and not Serenity:ready(5) then
 				return FistsOfFury
 			end
-			if ItemEquipped.DrinkingHornCover and (Serenity:cooldown() >= 15 or Serenity:ready(4)) then
+			if ItemEquipped.DrinkingHornCover and (not Serenity:ready(15) or Serenity:ready(4)) then
 				return FistsOfFury
 			end
 		else
@@ -1036,6 +1048,18 @@ APL.WW_AOE = function()
 	end
 	if WhirlingDragonPunch.known and RisingSunKick:usable() and not RisingSunKick:previous() and WhirlingDragonPunch:cooldown() > GCD() and FistsOfFury:cooldown() > GCD() then
 		return RisingSunKick
+	end
+	if TigerPalm:usable() and not TigerPalm:previous() and FistsOfFury:ready(GCD()) and Chi() < FistsOfFury:chiCost() then
+		if Serenity.known then
+			if not ItemEquipped.DrinkingHornCover and not Serenity:ready(4) then
+				return TigerPalm
+			end
+			if ItemEquipped.DrinkingHornCover and (not Serenity:ready(14) or Serenity:ready(3)) then
+				return TigerPalm
+			end
+		else
+			return TigerPalm
+		end
 	end
 	if RushingJadeWind.known and RushingJadeWind:usable() and not RushingJadeWind:previous() and ChiDeficit() > 1 then
 		return RushingJadeWind
