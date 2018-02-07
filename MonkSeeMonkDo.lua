@@ -833,7 +833,7 @@ APL[SPEC.WINDWALKER] = function()
 	if MonkSeeMonkDo.pot and PotionOfProlongedPower:usable() and (Serenity:up() or StormEarthAndFire:up() or BloodlustActive() or Target.timeToDie <= 60) then
 		UseCooldown(PotionOfProlongedPower)
 	end
-	if TouchOfDeath:usable() and Target.timeToDie < 12 and Target.timeToDie > 8 then
+	if TouchOfDeath:usable() and TouchOfDeath:down() and Target.timeToDie < 12 and Target.timeToDie > 8 then
 		UseCooldown(TouchOfDeath)
 	end
 	if Serenity.known and (Serenity:ready() or Serenity:up()) then
@@ -925,7 +925,7 @@ APL.WW_CD = function()
 	if ArcaneTorrent.known and ArcaneTorrent:usable() and ChiDeficit() >= 1 and EnergyTimeToMax() >= 0.5 then
 		UseCooldown(ArcaneTorrent)
 	end
-	if TouchOfDeath:usable() and ((Serenity.known and Serenity:ready(1)) or Chi() >= 2) and (StrikeOfTheWindlord:ready(8) or FistsOfFury:ready(4)) and RisingSunKick:ready(7) and not TouchOfDeath:previous() then
+	if TouchOfDeath:usable() and TouchOfDeath:down() and Target.timeToDie > 8 and ((Serenity.known and Serenity:ready(1)) or Chi() >= 2) and (StrikeOfTheWindlord:ready(8) or FistsOfFury:ready(4)) and RisingSunKick:ready(7) and not TouchOfDeath:previous() then
 		UseCooldown(TouchOfDeath)
 	end
 end
