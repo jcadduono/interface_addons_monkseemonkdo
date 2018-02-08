@@ -536,6 +536,7 @@ local ChiWave = Ability.add(115098, false, true)
 ChiWave.cooldown_duration = 15
 local EnergizingElixir = Ability.add(115288, false, true)
 EnergizingElixir.cooldown_duration = 60
+EnergizingElixir.triggers_gcd = false
 local HitCombo = Ability.add(196740, true, true, 196741)
 HitCombo.buff_duration = 10
 local InvokeXuenTheWhiteTiger = Ability.add(123904, false, true)
