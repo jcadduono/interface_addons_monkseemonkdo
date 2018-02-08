@@ -44,14 +44,14 @@ local function InitializeVariables()
 			previous = 0.7,
 			cooldown = 0.7,
 			interrupt = 0.4,
-			petcd = 0.4,
+			touch = 0.4,
 			glow = 1,
 		},
 		glow = {
 			main = true,
 			cooldown = true,
 			interrupt = false,
-			petcd = true,
+			touch = true,
 			blizzard = false,
 			color = { r = 1, g = 1, b = 1 }
 		},
@@ -210,21 +210,21 @@ msmdInterruptPanel.border:SetAllPoints(msmdInterruptPanel)
 msmdInterruptPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
 msmdInterruptPanel.cast = CreateFrame('Cooldown', nil, msmdInterruptPanel, 'CooldownFrameTemplate')
 msmdInterruptPanel.cast:SetAllPoints(msmdInterruptPanel)
-local msmdPetCDPanel = CreateFrame('Frame', 'msmdPetCDPanel', UIParent)
-msmdPetCDPanel:SetPoint('TOPRIGHT', msmdPanel, 'TOPLEFT', -16, 25)
-msmdPetCDPanel:SetFrameStrata('BACKGROUND')
-msmdPetCDPanel:SetSize(64, 64)
-msmdPetCDPanel:Hide()
-msmdPetCDPanel:RegisterForDrag('LeftButton')
-msmdPetCDPanel:SetScript('OnDragStart', msmdPetCDPanel.StartMoving)
-msmdPetCDPanel:SetScript('OnDragStop', msmdPetCDPanel.StopMovingOrSizing)
-msmdPetCDPanel:SetMovable(true)
-msmdPetCDPanel.icon = msmdPetCDPanel:CreateTexture(nil, 'BACKGROUND')
-msmdPetCDPanel.icon:SetAllPoints(msmdPetCDPanel)
-msmdPetCDPanel.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
-msmdPetCDPanel.border = msmdPetCDPanel:CreateTexture(nil, 'ARTWORK')
-msmdPetCDPanel.border:SetAllPoints(msmdPetCDPanel)
-msmdPetCDPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
+local msmdTouchPanel = CreateFrame('Frame', 'msmdTouchPanel', UIParent)
+msmdTouchPanel:SetPoint('TOPRIGHT', msmdPanel, 'TOPLEFT', -16, 25)
+msmdTouchPanel:SetFrameStrata('BACKGROUND')
+msmdTouchPanel:SetSize(64, 64)
+msmdTouchPanel:Hide()
+msmdTouchPanel:RegisterForDrag('LeftButton')
+msmdTouchPanel:SetScript('OnDragStart', msmdTouchPanel.StartMoving)
+msmdTouchPanel:SetScript('OnDragStop', msmdTouchPanel.StopMovingOrSizing)
+msmdTouchPanel:SetMovable(true)
+msmdTouchPanel.icon = msmdTouchPanel:CreateTexture(nil, 'BACKGROUND')
+msmdTouchPanel.icon:SetAllPoints(msmdTouchPanel)
+msmdTouchPanel.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
+msmdTouchPanel.border = msmdTouchPanel:CreateTexture(nil, 'ARTWORK')
+msmdTouchPanel.border:SetAllPoints(msmdTouchPanel)
+msmdTouchPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
 
 -- Start Abilities
 
@@ -523,6 +523,7 @@ TigerPalm.chi_cost = -2
 TigerPalm.energy_cost = 50
 local TouchOfDeath = Ability.add(115080, false, true)
 TouchOfDeath.cooldown_duration = 120
+TouchOfDeath.buff_duration = 8
 local TouchOfKarma = Ability.add(122470, true, true, 125174)
 TouchOfKarma.cooldown_duration = 90
 TouchOfKarma.triggers_gcd = false
@@ -759,10 +760,10 @@ local function UpdateVars()
 	local _, start, duration, remains, hp, hp_lost, spellId
 	var.last_main = var.main
 	var.last_cd = var.cd
-	var.last_petcd = var.petcd
+	var.last_touch = var.touch
 	var.main =  nil
 	var.cd = nil
-	var.petcd = nil
+	var.touch = nil
 	var.time = GetTime()
 	if currentSpec == SPEC.MISTWEAVER then
 		var.gcd = 1.5 - (1.5 * (UnitSpellHaste('player') / 100))
@@ -793,6 +794,12 @@ end
 local function UseCooldown(ability, overwrite, always)
 	if always or (MonkSeeMonkDo.cooldown and (not MonkSeeMonkDo.boss_only or Target.boss) and (not var.cd or overwrite)) then
 		var.cd = ability
+	end
+end
+
+local function UseTouch(ability, overwrite)
+	if not var.touch or overwrite then
+		var.touch = ability
 	end
 end
 
@@ -834,7 +841,7 @@ APL[SPEC.WINDWALKER] = function()
 		UseCooldown(PotionOfProlongedPower)
 	end
 	if TouchOfDeath:usable() and TouchOfDeath:down() and Target.timeToDie < 12 and Target.timeToDie > 8 then
-		UseCooldown(TouchOfDeath)
+		UseTouch(TouchOfDeath)
 	end
 	if Serenity.known and (Serenity:ready() or Serenity:up()) then
 		local serenity = APL.WW_SERENITY()
@@ -929,7 +936,7 @@ APL.WW_CD = function()
 		UseCooldown(ArcaneTorrent)
 	end
 	if TouchOfDeath:usable() and TouchOfDeath:down() and Target.timeToDie > 8 and ((Serenity.known and Serenity:ready(1)) or Chi() >= 2) and (StrikeOfTheWindlord:ready(8) or FistsOfFury:ready(4)) and RisingSunKick:ready(7) and not TouchOfDeath:previous() then
-		UseCooldown(TouchOfDeath)
+		UseTouch(TouchOfDeath)
 	end
 end
 
@@ -1206,7 +1213,7 @@ local function UpdateGlows()
 			(MonkSeeMonkDo.glow.main and var.main and icon == var.main.icon) or
 			(MonkSeeMonkDo.glow.cooldown and var.cd and icon == var.cd.icon) or
 			(MonkSeeMonkDo.glow.interrupt and var.interrupt and icon == var.interrupt.icon) or
-			(MonkSeeMonkDo.glow.petcd and var.petcd and icon == var.petcd.icon)
+			(MonkSeeMonkDo.glow.touch and var.touch and icon == var.touch.icon)
 			) then
 			if not glow:IsVisible() then
 				glow.animIn:Play()
@@ -1241,11 +1248,11 @@ local function Disappear()
 	msmdPreviousPanel:Hide()
 	msmdCooldownPanel:Hide()
 	msmdInterruptPanel:Hide()
-	msmdPetCDPanel:Hide()
+	msmdTouchPanel:Hide()
 	var.main, var.last_main = nil
 	var.cd, var.last_cd = nil
 	var.interrupt = nil
-	var.petcd, var.last_petcd = nil
+	var.touch, var.last_touch = nil
 	UpdateGlows()
 end
 
@@ -1310,7 +1317,7 @@ local function UpdateDraggable()
 		msmdPreviousPanel:EnableMouse(false)
 		msmdCooldownPanel:EnableMouse(false)
 		msmdInterruptPanel:EnableMouse(false)
-		msmdPetCDPanel:EnableMouse(false)
+		msmdTouchPanel:EnableMouse(false)
 	else
 		if not MonkSeeMonkDo.aoe then
 			msmdPanel:SetScript('OnDragStart', msmdPanel.StartMoving)
@@ -1320,7 +1327,7 @@ local function UpdateDraggable()
 		msmdPreviousPanel:EnableMouse(true)
 		msmdCooldownPanel:EnableMouse(true)
 		msmdInterruptPanel:EnableMouse(true)
-		msmdPetCDPanel:EnableMouse(true)
+		msmdTouchPanel:EnableMouse(true)
 	end
 end
 
@@ -1349,7 +1356,7 @@ local function UpdateAlpha()
 	msmdPreviousPanel:SetAlpha(MonkSeeMonkDo.alpha)
 	msmdCooldownPanel:SetAlpha(MonkSeeMonkDo.alpha)
 	msmdInterruptPanel:SetAlpha(MonkSeeMonkDo.alpha)
-	msmdPetCDPanel:SetAlpha(MonkSeeMonkDo.alpha)
+	msmdTouchPanel:SetAlpha(MonkSeeMonkDo.alpha)
 end
 
 local function UpdateHealthArray()
@@ -1382,12 +1389,12 @@ local function UpdateCombat()
 			msmdCooldownPanel:Hide()
 		end
 	end
-	if var.petcd ~= var.last_petcd then
-		if var.petcd then
-			msmdPetCDPanel.icon:SetTexture(var.petcd.icon)
-			msmdPetCDPanel:Show()
+	if var.touch ~= var.last_touch then
+		if var.touch then
+			msmdTouchPanel.icon:SetTexture(var.touch.icon)
+			msmdTouchPanel:Show()
 		else
-			msmdPetCDPanel:Hide()
+			msmdTouchPanel:Hide()
 		end
 	end
 	if MonkSeeMonkDo.dimmer then
@@ -1442,7 +1449,7 @@ function events:ADDON_LOADED(name)
 		msmdPreviousPanel:SetScale(MonkSeeMonkDo.scale.previous)
 		msmdCooldownPanel:SetScale(MonkSeeMonkDo.scale.cooldown)
 		msmdInterruptPanel:SetScale(MonkSeeMonkDo.scale.interrupt)
-		msmdPetCDPanel:SetScale(MonkSeeMonkDo.scale.petcd)
+		msmdTouchPanel:SetScale(MonkSeeMonkDo.scale.touch)
 	end
 end
 
@@ -1678,12 +1685,12 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 			end
 			return print('MonkSeeMonkDo - Interrupt ability icon scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.interrupt .. '|r times')
 		end
-		if startsWith(msg[2], 'pet') then
+		if startsWith(msg[2], 'to') then
 			if msg[3] then
-				MonkSeeMonkDo.scale.petcd = tonumber(msg[3]) or 0.4
-				msmdPetCDPanel:SetScale(MonkSeeMonkDo.scale.petcd)
+				MonkSeeMonkDo.scale.touch = tonumber(msg[3]) or 0.4
+				msmdTouchPanel:SetScale(MonkSeeMonkDo.scale.touch)
 			end
-			return print('MonkSeeMonkDo - Pet cooldown ability icon scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.petcd .. '|r times')
+			return print('MonkSeeMonkDo - Touch cooldown ability icon scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.touch .. '|r times')
 		end
 		if msg[2] == 'glow' then
 			if msg[3] then
@@ -1730,12 +1737,12 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 			end
 			return print('MonkSeeMonkDo - Glowing ability buttons (interrupt icon): ' .. (MonkSeeMonkDo.glow.interrupt and '|cFF00C000On' or '|cFFC00000Off'))
 		end
-		if startsWith(msg[2], 'pet') then
+		if startsWith(msg[2], 'to') then
 			if msg[3] then
-				MonkSeeMonkDo.glow.petcd = msg[3] == 'on'
+				MonkSeeMonkDo.glow.touch = msg[3] == 'on'
 				UpdateGlows()
 			end
-			return print('MonkSeeMonkDo - Glowing ability buttons (pet cooldown icon): ' .. (MonkSeeMonkDo.glow.petcd and '|cFF00C000On' or '|cFFC00000Off'))
+			return print('MonkSeeMonkDo - Glowing ability buttons (touch cooldown icon): ' .. (MonkSeeMonkDo.glow.touch and '|cFF00C000On' or '|cFFC00000Off'))
 		end
 		if startsWith(msg[2], 'bliz') then
 			if msg[3] then
@@ -1860,8 +1867,8 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 		msmdCooldownPanel:SetPoint('BOTTOMLEFT', msmdPanel, 'BOTTOMRIGHT', 10, -5)
 		msmdInterruptPanel:ClearAllPoints()
 		msmdInterruptPanel:SetPoint('TOPLEFT', msmdPanel, 'TOPRIGHT', 16, 25)
-		msmdPetCDPanel:ClearAllPoints()
-		msmdPetCDPanel:SetPoint('TOPRIGHT', msmdPanel, 'TOPLEFT', -16, 25)
+		msmdTouchPanel:ClearAllPoints()
+		msmdTouchPanel:SetPoint('TOPRIGHT', msmdPanel, 'TOPLEFT', -16, 25)
 		return print('MonkSeeMonkDo - Position has been reset to default')
 	end
 	print('MonkSeeMonkDo (version: |cFFFFD000' .. GetAddOnMetadata('MonkSeeMonkDo', 'Version') .. '|r) - Commands:')
@@ -1869,10 +1876,10 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 	for _, cmd in next, {
 		'locked |cFF00C000on|r/|cFFC00000off|r - lock the MonkSeeMonkDo UI so that it can\'t be moved',
 		'snap |cFF00C000above|r/|cFF00C000below|r/|cFFC00000off|r - snap the MonkSeeMonkDo UI to the Blizzard combat resources frame',
-		'scale |cFFFFD000prev|r/|cFFFFD000main|r/|cFFFFD000cd|r/|cFFFFD000interrupt|r/|cFFFFD000pet|r/|cFFFFD000glow|r - adjust the scale of the MonkSeeMonkDo UI icons',
+		'scale |cFFFFD000prev|r/|cFFFFD000main|r/|cFFFFD000cd|r/|cFFFFD000interrupt|r/|cFFFFD000touch|r/|cFFFFD000glow|r - adjust the scale of the MonkSeeMonkDo UI icons',
 		'alpha |cFFFFD000[percent]|r - adjust the transparency of the MonkSeeMonkDo UI icons',
 		'frequency |cFFFFD000[number]|r - set the calculation frequency (default is every 0.05 seconds)',
-		'glow |cFFFFD000main|r/|cFFFFD000cd|r/|cFFFFD000interrupt|r/|cFFFFD000pet|r/|cFFFFD000blizzard|r |cFF00C000on|r/|cFFC00000off|r - glowing ability buttons on action bars',
+		'glow |cFFFFD000main|r/|cFFFFD000cd|r/|cFFFFD000interrupt|r/|cFFFFD000touch|r/|cFFFFD000blizzard|r |cFF00C000on|r/|cFFC00000off|r - glowing ability buttons on action bars',
 		'glow color |cFFF000000.0-1.0|r |cFF00FF000.1-1.0|r |cFF0000FF0.0-1.0|r - adjust the color of the ability button glow',
 		'previous |cFF00C000on|r/|cFFC00000off|r - previous ability icon',
 		'always |cFF00C000on|r/|cFFC00000off|r - show the MonkSeeMonkDo UI without a target',
