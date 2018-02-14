@@ -841,16 +841,22 @@ APL[SPEC.WINDWALKER] = function()
 	if MonkSeeMonkDo.pot and PotionOfProlongedPower:usable() and (Serenity:up() or StormEarthAndFire:up() or BloodlustActive() or Target.timeToDie <= 60) then
 		UseCooldown(PotionOfProlongedPower)
 	end
-	if TouchOfDeath:usable() and TouchOfDeath:down() and Target.timeToDie < 12 and Target.timeToDie > 8 then
+	if TouchOfDeath:usable() and TouchOfDeath:down() and not TouchOfDeath:previous() and Target.timeToDie < 12 and Target.timeToDie > 8 then
 		UseTouch(TouchOfDeath)
 	end
-	if Serenity.known and (Serenity:ready() or Serenity:up()) then
-		local serenity = APL.WW_SERENITY()
-		if serenity then
-			return serenity
+	if Serenity.known then
+		if Serenity:up() then
+			local serenity = APL.WW_SERENITY()
+			if serenity then
+				return serenity
+			end
+		elseif Serenity:usable() and Serenity:down() and (StrikeOfTheWindlord:ready(8) or FistsOfFury:ready(4) or RisingSunKick:ready(1)) then
+			if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and Energy() >= EnergyMax() and Chi() < 1 then
+				return TigerPalm
+			end
+			UseCooldown(Serenity)
 		end
-	end
-	if not Serenity.known then
+	else
 		local sef
 		if StormEarthAndFire:up() or StormEarthAndFire:charges() == 2 then
 			sef = APL.WW_SEF()
@@ -876,14 +882,7 @@ APL[SPEC.WINDWALKER] = function()
 end
 
 APL.WW_SERENITY = function()
-	if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and Energy() >= EnergyMax() and Chi() < 1 and Serenity:down() then
-		return TigerPalm
-	end
 	APL.WW_CD()
-	if Serenity:usable() then
-		UseCooldown(Serenity)
-		return
-	end
 	if RisingSunKick:usable() and Enemies() < 3 then
 		return RisingSunKick
 	end
