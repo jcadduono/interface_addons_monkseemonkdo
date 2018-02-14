@@ -1,6 +1,6 @@
 ## Interface: 70300
 ## Title: MonkSeeMonkDo
-## Notes: MonkSeeMonkDo is an addon for warlocks that simplifies gameplay and maximizes DPS by doing all the decision making for you
+## Notes: MonkSeeMonkDo is an addon for monks that simplifies gameplay and maximizes DPS by doing all the decision making for you
 ## Author: Jpapertowels @ curse.com or Spy#1955 @ BattleTag
 ## SavedVariablesPerCharacter: MonkSeeMonkDo
 ## Version: 7.3.5-0
