@@ -89,7 +89,19 @@ local events, glows = {}, {}
 
 local abilityTimer, currentSpec, targetMode, combatStartTime = 0, 0, 0, 0
 
+-- list of targets detected in AoE proximity
 local Targets = {}
+
+-- current target information
+local Target = {
+	boss = false,
+	guid = 0,
+	healthArray = {},
+	hostile = false
+}
+
+-- list of previous GCD abilities
+local PreviousGCD = {}
 
 -- tier set equipped pieces count
 local Tier = {
@@ -109,8 +121,6 @@ local ItemEquipped = {
 local var = {
 	gcd = 0
 }
-
-msmdVar = var
 
 local targetModes = {
 	[SPEC.NONE] = {
@@ -389,7 +399,7 @@ function Ability:previous()
 	if var.cast_ability then
 		return var.cast_ability == self
 	end
-	return var.last_gcd == self or var.last_ability == self
+	return PreviousGCD[1] == self or var.last_ability == self
 end
 
 function Ability:setAutoAoe(enabled)
@@ -595,7 +605,7 @@ end
 
 function InventoryItem:charges()
 	local charges = GetItemCount(self.itemId, false, true) or 0
-	if self.created_by and (self.created_by:previous() or var.last_gcd == self.created_by) then
+	if self.created_by and (self.created_by:previous() or PreviousGCD[1] == self.created_by) then
 		charges = max(charges, self.max_charges)
 	end
 	return charges
@@ -603,7 +613,7 @@ end
 
 function InventoryItem:count()
 	local count = GetItemCount(self.itemId, false, false) or 0
-	if self.created_by and (self.created_by:previous() or var.last_gcd == self.created_by) then
+	if self.created_by and (self.created_by:previous() or PreviousGCD[1] == self.created_by) then
 		count = max(count, 1)
 	end
 	return count
@@ -631,13 +641,6 @@ local PotionOfProlongedPower = InventoryItem.add(142117)
 -- End Inventory Items
 
 -- Start Helpful Functions
-
-local Target = {
-	boss = false,
-	guid = 0,
-	healthArray = {},
-	hostile = false
-}
 
 local function GetExecuteEnergyRegen()
 	return var.energy_regen * var.execute_remains - (var.cast_ability and var.cast_ability:energyCost() or 0)
@@ -889,7 +892,7 @@ APL.WW_SERENITY = function()
 	if StrikeOfTheWindlord:usable() then
 		return StrikeOfTheWindlord
 	end
-	if FistsOfFury:usable() and Serenity:remains() < 1 then
+	if FistsOfFury:usable() and not ItemEquipped.DrinkingHornCover and ((RisingSunKick:previous() and StrikeOfTheWindlord:cooldown() > 4 * HasteFactor()) or (StrikeOfTheWindlord:previous() and PreviousGCD[2] == RisingSunKick)) then
 		return FistsOfFury
 	end
 	if BlackoutKick:usable() and not BlackoutKick:previous() and Enemies() < 2 and (StrikeOfTheWindlord:previous() or FistsOfFury:previous()) then
@@ -1465,7 +1468,8 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 		if castedAbility then
 			var.last_ability = castedAbility
 			if var.last_ability.triggers_gcd then
-				var.last_gcd = var.last_ability
+				PreviousGCD[10] = nil
+				table.insert(PreviousGCD, 1, castedAbility)
 			end
 			if MonkSeeMonkDo.previous and msmdPanel:IsVisible() then
 				msmdPreviousPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
