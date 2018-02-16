@@ -581,6 +581,7 @@ BlackoutKickProc.buff_duration = 15
 local PressurePoint = Ability.add(247255, true, true)
 PressurePoint.buff_duration = 5
 -- Tier Bonuses & Legendaries
+local HiddenMastersForbiddenTouch = Ability.add(213114, true, true)
 local TheEmperorsCapacitor = Ability.add(235054, true, true)
 -- Racials
 local ArcaneTorrent = Ability.add(25046, true, false) -- Blood Elf
@@ -944,8 +945,13 @@ APL.WW_CD = function()
 	if ArcaneTorrent.known and ArcaneTorrent:usable() and ChiDeficit() >= 1 and EnergyTimeToMax() >= 0.5 then
 		UseCooldown(ArcaneTorrent)
 	end
-	if TouchOfDeath:usable() and TouchOfDeath:down() and Target.timeToDie > 8 and ((Serenity.known and Serenity:ready(1)) or Chi() >= 2) and (StrikeOfTheWindlord:ready(8) or FistsOfFury:ready(4)) and RisingSunKick:ready(7) and not TouchOfDeath:previous() then
-		UseTouch(TouchOfDeath)
+	if TouchOfDeath:usable() and TouchOfDeath:down() and not TouchOfDeath:previous() and Target.timeToDie > 8 then
+		if Serenity.known and Serenity:ready(3) and (StrikeOfTheWindlord:ready(11) or FistsOfFury:ready(7) or RisingSunKick:ready(4)) then
+			UseTouch(TouchOfDeath)
+		end
+		if ItemEquipped.HiddenMastersForbiddenTouch and HiddenMastersForbiddenTouch:up() then
+			UseTouch(TouchOfDeath)
+		end
 	end
 end
 
@@ -1019,6 +1025,9 @@ APL.WW_ST = function()
 	if BlackoutKick:usable() and not BlackoutKick:previous() and (Chi() > 1 or BlackoutKickProc:up() or (EnergizingElixir.known and EnergizingElixir:cooldown() < FistsOfFury:cooldown())) and (((RisingSunKick:cooldown() > 1 and StrikeOfTheWindlord:cooldown() > 1) or Chi() > 4) and (FistsOfFury:cooldown() > 1 or Chi() > 2) or TigerPalm:previous()) then
 		return BlackoutKick
 	end
+	if not Serenity.known and TouchOfDeath:usable() and Target.timeToDie > 8 and TouchOfDeath:down() and not TouchOfDeath:previous() and Chi() >= 2 then
+		UseTouch(TouchOfDeath)
+	end
 	if ChiWave.known and ChiWave:usable() and Chi() <= 3 and EnergyTimeToMax() > 1 and (RisingSunKick:cooldown() >= 5 or WhirlingDragonPunch:cooldown() >= 5) then
 		UseCooldown(ChiWave)
 	end
@@ -1033,6 +1042,9 @@ APL.WW_ST = function()
 	end
 	if ChiBurst.known and ChiBurst:usable() then
 		UseCooldown(ChiBurst)
+	end
+	if not Serenity.known and TouchOfDeath:usable() and Target.timeToDie > 8 and TouchOfDeath:down() and not TouchOfDeath:previous() then
+		UseTouch(TouchOfDeath)
 	end
 	if Chi() == 0 and TigerPalm:usable() then
 		return TigerPalm
@@ -1103,11 +1115,17 @@ APL.WW_AOE = function()
 	if BlackoutKick:usable() and Tier.T21P >= 4 and not BlackoutKick:previous() and BlackoutKickProc:up() and ChiDeficit() >= 1 then
 		return BlackoutKick
 	end
+	if not Serenity.known and TouchOfDeath:usable() and Target.timeToDie > 8 and TouchOfDeath:down() and not TouchOfDeath:previous() and Chi() >= 2 then
+		UseTouch(TouchOfDeath)
+	end
 	if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and (ChiDeficit() >= 2 or EnergyTimeToMax() < 3) then
 		return TigerPalm
 	end
 	if ChiWave.known and ChiWave:usable() then
 		UseCooldown(ChiWave)
+	end
+	if not Serenity.known and TouchOfDeath:usable() and Target.timeToDie > 8 and TouchOfDeath:down() and not TouchOfDeath:previous() then
+		UseTouch(TouchOfDeath)
 	end
 	if Chi() == 0 and TigerPalm:usable() then
 		return TigerPalm
