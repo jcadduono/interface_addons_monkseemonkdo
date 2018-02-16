@@ -159,6 +159,12 @@ msmdPanel.border = msmdPanel:CreateTexture(nil, 'ARTWORK')
 msmdPanel.border:SetAllPoints(msmdPanel)
 msmdPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
 msmdPanel.border:Hide()
+msmdPanel.text = msmdPanel:CreateFontString(nil, 'OVERLAY')
+msmdPanel.text:SetFont('Fonts\\FRIZQT__.TTF', 14, 'OUTLINE')
+msmdPanel.text:SetTextColor(1, 1, 1, 1)
+msmdPanel.text:SetAllPoints(msmdPanel)
+msmdPanel.text:SetJustifyH('CENTER')
+msmdPanel.text:SetJustifyV('CENTER')
 msmdPanel.swipe = CreateFrame('Cooldown', nil, msmdPanel, 'CooldownFrameTemplate')
 msmdPanel.swipe:SetAllPoints(msmdPanel)
 msmdPanel.dimmer = msmdPanel:CreateTexture(nil, 'BORDER')
@@ -1354,6 +1360,21 @@ end
 NamePlatePlayerResourceFrame:HookScript("OnHide", OnResourceFrameHide)
 NamePlatePlayerResourceFrame:HookScript("OnShow", OnResourceFrameShow)
 
+local function UpdateSerenityOverlay()
+	local remains = Serenity:remains()
+	if remains > 0 then
+		if not msmdPanel.serenityOverlayOn then
+			msmdPanel.serenityOverlayOn = true
+			msmdPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\serenity.blp')
+		end
+		msmdPanel.text:SetText(format('%.1f', remains))
+	elseif msmdPanel.serenityOverlayOn then
+		msmdPanel.serenityOverlayOn = false
+		msmdPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
+		msmdPanel.text:SetText()
+	end
+end
+
 local function UpdateAlpha()
 	msmdPanel:SetAlpha(MonkSeeMonkDo.alpha)
 	msmdPreviousPanel:SetAlpha(MonkSeeMonkDo.alpha)
@@ -1413,6 +1434,9 @@ local function UpdateCombat()
 	end
 	if MonkSeeMonkDo.interrupt then
 		UpdateInterrupt()
+	end
+	if Serenity.known then
+		UpdateSerenityOverlay()
 	end
 	UpdateGlows()
 end
