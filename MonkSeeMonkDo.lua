@@ -585,8 +585,8 @@ PressurePoint.buff_duration = 5
 local HiddenMastersForbiddenTouch = Ability.add(213114, true, true)
 local TheEmperorsCapacitor = Ability.add(235054, true, true)
 -- Racials
-local ArcaneTorrent = Ability.add(25046, true, false) -- Blood Elf
-ArcaneTorrent.energy_cost = -15
+local ArcaneTorrent = Ability.add(129597, true, false) -- Blood Elf
+ArcaneTorrent.chi_cost = -1
 ArcaneTorrent.triggers_gcd = false
 -- Potion Effects
 local ProlongedPower = Ability.add(229206, true, true)
