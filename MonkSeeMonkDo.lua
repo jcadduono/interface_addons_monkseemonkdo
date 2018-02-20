@@ -503,6 +503,7 @@ local BlackoutKick = Ability.add(100784, false, true)
 BlackoutKick.chi_cost = 1
 local CracklingJadeLightning = Ability.add(117952, false, true)
 CracklingJadeLightning.energy_cost = 20
+CracklingJadeLightning.usable_moving = false
 local Disable = Ability.add(116095, false, true)
 Disable.energy_cost = 15
 local FistsOfFury = Ability.add(113656, false, true, 117418)
@@ -763,6 +764,19 @@ function SephuzsSecret:cooldown()
 		return 0
 	end
 	return self.cooldown_duration - (var.time - self.cooldown_start)
+end
+
+function TheEmperorsCapacitor:stack()
+	if CracklingJadeLightning:previous() then
+		return 0
+	end
+	return Ability.stack(self)
+end
+
+function CracklingJadeLightning:energyCost()
+	local cost = Ability.energyCost(self)
+	cost = cost - (cost * TheEmperorsCapacitor:stack() * .05)
+	return cost
 end
 
 -- End Ability Modifications
