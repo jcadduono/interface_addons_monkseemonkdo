@@ -956,7 +956,7 @@ APL.WW_CD = function()
 	if InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:usable() then
 		UseCooldown(InvokeXuenTheWhiteTiger)
 	end
-	if ArcaneTorrent.known and ArcaneTorrent:usable() and ChiDeficit() >= 1 and EnergyTimeToMax() >= 0.5 then
+	if ArcaneTorrent.known and ArcaneTorrent:usable() and Chi() < 3 and (not Serenity.known or Serenity:down()) and (RisingSunKick:ready(1) or StrikeOfTheWindlord:ready(1) or FistsOfFury:ready(1)) then
 		UseCooldown(ArcaneTorrent)
 	end
 	if TouchOfDeath:usable() and TouchOfDeath:down() and not TouchOfDeath:previous() and Target.timeToDie > 8 then
