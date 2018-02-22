@@ -913,7 +913,7 @@ APL.WW_SERENITY = function()
 	if StrikeOfTheWindlord:usable() then
 		return StrikeOfTheWindlord
 	end
-	if FistsOfFury:usable() and not ItemEquipped.DrinkingHornCover and ((RisingSunKick:previous() and StrikeOfTheWindlord:cooldown() > 4 * HasteFactor()) or (StrikeOfTheWindlord:previous() and PreviousGCD[2] == RisingSunKick)) then
+	if FistsOfFury:usable() and not ItemEquipped.DrinkingHornCover and ((RisingSunKick:previous() and not StrikeOfTheWindlord:ready(4 * HasteFactor())) or (StrikeOfTheWindlord:previous() and PreviousGCD[2] == RisingSunKick)) then
 		return FistsOfFury
 	end
 	if BlackoutKick:usable() and not BlackoutKick:previous() and Enemies() < 2 and (StrikeOfTheWindlord:previous() or FistsOfFury:previous()) then
@@ -1027,7 +1027,7 @@ APL.WW_ST = function()
 			return TigerPalm
 		end
 	end
-	if ItemEquipped.TheEmperorsCapacitor and CracklingJadeLightning:usable() and EnergyTimeToMax() > 3 and (TheEmperorsCapacitor:stack() >= 19 or (Serenity.known and TheEmperorsCapacitor:stack() >= 14 and Serenity:ready(13))) then
+	if ItemEquipped.TheEmperorsCapacitor and CracklingJadeLightning:usable() and EnergyTimeToMax() > 3 and not RisingSunKick:ready(4 * HasteFactor()) and (TheEmperorsCapacitor:stack() >= 19 or (Serenity.known and TheEmperorsCapacitor:stack() >= 14 and Serenity:ready(13))) then
 		return CracklingJadeLightning
 	end
 	if SpinningCraneKick:usable() and Enemies() >= 3 and not SpinningCraneKick:previous() then
