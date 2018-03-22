@@ -129,8 +129,7 @@ local targetModes = {
 	[SPEC.BREWMASTER] = {
 		{1, ''},
 		{2, '2'},
-		{3, '3'},
-		{4, '4+'}
+		{3, '3+'},
 	},
 	[SPEC.MISTWEAVER] = {
 		{1, ''},
@@ -375,7 +374,20 @@ function Ability:chiCost()
 end
 
 function Ability:charges()
-	return GetSpellCharges(self.spellId) or 0
+	return (GetSpellCharges(self.spellId)) or 0
+end
+
+function Ability:charges_fractional()
+	local charges, max_charges, recharge_start, recharge_time = GetSpellCharges(self.spellId)
+	if charges >= max_charges then
+		return charges
+	end
+	return charges + ((var.time - recharge_start) / recharge_time)
+end
+
+function Ability:max_charges()
+	local _, max_charges = GetSpellCharges(self.spellId)
+	return max_charges or 0
 end
 
 function Ability:duration()
@@ -481,15 +493,57 @@ end
 -- Monk Abilities
 ---- Multiple Specializations
 local Resuscitate = Ability.add(115178) -- used for GCD
+local SpearHandStrike = Ability.add(116705, false, true)
+SpearHandStrike.cooldown_duration = 15
+SpearHandStrike.triggers_gcd = false
 ------ Talents
 
 ------ Procs
 local SephuzsSecret = Ability.add(208052, true, true)
 SephuzsSecret.cooldown_duration = 30
 ---- Brewmaster
-
+local BlackoutStrike = Ability.add(205523, false, true)
+BlackoutStrike.cooldown_duration = 3
+local BreathOfFire = Ability.add(115181, false, true, 123725)
+BreathOfFire.cooldown_duration = 15
+BreathOfFire.buff_duration = 16
+BreathOfFire:setAutoAoe(true)
+local ExplodingKeg = Ability.add(214326, false, true)
+ExplodingKeg.cooldown_duration = 75
+ExplodingKeg.buff_duration = 3
+ExplodingKeg:setAutoAoe(true)
+local IronskinBrew = Ability.add(115308, true, true)
+IronskinBrew.hasted_cooldown = true
+IronskinBrew.cooldown_duration = 21
+IronskinBrew.buff_duration = 6
+IronskinBrew.triggers_gcd = false
+local KegSmash = Ability.add(121253, false, true)
+KegSmash.hasted_cooldown = true
+KegSmash.cooldown_duration = 8
+KegSmash.buff_duration = 15
+KegSmash.energy_cost = 40
+KegSmash:setAutoAoe(true)
+local PurifyingBrew = Ability.add(119582, true, true)
+PurifyingBrew.hasted_cooldown = true
+PurifyingBrew.cooldown_duration = 21
+PurifyingBrew.triggers_gcd = false
+local TigerPalmBM = Ability.add(100780, false, true)
+TigerPalmBM.energy_cost = 25
 ------ Talents
-
+local BlackoutCombo = Ability.add(196736, true, true, 228563)
+BlackoutCombo.buff_duration = 15
+local BlackOxBrew = Ability.add(115399, false, false)
+BlackOxBrew.cooldown_duration = 90
+BlackOxBrew.triggers_gcd = false
+local InvokeNiuzaoTheBlackOx = Ability.add(132578, true, true)
+InvokeNiuzaoTheBlackOx.cooldown_duration = 180
+InvokeNiuzaoTheBlackOx.buff_duration = 45
+local RushingJadeWindBM = Ability.add(116847, true, true)
+RushingJadeWindBM.buff_duration = 9
+RushingJadeWindBM.cooldown_duration = 6
+RushingJadeWindBM.hasted_duration = true
+RushingJadeWindBM.hasted_cooldown = true
+RushingJadeWindBM:setAutoAoe(true)
 ------ Procs
 
 ---- Mistweaver
@@ -519,9 +573,6 @@ local RisingSunKick = Ability.add(107428, false, true)
 RisingSunKick.chi_cost = 2
 RisingSunKick.cooldown_duration = 10
 RisingSunKick.hasted_cooldown = true
-local SpearHandStrike = Ability.add(116705, false, true)
-SpearHandStrike.cooldown_duration = 15
-SpearHandStrike.triggers_gcd = false
 local SpinningCraneKick = Ability.add(101546, true, true, 107270)
 SpinningCraneKick.chi_cost = 3
 SpinningCraneKick.buff_duration = 1.5
@@ -649,6 +700,29 @@ local PotionOfProlongedPower = InventoryItem.add(142117)
 -- End Inventory Items
 
 -- Start Helpful Functions
+
+local Stagger = {}
+
+function Stagger:amount()
+	return UnitStagger('player')
+end
+
+function Stagger:pct()
+	return self:amount() / UnitHealth('player') * 100
+end
+
+function Stagger:light()
+	return self:pct() < 3.5
+end
+
+function Stagger:moderate()
+	local pct = self:pct()
+	return pct >= 3.5 and pct <= 6.5
+end
+
+function Stagger:heavy()
+	return self:pct() > 6.5
+end
 
 local function GetExecuteEnergyRegen()
 	return var.energy_regen * var.execute_remains - (var.cast_ability and var.cast_ability:energyCost() or 0)
@@ -836,9 +910,66 @@ local APL = {
 
 APL[SPEC.BREWMASTER] = function()
 	if TimeInCombat() == 0 then
+		if RushingJadeWindBM.known and RushingJadeWindBM:usable() and RushingJadeWindBM:down() then
+			return RushingJadeWindBM
+		end
 		if MonkSeeMonkDo.pot and PotionOfProlongedPower:usable() then
 			UseCooldown(PotionOfProlongedPower)
 		end
+		if ChiBurst.known and ChiBurst:usable() then
+			return ChiBurst
+		end
+		if ChiWave.known and ChiWave:usable() then
+			return ChiWave
+		end
+	end
+	if ExplodingKeg:usable() then
+		UseCooldown(ExplodingKeg)
+	elseif InvokeNiuzaoTheBlackOx.known and InvokeNiuzaoTheBlackOx:usable() and Target.timeToDie > 45 then
+		UseCooldown(InvokeNiuzaoTheBlackOx)
+	end
+	if PurifyingBrew:usable() and (Stagger:heavy() or (Stagger:moderate() and PurifyingBrew:charges_fractional() >= (PurifyingBrew:max_charges() - 0.5) and IronskinBrew:remains() >= IronskinBrew:duration() * 2.5)) then
+		UseTouch(PurifyingBrew)
+	end
+	if IronskinBrew:usable() and BlackoutCombo:down() and IronskinBrew:charges_fractional() >= (IronskinBrew:max_charges() - 0.5) and IronskinBrew:remains() <= IronskinBrew:duration() * 2 then
+		UseTouch(IronskinBrew)
+	end
+	if BlackOxBrew:usable() then
+		if Stagger:heavy() and PurifyingBrew:charges_fractional() <= 0.75 then
+			UseCooldown(BlackOxBrew)
+		elseif (Energy() + (EnergyRegen() * KegSmash:cooldown())) < 40 and BlackoutCombo:down() and KegSmash:ready() then
+			UseCooldown(BlackOxBrew)
+		end
+	end
+	if ArcaneTorrent:usable() and Energy() < 31 then
+		UseCooldown(ArcaneTorrent)
+	end
+	if KegSmash:usable() and Enemies() >= 3 then
+		return KegSmash
+	end
+	if TigerPalmBM:usable() and BlackoutCombo:up() then
+		return TigerPalmBM
+	end
+	if KegSmash:usable() then
+		return KegSmash
+	end
+	if BlackoutStrike:usable() then
+		return BlackoutStrike
+	end
+	if BreathOfFire:usable() and BlackoutCombo:down() and (not BloodlustActive() or (BloodlustActive() and BreathOfFire:refreshable())) then
+		return BreathOfFire
+	end
+	if RushingJadeWindBM.known and RushingJadeWindBM:usable() then
+		return RushingJadeWindBM
+	end
+	if ChiBurst.known and ChiBurst:usable() then
+		return ChiBurst
+	end
+	if ChiWave.known and ChiWave:usable() then
+		return ChiWave
+	end
+	if not BlackoutCombo.known and TigerPalmBM:usable() and KegSmash:cooldown() > GCD() and (Energy() + (EnergyRegen() * (KegSmash:cooldown() + GCD()))) >= 55 then
+		return TigerPalmBM
 	end
 end
 
