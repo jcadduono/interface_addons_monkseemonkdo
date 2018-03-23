@@ -1503,6 +1503,21 @@ local function UpdateDraggable()
 	end
 end
 
+local ResourceFramePoints = {
+	[SPEC.BREWMASTER] = {
+		['above'] = { 'BOTTOM', 'TOP', 0, 41 },
+		['below'] = { 'TOP', 'BOTTOM', 0, -16 }
+	},
+	[SPEC.MISTWEAVER] = {
+		['above'] = { 'BOTTOM', 'TOP', 0, 18 },
+		['below'] = { 'TOP', 'BOTTOM', 0, -4 }
+	},
+	[SPEC.WINDWALKER] = {
+		['above'] = { 'BOTTOM', 'TOP', 0, 18 },
+		['below'] = { 'TOP', 'BOTTOM', 0, -4 }
+	}
+}
+
 local function OnResourceFrameHide()
 	if MonkSeeMonkDo.snap then
 		msmdPanel:ClearAllPoints()
@@ -1512,11 +1527,8 @@ end
 local function OnResourceFrameShow()
 	if MonkSeeMonkDo.snap then
 		msmdPanel:ClearAllPoints()
-		if MonkSeeMonkDo.snap == 'above' then
-			msmdPanel:SetPoint('BOTTOM', NamePlatePlayerResourceFrame, 'TOP', 0, 18)
-		elseif MonkSeeMonkDo.snap == 'below' then
-			msmdPanel:SetPoint('TOP', NamePlatePlayerResourceFrame, 'BOTTOM', 0, -4)
-		end
+		local p = ResourceFramePoints[currentSpec][MonkSeeMonkDo.snap]
+		msmdPanel:SetPoint(p[1], NamePlatePlayerResourceFrame, p[2], p[3], p[4])
 	end
 end
 
