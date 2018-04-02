@@ -1346,30 +1346,39 @@ local function CreateOverlayGlows()
 			glows[#glows + 1] = glow
 		end
 	end
+	for i = 1, 12 do
+		GenerateGlow(_G['ActionButton' .. i])
+		GenerateGlow(_G['MultiBarLeftButton' .. i])
+		GenerateGlow(_G['MultiBarRightButton' .. i])
+		GenerateGlow(_G['MultiBarBottomLeftButton' .. i])
+		GenerateGlow(_G['MultiBarBottomRightButton' .. i])
+	end
+	for i = 1, 10 do
+		GenerateGlow(_G['PetActionButton' .. i])
+	end
 	if Bartender4 then
 		for i = 1, 120 do
 			GenerateGlow(_G['BT4Button' .. i])
 		end
-	elseif ElvUI then
+	end
+	if Dominos then
+		for i = 1, 60 do
+			GenerateGlow(_G['DominosActionButton' .. i])
+		end
+	end
+	if ElvUI then
 		for b = 1, 6 do
 			for i = 1, 12 do
 				GenerateGlow(_G['ElvUI_Bar' .. b .. 'Button' .. i])
 			end
 		end
-	else
-		for i = 1, 12 do
-			GenerateGlow(_G['ActionButton' .. i])
-			GenerateGlow(_G['MultiBarLeftButton' .. i])
-			GenerateGlow(_G['MultiBarRightButton' .. i])
-			GenerateGlow(_G['MultiBarBottomLeftButton' .. i])
-			GenerateGlow(_G['MultiBarBottomRightButton' .. i])
-		end
-		for i = 1, 10 do
-			GenerateGlow(_G['PetActionButton' .. i])
-		end
-		if Dominos then
-			for i = 1, 60 do
-				GenerateGlow(_G['DominosActionButton' .. i])
+	end
+	if LUI then
+		for b = 1, 6 do
+			for i = 1, 12 do
+				GenerateGlow(_G['LUIBarBottom' .. b .. 'Button' .. i])
+				GenerateGlow(_G['LUIBarLeft' .. b .. 'Button' .. i])
+				GenerateGlow(_G['LUIBarRight' .. b .. 'Button' .. i])
 			end
 		end
 	end
@@ -1399,10 +1408,6 @@ end
 
 function events:ACTIONBAR_SLOT_CHANGED()
 	UpdateGlows()
-end
-
-function events:PLAYER_LOGIN()
-	CreateOverlayGlows()
 end
 
 local function ShouldHide()
@@ -1503,19 +1508,37 @@ local function UpdateDraggable()
 	end
 end
 
+local resourceAnchor = {}
+
 local ResourceFramePoints = {
-	[SPEC.BREWMASTER] = {
-		['above'] = { 'BOTTOM', 'TOP', 0, 41 },
-		['below'] = { 'TOP', 'BOTTOM', 0, -16 }
+	['blizzard'] = {
+		[SPEC.BREWMASTER] = {
+			['above'] = { 'BOTTOM', 'TOP', 0, 41 },
+			['below'] = { 'TOP', 'BOTTOM', 0, -16 }
+		},
+		[SPEC.MISTWEAVER] = {
+			['above'] = { 'BOTTOM', 'TOP', 0, 18 },
+			['below'] = { 'TOP', 'BOTTOM', 0, -4 }
+		},
+		[SPEC.WINDWALKER] = {
+			['above'] = { 'BOTTOM', 'TOP', 0, 18 },
+			['below'] = { 'TOP', 'BOTTOM', 0, -4 }
+		}
 	},
-	[SPEC.MISTWEAVER] = {
-		['above'] = { 'BOTTOM', 'TOP', 0, 18 },
-		['below'] = { 'TOP', 'BOTTOM', 0, -4 }
+	['kui'] = {
+		[SPEC.BREWMASTER] = {
+			['above'] = { 'BOTTOM', 'TOP', 0, 41 },
+			['below'] = { 'TOP', 'BOTTOM', 0, -16 }
+		},
+		[SPEC.MISTWEAVER] = {
+			['above'] = { 'BOTTOM', 'TOP', 0, 41 },
+			['below'] = { 'TOP', 'BOTTOM', 0, -16 }
+		},
+		[SPEC.WINDWALKER] = {
+			['above'] = { 'BOTTOM', 'TOP', 0, 41 },
+			['below'] = { 'TOP', 'BOTTOM', 0, -16 }
+		}
 	},
-	[SPEC.WINDWALKER] = {
-		['above'] = { 'BOTTOM', 'TOP', 0, 18 },
-		['below'] = { 'TOP', 'BOTTOM', 0, -4 }
-	}
 }
 
 local function OnResourceFrameHide()
@@ -1527,13 +1550,22 @@ end
 local function OnResourceFrameShow()
 	if MonkSeeMonkDo.snap then
 		msmdPanel:ClearAllPoints()
-		local p = ResourceFramePoints[currentSpec][MonkSeeMonkDo.snap]
-		msmdPanel:SetPoint(p[1], NamePlatePlayerResourceFrame, p[2], p[3], p[4])
+		local p = ResourceFramePoints[resourceAnchor.name][currentSpec][MonkSeeMonkDo.snap]
+		msmdPanel:SetPoint(p[1], resourceAnchor.frame, p[2], p[3], p[4])
 	end
 end
 
-NamePlatePlayerResourceFrame:HookScript("OnHide", OnResourceFrameHide)
-NamePlatePlayerResourceFrame:HookScript("OnShow", OnResourceFrameShow)
+local function HookResourceFrame()
+	if KuiNameplatesPlayerAnchor then
+		resourceAnchor.name = 'kui'
+		resourceAnchor.frame = KuiNameplatesPlayerAnchor
+	else
+		resourceAnchor.name = 'blizzard'
+		resourceAnchor.frame = NamePlatePlayerResourceFrame
+	end
+	resourceAnchor.frame:HookScript("OnHide", OnResourceFrameHide)
+	resourceAnchor.frame:HookScript("OnShow", OnResourceFrameShow)
+end
 
 local function UpdateSerenityOverlay()
 	local remains = Serenity:remains()
@@ -1801,6 +1833,7 @@ function events:PLAYER_ENTERING_WORLD()
 	events:PLAYER_SPECIALIZATION_CHANGED('player')
 	if #glows == 0 then
 		CreateOverlayGlows()
+		HookResourceFrame()
 	end
 	UpdateVars()
 end
