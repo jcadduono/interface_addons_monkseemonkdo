@@ -923,7 +923,7 @@ APL[SPEC.BREWMASTER] = function()
 			return ChiWave
 		end
 	end
-	if ExplodingKeg:usable() then
+	if ExplodingKeg.known and ExplodingKeg:usable() then
 		UseCooldown(ExplodingKeg)
 	elseif InvokeNiuzaoTheBlackOx.known and InvokeNiuzaoTheBlackOx:usable() and Target.timeToDie > 45 then
 		UseCooldown(InvokeNiuzaoTheBlackOx)
@@ -934,14 +934,14 @@ APL[SPEC.BREWMASTER] = function()
 	if IronskinBrew:usable() and BlackoutCombo:down() and IronskinBrew:charges_fractional() >= (IronskinBrew:max_charges() - 0.5) and IronskinBrew:remains() <= IronskinBrew:duration() * 2 then
 		UseTouch(IronskinBrew)
 	end
-	if BlackOxBrew:usable() then
+	if BlackOxBrew.known and BlackOxBrew:usable() then
 		if Stagger:heavy() and PurifyingBrew:charges_fractional() <= 0.75 then
 			UseCooldown(BlackOxBrew)
 		elseif (Energy() + (EnergyRegen() * KegSmash:cooldown())) < 40 and BlackoutCombo:down() and KegSmash:ready() then
 			UseCooldown(BlackOxBrew)
 		end
 	end
-	if ArcaneTorrent:usable() and Energy() < 31 then
+	if ArcaneTorrent.known and ArcaneTorrent:usable() and Energy() < 31 then
 		UseCooldown(ArcaneTorrent)
 	end
 	if KegSmash:usable() and Enemies() >= 3 then
@@ -1041,7 +1041,7 @@ APL.WW_SERENITY = function()
 	if RisingSunKick:usable() and Enemies() < 3 then
 		return RisingSunKick
 	end
-	if StrikeOfTheWindlord:usable() then
+	if StrikeOfTheWindlord.known and StrikeOfTheWindlord:usable() then
 		return StrikeOfTheWindlord
 	end
 	if FistsOfFury:usable() and not ItemEquipped.DrinkingHornCover and ((RisingSunKick:previous() and not StrikeOfTheWindlord:ready(4 * HasteFactor())) or (StrikeOfTheWindlord:previous() and PreviousGCD[2] == RisingSunKick)) then
@@ -1111,7 +1111,7 @@ APL.WW_ST = function()
 	if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and EnergyTimeToMax() <= 1 and ChiDeficit() >= 2 then
 		return TigerPalm
 	end
-	if StrikeOfTheWindlord:usable() and (not Serenity.known or Serenity:cooldown() >= 10) then
+	if StrikeOfTheWindlord.known and StrikeOfTheWindlord:usable() and (not Serenity.known or Serenity:cooldown() >= 10) then
 		return StrikeOfTheWindlord
 	end
 	if WhirlingDragonPunch.known and WhirlingDragonPunch:usable() then
@@ -1219,7 +1219,7 @@ APL.WW_AOE = function()
 	if WhirlingDragonPunch.known and WhirlingDragonPunch:usable() then
 		return WhirlingDragonPunch
 	end
-	if StrikeOfTheWindlord:usable() and (not Serenity.known or Serenity:cooldown() >= 10) then
+	if StrikeOfTheWindlord.known and StrikeOfTheWindlord:usable() and (not Serenity.known or Serenity:cooldown() >= 10) then
 		return StrikeOfTheWindlord
 	end
 	if WhirlingDragonPunch.known and RisingSunKick:usable() and not RisingSunKick:previous() and WhirlingDragonPunch:cooldown() > GCD() and FistsOfFury:cooldown() > GCD() then
