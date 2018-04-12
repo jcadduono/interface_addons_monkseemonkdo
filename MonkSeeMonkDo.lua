@@ -1422,7 +1422,6 @@ local function Disappear()
 	msmdPanel:Hide()
 	msmdPanel.icon:Hide()
 	msmdPanel.border:Hide()
-	msmdPreviousPanel:Hide()
 	msmdCooldownPanel:Hide()
 	msmdInterruptPanel:Hide()
 	msmdTouchPanel:Hide()
@@ -1802,6 +1801,10 @@ function events:PLAYER_REGEN_ENABLED()
 			Targets[guid] = nil
 		end
 		MonkSeeMonkDo_SetTargetMode(1)
+	end
+	if var.last_ability then
+		var.last_ability = nil
+		msmdPreviousPanel:Hide()
 	end
 end
 
