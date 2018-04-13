@@ -420,6 +420,10 @@ function Ability:previous()
 	return PreviousGCD[1] == self or var.last_ability == self
 end
 
+function Ability:combo()
+	return self.triggers_combo and var.last_combo_ability ~= self
+end
+
 function Ability:setAutoAoe(enabled)
 	if enabled and not self.auto_aoe then
 		self.auto_aoe = true
@@ -555,9 +559,11 @@ RushingJadeWindBM:setAutoAoe(true)
 ---- Windwalker
 local BlackoutKick = Ability.add(100784, false, true)
 BlackoutKick.chi_cost = 1
+BlackoutKick.triggers_combo = true
 local CracklingJadeLightning = Ability.add(117952, false, true)
 CracklingJadeLightning.energy_cost = 20
 CracklingJadeLightning.usable_moving = false
+CracklingJadeLightning.triggers_combo = true
 local Disable = Ability.add(116095, false, true)
 Disable.energy_cost = 15
 local FistsOfFury = Ability.add(113656, false, true, 117418)
@@ -566,17 +572,24 @@ FistsOfFury.buff_duration = 4
 FistsOfFury.cooldown_duration = 24
 FistsOfFury.hasted_duration = true
 FistsOfFury.hasted_cooldown = true
+FistsOfFury.triggers_combo = true
 FistsOfFury:setAutoAoe(true)
+local FlyingSerpentKick = Ability.add(101545, false, false, 123586)
+FlyingSerpentKick.cooldown_duration = 25
+FlyingSerpentKick.triggers_combo = true
+FlyingSerpentKick:setAutoAoe(true)
 local MarkOfTheCrane = Ability.add(228287, false, true)
 MarkOfTheCrane.buff_duration = 15
 local RisingSunKick = Ability.add(107428, false, true)
 RisingSunKick.chi_cost = 2
 RisingSunKick.cooldown_duration = 10
 RisingSunKick.hasted_cooldown = true
+RisingSunKick.triggers_combo = true
 local SpinningCraneKick = Ability.add(101546, true, true, 107270)
 SpinningCraneKick.chi_cost = 3
 SpinningCraneKick.buff_duration = 1.5
 SpinningCraneKick.hasted_duration = true
+SpinningCraneKick.triggers_combo = true
 SpinningCraneKick:setAutoAoe(true)
 local StormEarthAndFire = Ability.add(137639, true, true)
 StormEarthAndFire.buff_duration = 15
@@ -585,13 +598,16 @@ StormEarthAndFire.hasted_cooldown = true
 local StrikeOfTheWindlord = Ability.add(205320, false, true, 205414)
 StrikeOfTheWindlord.chi_cost = 2
 StrikeOfTheWindlord.cooldown_duration = 40
+StrikeOfTheWindlord.triggers_combo = true
 StrikeOfTheWindlord:setAutoAoe(true)
 local TigerPalm = Ability.add(100780, false, true)
 TigerPalm.chi_cost = -2
 TigerPalm.energy_cost = 50
+TigerPalm.triggers_combo = true
 local TouchOfDeath = Ability.add(115080, false, true)
 TouchOfDeath.cooldown_duration = 120
 TouchOfDeath.buff_duration = 8
+TouchOfDeath.triggers_combo = true
 local TouchOfKarma = Ability.add(122470, true, true, 125174)
 TouchOfKarma.cooldown_duration = 90
 TouchOfKarma.triggers_gcd = false
@@ -600,8 +616,10 @@ TouchOfKarma.buff_duration = 10
 local ChiBurst = Ability.add(123986, false, true)
 ChiBurst.cooldown_duration = 30
 ChiBurst.usable_moving = false
+ChiBurst.triggers_combo = true
 local ChiWave = Ability.add(115098, false, true)
 ChiWave.cooldown_duration = 15
+ChiWave.triggers_combo = true
 local EnergizingElixir = Ability.add(115288, false, true)
 EnergizingElixir.cooldown_duration = 60
 EnergizingElixir.triggers_gcd = false
@@ -618,6 +636,7 @@ RushingJadeWind.buff_duration = 6
 RushingJadeWind.cooldown_duration = 6
 RushingJadeWind.hasted_duration = true
 RushingJadeWind.hasted_cooldown = true
+RushingJadeWind.triggers_combo = true
 local Serenity = Ability.add(152173, true, true)
 Serenity.cooldown_duration = 90
 Serenity.buff_duration = 8
@@ -626,6 +645,7 @@ Serenity.triggers_gcd = false
 local WhirlingDragonPunch = Ability.add(152175, false, true, 158221)
 WhirlingDragonPunch.cooldown_duration = 24
 WhirlingDragonPunch.hasted_cooldown = true
+WhirlingDragonPunch.triggers_combo = true
 WhirlingDragonPunch:setAutoAoe(true)
 ------ Procs
 local BlackoutKickProc = Ability.add(116768, true, true)
@@ -996,7 +1016,7 @@ APL[SPEC.WINDWALKER] = function()
 	if MonkSeeMonkDo.pot and PotionOfProlongedPower:usable() and (Serenity:up() or StormEarthAndFire:up() or BloodlustActive() or Target.timeToDie <= 60) then
 		UseCooldown(PotionOfProlongedPower)
 	end
-	if TouchOfDeath:usable() and TouchOfDeath:down() and not TouchOfDeath:previous() and Target.timeToDie < 12 and Target.timeToDie > 8 then
+	if TouchOfDeath:usable() and TouchOfDeath:down() and TouchOfDeath:combo() and Target.timeToDie < 12 and Target.timeToDie > 8 then
 		UseTouch(TouchOfDeath)
 	end
 	if Serenity.known then
@@ -1006,7 +1026,7 @@ APL[SPEC.WINDWALKER] = function()
 				return serenity
 			end
 		elseif Serenity:usable() and Serenity:down() and (StrikeOfTheWindlord:ready(8) or FistsOfFury:ready(4) or RisingSunKick:ready(1)) then
-			if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and Energy() >= EnergyMax() and Chi() < 1 then
+			if TigerPalm:usable() and TigerPalm:combo() and not EnergizingElixir:previous() and Energy() >= EnergyMax() and Chi() < 1 then
 				return TigerPalm
 			end
 			UseCooldown(Serenity)
@@ -1038,7 +1058,7 @@ end
 
 APL.WW_SERENITY = function()
 	APL.WW_CD()
-	if RisingSunKick:usable() and Enemies() < 3 then
+	if RisingSunKick:usable() and RisingSunKick:combo() and Enemies() < 3 then
 		return RisingSunKick
 	end
 	if StrikeOfTheWindlord.known and StrikeOfTheWindlord:usable() then
@@ -1047,34 +1067,34 @@ APL.WW_SERENITY = function()
 	if FistsOfFury:usable() and not ItemEquipped.DrinkingHornCover and ((RisingSunKick:previous() and not StrikeOfTheWindlord:ready(4 * HasteFactor())) or (StrikeOfTheWindlord:previous() and PreviousGCD[2] == RisingSunKick)) then
 		return FistsOfFury
 	end
-	if BlackoutKick:usable() and not BlackoutKick:previous() and Enemies() < 2 and (StrikeOfTheWindlord:previous() or FistsOfFury:previous()) then
+	if BlackoutKick:usable() and BlackoutKick:combo() and Enemies() < 2 and (StrikeOfTheWindlord:previous() or FistsOfFury:previous()) then
 		return BlackoutKick
 	end
 	if FistsOfFury:usable() and (RisingSunKick:cooldown() > 1 or Enemies() > 1) and (not ItemEquipped.DrinkingHornCover or BloodlustActive() or (ItemEquipped.DrinkingHornCover and Tier.T20P >= 4 and PressurePoint:remains() < 2)) then
 		return FistsOfFury
 	end
-	if SpinningCraneKick:usable() and not SpinningCraneKick:previous() and Enemies() >= 3 then
+	if SpinningCraneKick:usable() and SpinningCraneKick:combo() and Enemies() >= 3 then
 		return SpinningCraneKick
 	end
-	if RushingJadeWind.known and RushingJadeWind:usable() and not RushingJadeWind:previous() and RushingJadeWind:down() and Serenity:remains() > 4 then
+	if RushingJadeWind.known and RushingJadeWind:usable() and RushingJadeWind:combo() and RushingJadeWind:down() and Serenity:remains() > 4 then
 		return RushingJadeWind
 	end
-	if RisingSunKick:usable() then
+	if RisingSunKick:usable() and RisingSunKick:combo() then
 		return RisingSunKick
 	end
-	if RushingJadeWind.known and RushingJadeWind:usable() and not RushingJadeWind:previous() and RushingJadeWind:down() and Enemies() > 1 then
+	if RushingJadeWind.known and RushingJadeWind:usable() and RushingJadeWind:combo() and RushingJadeWind:down() and Enemies() > 1 then
 		return RushingJadeWind
 	end
-	if SpinningCraneKick:usable() and not SpinningCraneKick:previous() then
+	if SpinningCraneKick:usable() and SpinningCraneKick:combo() then
 		return SpinningCraneKick
 	end
-	if BlackoutKick:usable() and not BlackoutKick:previous() then
+	if BlackoutKick:usable() and BlackoutKick:combo() then
 		return BlackoutKick
 	end
 end
 
 APL.WW_SEF = function()
-	if TigerPalm:usable() and MarkOfTheCrane:down() and not (TigerPalm:previous() or EnergizingElixir:previous()) and Energy() >= EnergyMax() and Chi() < 1 then
+	if TigerPalm:usable() and TigerPalm:combo() and MarkOfTheCrane:down() and not EnergizingElixir:previous() and Energy() >= EnergyMax() and Chi() < 1 then
 		return TigerPalm
 	end
 	APL.WW_CD()
@@ -1090,7 +1110,7 @@ APL.WW_CD = function()
 	if ArcaneTorrent.known and ArcaneTorrent:usable() and Chi() < 3 and (not Serenity.known or Serenity:down()) and (RisingSunKick:ready(1) or StrikeOfTheWindlord:ready(1) or FistsOfFury:ready(1)) then
 		UseCooldown(ArcaneTorrent)
 	end
-	if TouchOfDeath:usable() and TouchOfDeath:down() and not TouchOfDeath:previous() and Target.timeToDie > 8 then
+	if TouchOfDeath:usable() and TouchOfDeath:combo() and TouchOfDeath:down() and Target.timeToDie > 8 then
 		if Serenity.known and Serenity:ready(3) and (StrikeOfTheWindlord:ready(11) or FistsOfFury:ready(7) or RisingSunKick:ready(4)) then
 			UseTouch(TouchOfDeath)
 		end
@@ -1105,10 +1125,10 @@ APL.WW_ST = function()
 	if EnergizingElixir.known and EnergizingElixir:usable() and not TigerPalm:previous() and Chi() <= 1 and (RisingSunKick:ready() or StrikeOfTheWindlord:ready() or Energy() < 50) then
 		UseCooldown(EnergizingElixir)
 	end
-	if BlackoutKick:usable() and Tier.T21P >= 4 and not BlackoutKick:previous() and BlackoutKickProc:up() and ChiDeficit() >= 1 then
+	if BlackoutKick:usable() and BlackoutKick:combo() and Tier.T21P >= 4 and BlackoutKickProc:up() and ChiDeficit() >= 1 then
 		return BlackoutKick
 	end
-	if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and EnergyTimeToMax() <= 1 and ChiDeficit() >= 2 then
+	if TigerPalm:usable() and TigerPalm:combo() and not EnergizingElixir:previous() and EnergyTimeToMax() <= 1 and ChiDeficit() >= 2 then
 		return TigerPalm
 	end
 	if StrikeOfTheWindlord.known and StrikeOfTheWindlord:usable() and (not Serenity.known or Serenity:cooldown() >= 10) then
@@ -1117,7 +1137,7 @@ APL.WW_ST = function()
 	if WhirlingDragonPunch.known and WhirlingDragonPunch:usable() then
 		return WhirlingDragonPunch
 	end
-	if RisingSunKick:usable() and ((Chi() >= 3 and Energy() >= 40) or Chi() >= 5) and (not Serenity.known or Serenity:cooldown() >= 6) then
+	if RisingSunKick:usable() and RisingSunKick:combo() and ((Chi() >= 3 and Energy() >= 40) or Chi() >= 5) and (not Serenity.known or Serenity:cooldown() >= 6) then
 		return RisingSunKick
 	end
 	if FistsOfFury:usable() and EnergyTimeToMax() > 2 then
@@ -1135,18 +1155,18 @@ APL.WW_ST = function()
 	if FistsOfFury:usable() and Chi() <= 5 and not RisingSunKick:ready(3.5) then
 		return FistsOfFury
 	end
-	if RisingSunKick:usable() and (not Serenity.known or Serenity:cooldown() >= 5) then
+	if RisingSunKick:usable() and RisingSunKick:combo() and (not Serenity.known or Serenity:cooldown() >= 5) then
 		return RisingSunKick
 	end
 	if Tier.T21P >= 4 then
-		if BlackoutKick:usable() and not BlackoutKick:previous() and ChiDeficit() >= 1 and (Tier.T19P < 2 or Serenity.known) then
+		if BlackoutKick:usable() and BlackoutKick:combo() and ChiDeficit() >= 1 and (Tier.T19P < 2 or Serenity.known) then
 			return BlackoutKick
 		end
-		if SpinningCraneKick:usable() and not SpinningCraneKick:previous() and (Enemies() >= 3 or (ChiDeficit() >= 0 and BlackoutKickProc:up())) then
+		if SpinningCraneKick:usable() and SpinningCraneKick:combo() and (Enemies() >= 3 or (ChiDeficit() >= 0 and BlackoutKickProc:up())) then
 			return SpinningCraneKick
 		end
 	end
-	if TigerPalm:usable() and not TigerPalm:previous() and FistsOfFury:ready(GCD()) and Chi() < FistsOfFury:chiCost() then
+	if TigerPalm:usable() and TigerPalm:combo() and FistsOfFury:ready(GCD()) and Chi() < FistsOfFury:chiCost() then
 		if Serenity.known then
 			if not ItemEquipped.DrinkingHornCover and not Serenity:ready(4) then
 				return TigerPalm
@@ -1161,16 +1181,16 @@ APL.WW_ST = function()
 	if ItemEquipped.TheEmperorsCapacitor and CracklingJadeLightning:usable() and EnergyTimeToMax() > 3 and not RisingSunKick:ready(4 * HasteFactor()) and (TheEmperorsCapacitor:stack() >= 19 or (Serenity.known and TheEmperorsCapacitor:stack() >= 14 and Serenity:ready(13))) then
 		return CracklingJadeLightning
 	end
-	if SpinningCraneKick:usable() and Enemies() >= 3 and not SpinningCraneKick:previous() then
+	if SpinningCraneKick:usable() and SpinningCraneKick:combo() and Enemies() >= 3 then
 		return SpinningCraneKick
 	end
-	if RushingJadeWind.known and RushingJadeWind:usable() and not RushingJadeWind:previous() and ChiDeficit() > 1 then
+	if RushingJadeWind.known and RushingJadeWind:usable() and RushingJadeWind:combo() and ChiDeficit() > 1 then
 		return RushingJadeWind
 	end
-	if BlackoutKick:usable() and not BlackoutKick:previous() and (Chi() > 1 or BlackoutKickProc:up() or (EnergizingElixir.known and EnergizingElixir:cooldown() < FistsOfFury:cooldown())) and (((RisingSunKick:cooldown() > 1 and StrikeOfTheWindlord:cooldown() > 1) or Chi() > 4) and (FistsOfFury:cooldown() > 1 or Chi() > 2) or TigerPalm:previous()) then
+	if BlackoutKick:usable() and BlackoutKick:combo() and (Chi() > 1 or BlackoutKickProc:up() or (EnergizingElixir.known and EnergizingElixir:cooldown() < FistsOfFury:cooldown())) and (((RisingSunKick:cooldown() > 1 and StrikeOfTheWindlord:cooldown() > 1) or Chi() > 4) and (FistsOfFury:cooldown() > 1 or Chi() > 2) or TigerPalm:previous()) then
 		return BlackoutKick
 	end
-	if not Serenity.known and TouchOfDeath:usable() and Target.timeToDie > 8 and TouchOfDeath:down() and not TouchOfDeath:previous() and Chi() >= 2 then
+	if not Serenity.known and TouchOfDeath:usable() and TouchOfDeath:combo() and Target.timeToDie > 8 and TouchOfDeath:down() and Chi() >= 2 then
 		UseTouch(TouchOfDeath)
 	end
 	if ChiWave.known and ChiWave:usable() and Chi() <= 3 and EnergyTimeToMax() > 1 and (RisingSunKick:cooldown() >= 5 or WhirlingDragonPunch:cooldown() >= 5) then
@@ -1179,7 +1199,7 @@ APL.WW_ST = function()
 	if ChiBurst.known and ChiBurst:usable() and Chi() <= 3 and EnergyTimeToMax() > 1 and (RisingSunKick:cooldown() >= 5 or WhirlingDragonPunch:cooldown() >= 5) then
 		UseCooldown(ChiBurst)
 	end
-	if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and (ChiDeficit() >= 2 or EnergyTimeToMax() < 3) then
+	if TigerPalm:usable() and TigerPalm:combo() and not EnergizingElixir:previous() and (ChiDeficit() >= 2 or EnergyTimeToMax() < 3) then
 		return TigerPalm
 	end
 	if ChiWave.known and ChiWave:usable() then
@@ -1188,7 +1208,7 @@ APL.WW_ST = function()
 	if ChiBurst.known and ChiBurst:usable() then
 		UseCooldown(ChiBurst)
 	end
-	if not Serenity.known and TouchOfDeath:usable() and Target.timeToDie > 8 and TouchOfDeath:down() and not TouchOfDeath:previous() then
+	if not Serenity.known and TouchOfDeath:usable() and TouchOfDeath:combo() and Target.timeToDie > 8 and TouchOfDeath:down() then
 		UseTouch(TouchOfDeath)
 	end
 	if Chi() == 0 and TigerPalm:usable() then
@@ -1222,10 +1242,10 @@ APL.WW_AOE = function()
 	if StrikeOfTheWindlord.known and StrikeOfTheWindlord:usable() and (not Serenity.known or Serenity:cooldown() >= 10) then
 		return StrikeOfTheWindlord
 	end
-	if WhirlingDragonPunch.known and RisingSunKick:usable() and not RisingSunKick:previous() and WhirlingDragonPunch:cooldown() > GCD() and FistsOfFury:cooldown() > GCD() then
+	if WhirlingDragonPunch.known and RisingSunKick:usable() and RisingSunKick:combo() and WhirlingDragonPunch:cooldown() > GCD() and FistsOfFury:cooldown() > GCD() then
 		return RisingSunKick
 	end
-	if TigerPalm:usable() and not TigerPalm:previous() and FistsOfFury:ready(GCD()) and Chi() < FistsOfFury:chiCost() then
+	if TigerPalm:usable() and TigerPalm:combo() and FistsOfFury:ready(GCD()) and Chi() < FistsOfFury:chiCost() then
 		if Serenity.known then
 			if not ItemEquipped.DrinkingHornCover and not Serenity:ready(4) then
 				return TigerPalm
@@ -1237,16 +1257,16 @@ APL.WW_AOE = function()
 			return TigerPalm
 		end
 	end
-	if RushingJadeWind.known and RushingJadeWind:usable() and not RushingJadeWind:previous() and ChiDeficit() > 1 then
+	if RushingJadeWind.known and RushingJadeWind:usable() and RushingJadeWind:combo() and ChiDeficit() > 1 then
 		return RushingJadeWind
 	end
 	if ChiBurst.known and ChiBurst:usable() then
 		UseCooldown(ChiBurst)
 	end
-	if SpinningCraneKick:usable() and not SpinningCraneKick:previous() then
+	if SpinningCraneKick:usable() and SpinningCraneKick:combo() then
 		return SpinningCraneKick
 	end
-	if BlackoutKick:usable() and not BlackoutKick:previous() then
+	if BlackoutKick:usable() and BlackoutKick:combo() then
 		if Tier.T21P >= 4 and ChiDeficit() >= 1 and (Tier.T19P < 2 or Serenity.known) then
 			return BlackoutKick
 		end
@@ -1257,19 +1277,19 @@ APL.WW_AOE = function()
 	if ItemEquipped.TheEmperorsCapacitor and CracklingJadeLightning:usable() and EnergyTimeToMax() > 3 and (TheEmperorsCapacitor:stack() >= 19 or (Serenity.known and TheEmperorsCapacitor:stack() >= 14 and Serenity:ready(13))) then
 		return CracklingJadeLightning
 	end
-	if BlackoutKick:usable() and Tier.T21P >= 4 and not BlackoutKick:previous() and BlackoutKickProc:up() and ChiDeficit() >= 1 then
+	if BlackoutKick:usable() and BlackoutKick:combo() and Tier.T21P >= 4 and BlackoutKickProc:up() and ChiDeficit() >= 1 then
 		return BlackoutKick
 	end
-	if not Serenity.known and TouchOfDeath:usable() and Target.timeToDie > 8 and TouchOfDeath:down() and not TouchOfDeath:previous() and Chi() >= 2 then
+	if not Serenity.known and TouchOfDeath:usable() and TouchOfDeath:combo() and Target.timeToDie > 8 and TouchOfDeath:down() and Chi() >= 2 then
 		UseTouch(TouchOfDeath)
 	end
-	if TigerPalm:usable() and not (TigerPalm:previous() or EnergizingElixir:previous()) and (ChiDeficit() >= 2 or EnergyTimeToMax() < 3) then
+	if TigerPalm:usable() and TigerPalm:combo() and not EnergizingElixir:previous() and (ChiDeficit() >= 2 or EnergyTimeToMax() < 3) then
 		return TigerPalm
 	end
 	if ChiWave.known and ChiWave:usable() then
 		UseCooldown(ChiWave)
 	end
-	if not Serenity.known and TouchOfDeath:usable() and Target.timeToDie > 8 and TouchOfDeath:down() and not TouchOfDeath:previous() then
+	if not Serenity.known and TouchOfDeath:usable() and TouchOfDeath:combo() and Target.timeToDie > 8 and TouchOfDeath:down() then
 		UseTouch(TouchOfDeath)
 	end
 	if Chi() == 0 and TigerPalm:usable() then
@@ -1701,7 +1721,14 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 				PreviousGCD[10] = nil
 				table.insert(PreviousGCD, 1, castedAbility)
 			end
+			if currentSpec == SPEC.WINDWALKER then
+				if not var.last_ability.triggers_combo then
+					return
+				end
+				var.last_combo_ability = var.last_ability
+			end
 			if MonkSeeMonkDo.previous and msmdPanel:IsVisible() then
+				msmdPreviousPanel.ability = var.last_ability
 				msmdPreviousPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
 				msmdPreviousPanel.icon:SetTexture(var.last_ability.icon)
 				msmdPreviousPanel:Show()
@@ -1710,8 +1737,10 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 		return
 	end
 	if eventType == 'SPELL_MISSED' then
-		if MonkSeeMonkDo.previous and msmdPanel:IsVisible() and MonkSeeMonkDo.miss_effect and var.last_ability and spellId == var.last_ability.spellId then
-			msmdPreviousPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\misseffect.blp')
+		if MonkSeeMonkDo.previous and MonkSeeMonkDo.miss_effect and msmdPanel:IsVisible() and msmdPreviousPanel.ability then
+			if spellId == msmdPreviousPanel.ability.spellId or spellId == msmdPreviousPanel.ability.spellId2 then
+				msmdPreviousPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\misseffect.blp')
+			end
 		end
 		return
 	end
@@ -1825,8 +1854,12 @@ function events:PLAYER_SPECIALIZATION_CHANGED(unitName)
 			abilities[i].name, _, abilities[i].icon = GetSpellInfo(abilities[i].spellId)
 			abilities[i].known = IsPlayerSpell(abilities[i].spellId) or (abilities[i].spellId2 and IsPlayerSpell(abilities[i].spellId2))
 		end
+		msmdPreviousPanel.ability = nil
+		var.last_combo_ability = nil
+		PreviousGCD = {}
 		currentSpec = GetSpecialization() or 0
 		MonkSeeMonkDo_SetTargetMode(1)
+		UpdateSerenityOverlay()
 		UpdateTargetInfo()
 	end
 end
