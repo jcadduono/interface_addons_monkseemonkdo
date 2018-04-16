@@ -13,6 +13,7 @@ end
 -- end useful functions
 
 MonkSeeMonkDo = {}
+local Opt -- use this as a local table reference to MonkSeeMonkDo
 
 SLASH_MonkSeeMonkDo1, SLASH_MonkSeeMonkDo2 = '/monk', '/msmd'
 BINDING_HEADER_MSMD = 'MonkSeeMonkDo'
@@ -911,7 +912,7 @@ local function UpdateVars()
 end
 
 local function UseCooldown(ability, overwrite, always)
-	if always or (MonkSeeMonkDo.cooldown and (not MonkSeeMonkDo.boss_only or Target.boss) and (not var.cd or overwrite)) then
+	if always or (Opt.cooldown and (not Opt.boss_only or Target.boss) and (not var.cd or overwrite)) then
 		var.cd = ability
 	end
 end
@@ -933,7 +934,7 @@ APL[SPEC.BREWMASTER] = function()
 		if RushingJadeWindBM.known and RushingJadeWindBM:usable() and RushingJadeWindBM:down() then
 			return RushingJadeWindBM
 		end
-		if MonkSeeMonkDo.pot and PotionOfProlongedPower:usable() then
+		if Opt.pot and PotionOfProlongedPower:usable() then
 			UseCooldown(PotionOfProlongedPower)
 		end
 		if ChiBurst.known and ChiBurst:usable() then
@@ -995,7 +996,7 @@ end
 
 APL[SPEC.MISTWEAVER] = function()
 	if TimeInCombat() == 0 then
-		if MonkSeeMonkDo.pot and PotionOfProlongedPower:usable() then
+		if Opt.pot and PotionOfProlongedPower:usable() then
 			UseCooldown(PotionOfProlongedPower)
 		end
 	end
@@ -1003,7 +1004,7 @@ end
 
 APL[SPEC.WINDWALKER] = function()
 	if TimeInCombat() == 0 then
-		if MonkSeeMonkDo.pot and PotionOfProlongedPower:usable() then
+		if Opt.pot and PotionOfProlongedPower:usable() then
 			UseCooldown(PotionOfProlongedPower)
 		end
 		if ChiBurst.known and ChiBurst:usable() then
@@ -1013,7 +1014,7 @@ APL[SPEC.WINDWALKER] = function()
 			return ChiWave
 		end
 	end
-	if MonkSeeMonkDo.pot and PotionOfProlongedPower:usable() and (Serenity:up() or StormEarthAndFire:up() or BloodlustActive() or Target.timeToDie <= 60) then
+	if Opt.pot and PotionOfProlongedPower:usable() and (Serenity:up() or StormEarthAndFire:up() or BloodlustActive() or Target.timeToDie <= 60) then
 		UseCooldown(PotionOfProlongedPower)
 	end
 	if TouchOfDeath:usable() and TouchOfDeath:down() and TouchOfDeath:combo() and Target.timeToDie < 12 and Target.timeToDie > 8 then
@@ -1329,7 +1330,7 @@ local function UpdateInterrupt()
 end
 
 local function DenyOverlayGlow(actionButton)
-	if not MonkSeeMonkDo.glow.blizzard then
+	if not Opt.glow.blizzard then
 		actionButton.overlay:Hide()
 	end
 end
@@ -1338,15 +1339,15 @@ hooksecurefunc('ActionButton_ShowOverlayGlow', DenyOverlayGlow) -- Disable Blizz
 
 local function UpdateGlowColorAndScale()
 	local w, h, glow, i
-	local r = MonkSeeMonkDo.glow.color.r
-	local g = MonkSeeMonkDo.glow.color.g
-	local b = MonkSeeMonkDo.glow.color.b
+	local r = Opt.glow.color.r
+	local g = Opt.glow.color.g
+	local b = Opt.glow.color.b
 	for i = 1, #glows do
 		glow = glows[i]
 		w, h = glow.button:GetSize()
 		glow:SetSize(w * 1.4, h * 1.4)
-		glow:SetPoint('TOPLEFT', glow.button, 'TOPLEFT', -w * 0.2 * MonkSeeMonkDo.scale.glow, h * 0.2 * MonkSeeMonkDo.scale.glow)
-		glow:SetPoint('BOTTOMRIGHT', glow.button, 'BOTTOMRIGHT', w * 0.2 * MonkSeeMonkDo.scale.glow, -h * 0.2 * MonkSeeMonkDo.scale.glow)
+		glow:SetPoint('TOPLEFT', glow.button, 'TOPLEFT', -w * 0.2 * Opt.scale.glow, h * 0.2 * Opt.scale.glow)
+		glow:SetPoint('BOTTOMRIGHT', glow.button, 'BOTTOMRIGHT', w * 0.2 * Opt.scale.glow, -h * 0.2 * Opt.scale.glow)
 		glow.spark:SetVertexColor(r, g, b)
 		glow.innerGlow:SetVertexColor(r, g, b)
 		glow.innerGlowOver:SetVertexColor(r, g, b)
@@ -1411,10 +1412,10 @@ local function UpdateGlows()
 		glow = glows[i]
 		icon = glow.button.icon:GetTexture()
 		if icon and glow.button.icon:IsVisible() and (
-			(MonkSeeMonkDo.glow.main and var.main and icon == var.main.icon) or
-			(MonkSeeMonkDo.glow.cooldown and var.cd and icon == var.cd.icon) or
-			(MonkSeeMonkDo.glow.interrupt and var.interrupt and icon == var.interrupt.icon) or
-			(MonkSeeMonkDo.glow.touch and var.touch and icon == var.touch.icon)
+			(Opt.glow.main and var.main and icon == var.main.icon) or
+			(Opt.glow.cooldown and var.cd and icon == var.cd.icon) or
+			(Opt.glow.interrupt and var.interrupt and icon == var.interrupt.icon) or
+			(Opt.glow.touch and var.touch and icon == var.touch.icon)
 			) then
 			if not glow:IsVisible() then
 				glow.animIn:Play()
@@ -1432,9 +1433,9 @@ end
 
 local function ShouldHide()
 	return (currentSpec == SPEC.NONE or
-		   (currentSpec == SPEC.BREWMASTER and MonkSeeMonkDo.hide.brewmaster) or
-		   (currentSpec == SPEC.MISTWEAVER and MonkSeeMonkDo.hide.mistweaver) or
-		   (currentSpec == SPEC.WINDWALKER and MonkSeeMonkDo.hide.windwalker))
+		   (currentSpec == SPEC.BREWMASTER and Opt.hide.brewmaster) or
+		   (currentSpec == SPEC.MISTWEAVER and Opt.hide.mistweaver) or
+		   (currentSpec == SPEC.WINDWALKER and Opt.hide.windwalker))
 
 end
 
@@ -1500,13 +1501,13 @@ function EquippedTier(name)
 end
 
 local function UpdateDraggable()
-	msmdPanel:EnableMouse(MonkSeeMonkDo.aoe or not MonkSeeMonkDo.locked)
-	if MonkSeeMonkDo.aoe then
+	msmdPanel:EnableMouse(Opt.aoe or not Opt.locked)
+	if Opt.aoe then
 		msmdPanel.button:Show()
 	else
 		msmdPanel.button:Hide()
 	end
-	if MonkSeeMonkDo.locked then
+	if Opt.locked then
 		msmdPanel:SetScript('OnDragStart', nil)
 		msmdPanel:SetScript('OnDragStop', nil)
 		msmdPanel:RegisterForDrag(nil)
@@ -1515,7 +1516,7 @@ local function UpdateDraggable()
 		msmdInterruptPanel:EnableMouse(false)
 		msmdTouchPanel:EnableMouse(false)
 	else
-		if not MonkSeeMonkDo.aoe then
+		if not Opt.aoe then
 			msmdPanel:SetScript('OnDragStart', msmdPanel.StartMoving)
 			msmdPanel:SetScript('OnDragStop', msmdPanel.StopMovingOrSizing)
 			msmdPanel:RegisterForDrag('LeftButton')
@@ -1561,15 +1562,15 @@ local ResourceFramePoints = {
 }
 
 local function OnResourceFrameHide()
-	if MonkSeeMonkDo.snap then
+	if Opt.snap then
 		msmdPanel:ClearAllPoints()
 	end
 end
 
 local function OnResourceFrameShow()
-	if MonkSeeMonkDo.snap then
+	if Opt.snap then
 		msmdPanel:ClearAllPoints()
-		local p = ResourceFramePoints[resourceAnchor.name][currentSpec][MonkSeeMonkDo.snap]
+		local p = ResourceFramePoints[resourceAnchor.name][currentSpec][Opt.snap]
 		msmdPanel:SetPoint(p[1], resourceAnchor.frame, p[2], p[3], p[4])
 	end
 end
@@ -1602,17 +1603,17 @@ local function UpdateSerenityOverlay()
 end
 
 local function UpdateAlpha()
-	msmdPanel:SetAlpha(MonkSeeMonkDo.alpha)
-	msmdPreviousPanel:SetAlpha(MonkSeeMonkDo.alpha)
-	msmdCooldownPanel:SetAlpha(MonkSeeMonkDo.alpha)
-	msmdInterruptPanel:SetAlpha(MonkSeeMonkDo.alpha)
-	msmdTouchPanel:SetAlpha(MonkSeeMonkDo.alpha)
+	msmdPanel:SetAlpha(Opt.alpha)
+	msmdPreviousPanel:SetAlpha(Opt.alpha)
+	msmdCooldownPanel:SetAlpha(Opt.alpha)
+	msmdInterruptPanel:SetAlpha(Opt.alpha)
+	msmdTouchPanel:SetAlpha(Opt.alpha)
 end
 
 local function UpdateHealthArray()
 	Target.healthArray = {}
 	local i
-	for i = 1, floor(3 / MonkSeeMonkDo.frequency) do
+	for i = 1, floor(3 / Opt.frequency) do
 		Target.healthArray[i] = 0
 	end
 end
@@ -1647,7 +1648,7 @@ local function UpdateCombat()
 			msmdTouchPanel:Hide()
 		end
 	end
-	if MonkSeeMonkDo.dimmer then
+	if Opt.dimmer then
 		if not var.main then
 			msmdPanel.dimmer:Hide()
 		elseif var.main.spellId and IsUsableSpell(var.main.spellId) then
@@ -1658,7 +1659,7 @@ local function UpdateCombat()
 			msmdPanel.dimmer:Show()
 		end
 	end
-	if MonkSeeMonkDo.interrupt then
+	if Opt.interrupt then
 		UpdateInterrupt()
 	end
 	if Serenity.known then
@@ -1668,7 +1669,7 @@ local function UpdateCombat()
 end
 
 function events:SPELL_UPDATE_COOLDOWN()
-	if MonkSeeMonkDo.spell_swipe then
+	if Opt.spell_swipe then
 		local start, duration
 		local _, _, _, _, castStart, castEnd = UnitCastingInfo('player')
 		if castStart then
@@ -1687,7 +1688,8 @@ end
 
 function events:ADDON_LOADED(name)
 	if name == 'MonkSeeMonkDo' then
-		if not MonkSeeMonkDo.frequency then
+		Opt = MonkSeeMonkDo
+		if not Opt.frequency then
 			print('It looks like this is your first time running MonkSeeMonkDo, why don\'t you take some time to familiarize yourself with the commands?')
 			print('Type |cFFFFD000' .. SLASH_MonkSeeMonkDo1 .. '|r for a list of commands.')
 		end
@@ -1698,16 +1700,16 @@ function events:ADDON_LOADED(name)
 		UpdateHealthArray()
 		UpdateDraggable()
 		UpdateAlpha()
-		msmdPanel:SetScale(MonkSeeMonkDo.scale.main)
-		msmdPreviousPanel:SetScale(MonkSeeMonkDo.scale.previous)
-		msmdCooldownPanel:SetScale(MonkSeeMonkDo.scale.cooldown)
-		msmdInterruptPanel:SetScale(MonkSeeMonkDo.scale.interrupt)
-		msmdTouchPanel:SetScale(MonkSeeMonkDo.scale.touch)
+		msmdPanel:SetScale(Opt.scale.main)
+		msmdPreviousPanel:SetScale(Opt.scale.previous)
+		msmdCooldownPanel:SetScale(Opt.scale.cooldown)
+		msmdInterruptPanel:SetScale(Opt.scale.interrupt)
+		msmdTouchPanel:SetScale(Opt.scale.touch)
 	end
 end
 
 function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, srcGUID, srcName, srcFlags, srcRaidFlags, dstGUID, dstName, dstFlags, dstRaidFlags, spellId, spellName)
-	if MonkSeeMonkDo.auto_aoe and (eventType == 'UNIT_DIED' or eventType == 'UNIT_DESTROYED' or eventType == 'UNIT_DISSIPATES' or eventType == 'SPELL_INSTAKILL' or eventType == 'PARTY_KILL') then
+	if Opt.auto_aoe and (eventType == 'UNIT_DIED' or eventType == 'UNIT_DESTROYED' or eventType == 'UNIT_DISSIPATES' or eventType == 'SPELL_INSTAKILL' or eventType == 'PARTY_KILL') then
 		AutoAoeRemoveTarget(dstGUID)
 	end
 	if srcGUID ~= UnitGUID('player') then
@@ -1727,7 +1729,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 				end
 				var.last_combo_ability = var.last_ability
 			end
-			if MonkSeeMonkDo.previous and msmdPanel:IsVisible() then
+			if Opt.previous and msmdPanel:IsVisible() then
 				msmdPreviousPanel.ability = var.last_ability
 				msmdPreviousPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
 				msmdPreviousPanel.icon:SetTexture(var.last_ability.icon)
@@ -1737,7 +1739,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 		return
 	end
 	if eventType == 'SPELL_MISSED' then
-		if MonkSeeMonkDo.previous and MonkSeeMonkDo.miss_effect and msmdPanel:IsVisible() and msmdPreviousPanel.ability then
+		if Opt.previous and Opt.miss_effect and msmdPanel:IsVisible() and msmdPreviousPanel.ability then
 			if spellId == msmdPreviousPanel.ability.spellId or spellId == msmdPreviousPanel.ability.spellId2 then
 				msmdPreviousPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\misseffect.blp')
 			end
@@ -1745,7 +1747,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 		return
 	end
 	if eventType == 'SPELL_DAMAGE' then
-		if MonkSeeMonkDo.auto_aoe then
+		if Opt.auto_aoe then
 			local i
 			for i = 1, #abilitiesAutoAoe do
 				if spellId == abilitiesAutoAoe[i].spellId or spellId == abilitiesAutoAoe[i].spellId2 then
@@ -1778,7 +1780,7 @@ local function UpdateTargetInfo()
 		for i = 1, #Target.healthArray do
 			Target.healthArray[i] = 0
 		end
-		if MonkSeeMonkDo.always_on then
+		if Opt.always_on then
 			UpdateCombat()
 			msmdPanel:Show()
 			return true
@@ -1795,7 +1797,7 @@ local function UpdateTargetInfo()
 	Target.level = UnitLevel('target')
 	Target.boss = Target.level == -1 or (Target.level >= UnitLevel('player') + 2 and not UnitInRaid('player'))
 	Target.hostile = UnitCanAttack('player', 'target') and not UnitIsDead('target')
-	if Target.hostile or MonkSeeMonkDo.always_on then
+	if Target.hostile or Opt.always_on then
 		UpdateCombat()
 		msmdPanel:Show()
 		return true
@@ -1824,7 +1826,7 @@ end
 
 function events:PLAYER_REGEN_ENABLED()
 	combatStartTime = 0
-	if MonkSeeMonkDo.auto_aoe then
+	if Opt.auto_aoe then
 		local guid
 		for guid in next, Targets do
 			Targets[guid] = nil
@@ -1888,8 +1890,8 @@ end)
 
 msmdPanel:SetScript('OnUpdate', function(self, elapsed)
 	abilityTimer = abilityTimer + elapsed
-	if abilityTimer >= MonkSeeMonkDo.frequency then
-		if MonkSeeMonkDo.auto_aoe then
+	if abilityTimer >= Opt.frequency then
+		if Opt.auto_aoe then
 			local i
 			for i = 1, #abilitiesAutoAoe do
 				abilitiesAutoAoe[i]:updateTargetsHit()
@@ -1909,226 +1911,226 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 	msg = { strsplit(' ', strlower(msg)) }
 	if startsWith(msg[1], 'lock') then
 		if msg[2] then
-			MonkSeeMonkDo.locked = msg[2] == 'on'
+			Opt.locked = msg[2] == 'on'
 			UpdateDraggable()
 		end
-		return print('MonkSeeMonkDo - Locked: ' .. (MonkSeeMonkDo.locked and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Locked: ' .. (Opt.locked and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if startsWith(msg[1], 'snap') then
 		if msg[2] then
 			if msg[2] == 'above' or msg[2] == 'over' then
-				MonkSeeMonkDo.snap = 'above'
+				Opt.snap = 'above'
 			elseif msg[2] == 'below' or msg[2] == 'under' then
-				MonkSeeMonkDo.snap = 'below'
+				Opt.snap = 'below'
 			else
-				MonkSeeMonkDo.snap = false
+				Opt.snap = false
 				msmdPanel:ClearAllPoints()
 			end
 			OnResourceFrameShow()
 		end
-		return print('MonkSeeMonkDo - Snap to Blizzard combat resources frame: ' .. (MonkSeeMonkDo.snap and ('|cFF00C000' .. MonkSeeMonkDo.snap) or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Snap to Blizzard combat resources frame: ' .. (Opt.snap and ('|cFF00C000' .. Opt.snap) or '|cFFC00000Off'))
 	end
 	if msg[1] == 'scale' then
 		if startsWith(msg[2], 'prev') then
 			if msg[3] then
-				MonkSeeMonkDo.scale.previous = tonumber(msg[3]) or 0.7
-				msmdPreviousPanel:SetScale(MonkSeeMonkDo.scale.previous)
+				Opt.scale.previous = tonumber(msg[3]) or 0.7
+				msmdPreviousPanel:SetScale(Opt.scale.previous)
 			end
-			return print('MonkSeeMonkDo - Previous ability icon scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.previous .. '|r times')
+			return print('MonkSeeMonkDo - Previous ability icon scale set to: |cFFFFD000' .. Opt.scale.previous .. '|r times')
 		end
 		if msg[2] == 'main' then
 			if msg[3] then
-				MonkSeeMonkDo.scale.main = tonumber(msg[3]) or 1
-				msmdPanel:SetScale(MonkSeeMonkDo.scale.main)
+				Opt.scale.main = tonumber(msg[3]) or 1
+				msmdPanel:SetScale(Opt.scale.main)
 			end
-			return print('MonkSeeMonkDo - Main ability icon scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.main .. '|r times')
+			return print('MonkSeeMonkDo - Main ability icon scale set to: |cFFFFD000' .. Opt.scale.main .. '|r times')
 		end
 		if msg[2] == 'cd' then
 			if msg[3] then
-				MonkSeeMonkDo.scale.cooldown = tonumber(msg[3]) or 0.7
-				msmdCooldownPanel:SetScale(MonkSeeMonkDo.scale.cooldown)
+				Opt.scale.cooldown = tonumber(msg[3]) or 0.7
+				msmdCooldownPanel:SetScale(Opt.scale.cooldown)
 			end
-			return print('MonkSeeMonkDo - Cooldown ability icon scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.cooldown .. '|r times')
+			return print('MonkSeeMonkDo - Cooldown ability icon scale set to: |cFFFFD000' .. Opt.scale.cooldown .. '|r times')
 		end
 		if startsWith(msg[2], 'int') then
 			if msg[3] then
-				MonkSeeMonkDo.scale.interrupt = tonumber(msg[3]) or 0.4
-				msmdInterruptPanel:SetScale(MonkSeeMonkDo.scale.interrupt)
+				Opt.scale.interrupt = tonumber(msg[3]) or 0.4
+				msmdInterruptPanel:SetScale(Opt.scale.interrupt)
 			end
-			return print('MonkSeeMonkDo - Interrupt ability icon scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.interrupt .. '|r times')
+			return print('MonkSeeMonkDo - Interrupt ability icon scale set to: |cFFFFD000' .. Opt.scale.interrupt .. '|r times')
 		end
 		if startsWith(msg[2], 'to') then
 			if msg[3] then
-				MonkSeeMonkDo.scale.touch = tonumber(msg[3]) or 0.4
-				msmdTouchPanel:SetScale(MonkSeeMonkDo.scale.touch)
+				Opt.scale.touch = tonumber(msg[3]) or 0.4
+				msmdTouchPanel:SetScale(Opt.scale.touch)
 			end
-			return print('MonkSeeMonkDo - Touch cooldown ability icon scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.touch .. '|r times')
+			return print('MonkSeeMonkDo - Touch cooldown ability icon scale set to: |cFFFFD000' .. Opt.scale.touch .. '|r times')
 		end
 		if msg[2] == 'glow' then
 			if msg[3] then
-				MonkSeeMonkDo.scale.glow = tonumber(msg[3]) or 1
+				Opt.scale.glow = tonumber(msg[3]) or 1
 				UpdateGlowColorAndScale()
 			end
-			return print('MonkSeeMonkDo - Action button glow scale set to: |cFFFFD000' .. MonkSeeMonkDo.scale.glow .. '|r times')
+			return print('MonkSeeMonkDo - Action button glow scale set to: |cFFFFD000' .. Opt.scale.glow .. '|r times')
 		end
 		return print('MonkSeeMonkDo - Default icon scale options: |cFFFFD000prev 0.7|r, |cFFFFD000main 1|r, |cFFFFD000cd 0.7|r, |cFFFFD000interrupt 0.4|r, |cFFFFD000pet 0.4|r, and |cFFFFD000glow 1|r')
 	end
 	if msg[1] == 'alpha' then
 		if msg[2] then
-			MonkSeeMonkDo.alpha = max(min((tonumber(msg[2]) or 100), 100), 0) / 100
+			Opt.alpha = max(min((tonumber(msg[2]) or 100), 100), 0) / 100
 			UpdateAlpha()
 		end
-		return print('MonkSeeMonkDo - Icon transparency set to: |cFFFFD000' .. MonkSeeMonkDo.alpha * 100 .. '%|r')
+		return print('MonkSeeMonkDo - Icon transparency set to: |cFFFFD000' .. Opt.alpha * 100 .. '%|r')
 	end
 	if startsWith(msg[1], 'freq') then
 		if msg[2] then
-			MonkSeeMonkDo.frequency = tonumber(msg[2]) or 0.05
+			Opt.frequency = tonumber(msg[2]) or 0.05
 			UpdateHealthArray()
 		end
-		return print('MonkSeeMonkDo - Calculation frequency: Every |cFFFFD000' .. MonkSeeMonkDo.frequency .. '|r seconds')
+		return print('MonkSeeMonkDo - Calculation frequency: Every |cFFFFD000' .. Opt.frequency .. '|r seconds')
 	end
 	if startsWith(msg[1], 'glow') then
 		if msg[2] == 'main' then
 			if msg[3] then
-				MonkSeeMonkDo.glow.main = msg[3] == 'on'
+				Opt.glow.main = msg[3] == 'on'
 				UpdateGlows()
 			end
-			return print('MonkSeeMonkDo - Glowing ability buttons (main icon): ' .. (MonkSeeMonkDo.glow.main and '|cFF00C000On' or '|cFFC00000Off'))
+			return print('MonkSeeMonkDo - Glowing ability buttons (main icon): ' .. (Opt.glow.main and '|cFF00C000On' or '|cFFC00000Off'))
 		end
 		if msg[2] == 'cd' then
 			if msg[3] then
-				MonkSeeMonkDo.glow.cooldown = msg[3] == 'on'
+				Opt.glow.cooldown = msg[3] == 'on'
 				UpdateGlows()
 			end
-			return print('MonkSeeMonkDo - Glowing ability buttons (cooldown icon): ' .. (MonkSeeMonkDo.glow.cooldown and '|cFF00C000On' or '|cFFC00000Off'))
+			return print('MonkSeeMonkDo - Glowing ability buttons (cooldown icon): ' .. (Opt.glow.cooldown and '|cFF00C000On' or '|cFFC00000Off'))
 		end
 		if startsWith(msg[2], 'int') then
 			if msg[3] then
-				MonkSeeMonkDo.glow.interrupt = msg[3] == 'on'
+				Opt.glow.interrupt = msg[3] == 'on'
 				UpdateGlows()
 			end
-			return print('MonkSeeMonkDo - Glowing ability buttons (interrupt icon): ' .. (MonkSeeMonkDo.glow.interrupt and '|cFF00C000On' or '|cFFC00000Off'))
+			return print('MonkSeeMonkDo - Glowing ability buttons (interrupt icon): ' .. (Opt.glow.interrupt and '|cFF00C000On' or '|cFFC00000Off'))
 		end
 		if startsWith(msg[2], 'to') then
 			if msg[3] then
-				MonkSeeMonkDo.glow.touch = msg[3] == 'on'
+				Opt.glow.touch = msg[3] == 'on'
 				UpdateGlows()
 			end
-			return print('MonkSeeMonkDo - Glowing ability buttons (touch cooldown icon): ' .. (MonkSeeMonkDo.glow.touch and '|cFF00C000On' or '|cFFC00000Off'))
+			return print('MonkSeeMonkDo - Glowing ability buttons (touch cooldown icon): ' .. (Opt.glow.touch and '|cFF00C000On' or '|cFFC00000Off'))
 		end
 		if startsWith(msg[2], 'bliz') then
 			if msg[3] then
-				MonkSeeMonkDo.glow.blizzard = msg[3] == 'on'
+				Opt.glow.blizzard = msg[3] == 'on'
 				UpdateGlows()
 			end
-			return print('MonkSeeMonkDo - Blizzard default proc glow: ' .. (MonkSeeMonkDo.glow.blizzard and '|cFF00C000On' or '|cFFC00000Off'))
+			return print('MonkSeeMonkDo - Blizzard default proc glow: ' .. (Opt.glow.blizzard and '|cFF00C000On' or '|cFFC00000Off'))
 		end
 		if msg[2] == 'color' then
 			if msg[5] then
-				MonkSeeMonkDo.glow.color.r = max(min(tonumber(msg[3]) or 0, 1), 0)
-				MonkSeeMonkDo.glow.color.g = max(min(tonumber(msg[4]) or 0, 1), 0)
-				MonkSeeMonkDo.glow.color.b = max(min(tonumber(msg[5]) or 0, 1), 0)
+				Opt.glow.color.r = max(min(tonumber(msg[3]) or 0, 1), 0)
+				Opt.glow.color.g = max(min(tonumber(msg[4]) or 0, 1), 0)
+				Opt.glow.color.b = max(min(tonumber(msg[5]) or 0, 1), 0)
 				UpdateGlowColorAndScale()
 			end
-			return print('MonkSeeMonkDo - Glow color:', '|cFFFF0000' .. MonkSeeMonkDo.glow.color.r, '|cFF00FF00' .. MonkSeeMonkDo.glow.color.g, '|cFF0000FF' .. MonkSeeMonkDo.glow.color.b)
+			return print('MonkSeeMonkDo - Glow color:', '|cFFFF0000' .. Opt.glow.color.r, '|cFF00FF00' .. Opt.glow.color.g, '|cFF0000FF' .. Opt.glow.color.b)
 		end
 		return print('MonkSeeMonkDo - Possible glow options: |cFFFFD000main|r, |cFFFFD000cd|r, |cFFFFD000interrupt|r, |cFFFFD000pet|r, |cFFFFD000blizzard|r, and |cFFFFD000color')
 	end
 	if startsWith(msg[1], 'prev') then
 		if msg[2] then
-			MonkSeeMonkDo.previous = msg[2] == 'on'
+			Opt.previous = msg[2] == 'on'
 			UpdateTargetInfo()
 		end
-		return print('MonkSeeMonkDo - Previous ability icon: ' .. (MonkSeeMonkDo.previous and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Previous ability icon: ' .. (Opt.previous and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'always' then
 		if msg[2] then
-			MonkSeeMonkDo.always_on = msg[2] == 'on'
+			Opt.always_on = msg[2] == 'on'
 			UpdateTargetInfo()
 		end
-		return print('MonkSeeMonkDo - Show the MonkSeeMonkDo UI without a target: ' .. (MonkSeeMonkDo.always_on and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Show the MonkSeeMonkDo UI without a target: ' .. (Opt.always_on and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'cd' then
 		if msg[2] then
-			MonkSeeMonkDo.cooldown = msg[2] == 'on'
+			Opt.cooldown = msg[2] == 'on'
 		end
-		return print('MonkSeeMonkDo - Use MonkSeeMonkDo for cooldown energygement: ' .. (MonkSeeMonkDo.cooldown and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Use MonkSeeMonkDo for cooldown energygement: ' .. (Opt.cooldown and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'swipe' then
 		if msg[2] then
-			MonkSeeMonkDo.spell_swipe = msg[2] == 'on'
-			if not MonkSeeMonkDo.spell_swipe then
+			Opt.spell_swipe = msg[2] == 'on'
+			if not Opt.spell_swipe then
 				msmdPanel.swipe:Hide()
 			end
 		end
-		return print('MonkSeeMonkDo - Spell casting swipe animation: ' .. (MonkSeeMonkDo.spell_swipe and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Spell casting swipe animation: ' .. (Opt.spell_swipe and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if startsWith(msg[1], 'dim') then
 		if msg[2] then
-			MonkSeeMonkDo.dimmer = msg[2] == 'on'
-			if not MonkSeeMonkDo.dimmer then
+			Opt.dimmer = msg[2] == 'on'
+			if not Opt.dimmer then
 				msmdPanel.dimmer:Hide()
 			end
 		end
-		return print('MonkSeeMonkDo - Dim main ability icon when you don\'t have enough energy to use it: ' .. (MonkSeeMonkDo.dimmer and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Dim main ability icon when you don\'t have enough energy to use it: ' .. (Opt.dimmer and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'miss' then
 		if msg[2] then
-			MonkSeeMonkDo.miss_effect = msg[2] == 'on'
+			Opt.miss_effect = msg[2] == 'on'
 		end
-		return print('MonkSeeMonkDo - Red border around previous ability when it fails to hit: ' .. (MonkSeeMonkDo.miss_effect and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Red border around previous ability when it fails to hit: ' .. (Opt.miss_effect and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'aoe' then
 		if msg[2] then
-			MonkSeeMonkDo.aoe = msg[2] == 'on'
+			Opt.aoe = msg[2] == 'on'
 			MonkSeeMonkDo_SetTargetMode(1)
 			UpdateDraggable()
 		end
-		return print('MonkSeeMonkDo - Allow clicking main ability icon to toggle amount of targets (disables moving): ' .. (MonkSeeMonkDo.aoe and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Allow clicking main ability icon to toggle amount of targets (disables moving): ' .. (Opt.aoe and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'bossonly' then
 		if msg[2] then
-			MonkSeeMonkDo.boss_only = msg[2] == 'on'
+			Opt.boss_only = msg[2] == 'on'
 		end
-		return print('MonkSeeMonkDo - Only use cooldowns on bosses: ' .. (MonkSeeMonkDo.boss_only and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Only use cooldowns on bosses: ' .. (Opt.boss_only and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'hidespec' or startsWith(msg[1], 'spec') then
 		if msg[2] then
 			if startsWith(msg[2], 'b') then
-				MonkSeeMonkDo.hide.brewmaster = not MonkSeeMonkDo.hide.brewmaster
+				Opt.hide.brewmaster = not Opt.hide.brewmaster
 				events:PLAYER_SPECIALIZATION_CHANGED('player')
-				return print('MonkSeeMonkDo - Brewmaster specialization: |cFFFFD000' .. (MonkSeeMonkDo.hide.brewmaster and '|cFFC00000Off' or '|cFF00C000On'))
+				return print('MonkSeeMonkDo - Brewmaster specialization: |cFFFFD000' .. (Opt.hide.brewmaster and '|cFFC00000Off' or '|cFF00C000On'))
 			end
 			if startsWith(msg[2], 'm') then
-				MonkSeeMonkDo.hide.mistweaver = not MonkSeeMonkDo.hide.mistweaver
+				Opt.hide.mistweaver = not Opt.hide.mistweaver
 				events:PLAYER_SPECIALIZATION_CHANGED('player')
-				return print('MonkSeeMonkDo - Mistweaver specialization: |cFFFFD000' .. (MonkSeeMonkDo.hide.mistweaver and '|cFFC00000Off' or '|cFF00C000On'))
+				return print('MonkSeeMonkDo - Mistweaver specialization: |cFFFFD000' .. (Opt.hide.mistweaver and '|cFFC00000Off' or '|cFF00C000On'))
 			end
 			if startsWith(msg[2], 'w') then
-				MonkSeeMonkDo.hide.windwalker = not MonkSeeMonkDo.hide.windwalker
+				Opt.hide.windwalker = not Opt.hide.windwalker
 				events:PLAYER_SPECIALIZATION_CHANGED('player')
-				return print('MonkSeeMonkDo - Windwalker specialization: |cFFFFD000' .. (MonkSeeMonkDo.hide.windwalker and '|cFFC00000Off' or '|cFF00C000On'))
+				return print('MonkSeeMonkDo - Windwalker specialization: |cFFFFD000' .. (Opt.hide.windwalker and '|cFFC00000Off' or '|cFF00C000On'))
 			end
 		end
 		return print('MonkSeeMonkDo - Possible hidespec options: |cFFFFD000brewmaster|r/|cFFFFD000mistweaver|r/|cFFFFD000windwalker|r - toggle disabling MonkSeeMonkDo for specializations')
 	end
 	if startsWith(msg[1], 'int') then
 		if msg[2] then
-			MonkSeeMonkDo.interrupt = msg[2] == 'on'
+			Opt.interrupt = msg[2] == 'on'
 		end
-		return print('MonkSeeMonkDo - Show an icon for interruptable spells: ' .. (MonkSeeMonkDo.interrupt and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Show an icon for interruptable spells: ' .. (Opt.interrupt and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'auto' then
 		if msg[2] then
-			MonkSeeMonkDo.auto_aoe = msg[2] == 'on'
+			Opt.auto_aoe = msg[2] == 'on'
 		end
-		return print('MonkSeeMonkDo - Automatically change target mode on AoE spells: ' .. (MonkSeeMonkDo.auto_aoe and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Automatically change target mode on AoE spells: ' .. (Opt.auto_aoe and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if startsWith(msg[1], 'pot') then
 		if msg[2] then
-			MonkSeeMonkDo.pot = msg[2] == 'on'
+			Opt.pot = msg[2] == 'on'
 		end
-		return print('MonkSeeMonkDo - Show Prolonged Power potions in cooldown UI: ' .. (MonkSeeMonkDo.pot and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Show Prolonged Power potions in cooldown UI: ' .. (Opt.pot and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'reset' then
 		msmdPanel:ClearAllPoints()
