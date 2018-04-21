@@ -1576,7 +1576,9 @@ local function OnResourceFrameShow()
 end
 
 local function HookResourceFrame()
-	if KuiNameplatesPlayerAnchor then
+	if KuiNameplatesCoreSaved and KuiNameplatesCoreCharacterSaved and
+		not KuiNameplatesCoreSaved.profiles[KuiNameplatesCoreCharacterSaved.profile].use_blizzard_personal
+	then
 		resourceAnchor.name = 'kui'
 		resourceAnchor.frame = KuiNameplatesPlayerAnchor
 	else
