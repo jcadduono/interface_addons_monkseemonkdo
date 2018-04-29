@@ -733,16 +733,16 @@ function Stagger:pct()
 end
 
 function Stagger:light()
-	return self:pct() < 3.5
+	return self:pct() < 30
 end
 
 function Stagger:moderate()
 	local pct = self:pct()
-	return pct >= 3.5 and pct <= 6.5
+	return pct >= 30 and pct < 60
 end
 
 function Stagger:heavy()
-	return self:pct() > 6.5
+	return self:pct() >= 60
 end
 
 local function GetExecuteEnergyRegen()
