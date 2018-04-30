@@ -1339,6 +1339,9 @@ end
 
 local function UpdateInterrupt()
 	local _, _, _, _, start, ends, _, _, notInterruptible = UnitCastingInfo('target')
+	if not start then
+		_, _, _, _, start, ends, _, notInterruptible = UnitChannelInfo('target')
+	end
 	if not start or notInterruptible then
 		var.interrupt = nil
 		msmdInterruptPanel:Hide()
