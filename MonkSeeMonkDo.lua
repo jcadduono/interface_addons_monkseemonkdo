@@ -532,6 +532,10 @@ local PurifyingBrew = Ability.add(119582, true, true)
 PurifyingBrew.hasted_cooldown = true
 PurifyingBrew.cooldown_duration = 21
 PurifyingBrew.triggers_gcd = false
+local Stagger = Ability.add(115069, false, true)
+Stagger.auraTarget = 'player'
+Stagger.tick_interval = 0.5
+Stagger.buff_duration = 10
 local TigerPalmBM = Ability.add(100780, false, true)
 TigerPalmBM.energy_cost = 25
 ------ Talents
@@ -722,29 +726,6 @@ local PotionOfProlongedPower = InventoryItem.add(142117)
 
 -- Start Helpful Functions
 
-local Stagger = {}
-
-function Stagger:amount()
-	return UnitStagger('player')
-end
-
-function Stagger:pct()
-	return self:amount() / UnitHealth('player') * 100
-end
-
-function Stagger:light()
-	return self:pct() < 30
-end
-
-function Stagger:moderate()
-	local pct = self:pct()
-	return pct >= 30 and pct < 60
-end
-
-function Stagger:heavy()
-	return self:pct() >= 60
-end
-
 local function GetExecuteEnergyRegen()
 	return var.energy_regen * var.execute_remains - (var.cast_ability and var.cast_ability:energyCost() or 0)
 end
@@ -872,6 +853,53 @@ function CracklingJadeLightning:energyCost()
 	local cost = Ability.energyCost(self)
 	cost = cost - (cost * TheEmperorsCapacitor:stack() * .05)
 	return cost
+end
+
+function Stagger:remains()
+	local _, i, id, expires
+	for i = 1, 40 do
+		_, _, _, _, _, _, expires, _, _, _, id = UnitAura(self.auraTarget, i, self.auraFilter)
+		if not id then
+			return 0
+		end
+		if id == 124273 or id == 124274 or id == 124275 then
+			return max(0, expires - GetTime())
+		end
+	end
+	return 0
+end
+
+function Stagger:ticks_remaining()
+	local remains = self:remains()
+	if remains <= 0 then
+		return 0
+	end
+	return ceil(remains / self.tick_interval)
+end
+
+function Stagger:tick()
+	local stagger = UnitStagger('player')
+	if stagger <= 0 then
+		return 0
+	end
+	return stagger / max(1, self:ticks_remaining() + (combatStartTime > 0 and -1 or 1))
+end
+
+function Stagger:tick_pct()
+	return self:tick() / UnitHealth('player') * 100
+end
+
+function Stagger:light()
+	return self:tick_pct() < 3.5
+end
+
+function Stagger:moderate()
+	local pct = self:tick_pct()
+	return pct >= 3.5 and pct < 6.5
+end
+
+function Stagger:heavy()
+	return self:tick_pct() >= 6.5
 end
 
 -- End Ability Modifications
