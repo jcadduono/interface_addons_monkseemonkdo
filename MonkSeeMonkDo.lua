@@ -178,7 +178,6 @@ msmdPanel.button = CreateFrame('Button', 'msmdPanelButton', msmdPanel)
 msmdPanel.button:SetAllPoints(msmdPanel)
 msmdPanel.button:RegisterForClicks('LeftButtonDown', 'RightButtonDown', 'MiddleButtonDown')
 local msmdPreviousPanel = CreateFrame('Frame', 'msmdPreviousPanel', UIParent)
-msmdPreviousPanel:SetPoint('BOTTOMRIGHT', msmdPanel, 'BOTTOMLEFT', -10, -5)
 msmdPreviousPanel:SetFrameStrata('BACKGROUND')
 msmdPreviousPanel:SetSize(64, 64)
 msmdPreviousPanel:Hide()
@@ -193,7 +192,6 @@ msmdPreviousPanel.border = msmdPreviousPanel:CreateTexture(nil, 'ARTWORK')
 msmdPreviousPanel.border:SetAllPoints(msmdPreviousPanel)
 msmdPreviousPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
 local msmdCooldownPanel = CreateFrame('Frame', 'msmdCooldownPanel', UIParent)
-msmdCooldownPanel:SetPoint('BOTTOMLEFT', msmdPanel, 'BOTTOMRIGHT', 10, -5)
 msmdCooldownPanel:SetSize(64, 64)
 msmdCooldownPanel:SetFrameStrata('BACKGROUND')
 msmdCooldownPanel:Hide()
@@ -210,7 +208,6 @@ msmdCooldownPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.bl
 msmdCooldownPanel.cd = CreateFrame('Cooldown', nil, msmdCooldownPanel, 'CooldownFrameTemplate')
 msmdCooldownPanel.cd:SetAllPoints(msmdCooldownPanel)
 local msmdInterruptPanel = CreateFrame('Frame', 'msmdInterruptPanel', UIParent)
-msmdInterruptPanel:SetPoint('TOPLEFT', msmdPanel, 'TOPRIGHT', 16, 25)
 msmdInterruptPanel:SetFrameStrata('BACKGROUND')
 msmdInterruptPanel:SetSize(64, 64)
 msmdInterruptPanel:Hide()
@@ -227,7 +224,6 @@ msmdInterruptPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.b
 msmdInterruptPanel.cast = CreateFrame('Cooldown', nil, msmdInterruptPanel, 'CooldownFrameTemplate')
 msmdInterruptPanel.cast:SetAllPoints(msmdInterruptPanel)
 local msmdTouchPanel = CreateFrame('Frame', 'msmdTouchPanel', UIParent)
-msmdTouchPanel:SetPoint('TOPRIGHT', msmdPanel, 'TOPLEFT', -16, 25)
 msmdTouchPanel:SetFrameStrata('BACKGROUND')
 msmdTouchPanel:SetSize(64, 64)
 msmdTouchPanel:Hide()
@@ -1559,6 +1555,17 @@ local function UpdateDraggable()
 	end
 end
 
+local function SnapAllPanels()
+	msmdPreviousPanel:ClearAllPoints()
+	msmdPreviousPanel:SetPoint('BOTTOMRIGHT', msmdPanel, 'BOTTOMLEFT', -10, -5)
+	msmdCooldownPanel:ClearAllPoints()
+	msmdCooldownPanel:SetPoint('BOTTOMLEFT', msmdPanel, 'BOTTOMRIGHT', 10, -5)
+	msmdInterruptPanel:ClearAllPoints()
+	msmdInterruptPanel:SetPoint('TOPLEFT', msmdPanel, 'TOPRIGHT', 16, 25)
+	msmdTouchPanel:ClearAllPoints()
+	msmdTouchPanel:SetPoint('TOPRIGHT', msmdPanel, 'TOPLEFT', -16, 25)
+end
+
 local resourceAnchor = {}
 
 local ResourceFramePoints = {
@@ -1603,6 +1610,7 @@ local function OnResourceFrameShow()
 		msmdPanel:ClearAllPoints()
 		local p = ResourceFramePoints[resourceAnchor.name][currentSpec][Opt.snap]
 		msmdPanel:SetPoint(p[1], resourceAnchor.frame, p[2], p[3], p[4])
+		SnapAllPanels()
 	end
 end
 
@@ -1733,6 +1741,7 @@ function events:ADDON_LOADED(name)
 		UpdateHealthArray()
 		UpdateDraggable()
 		UpdateAlpha()
+		SnapAllPanels()
 		msmdPanel:SetScale(Opt.scale.main)
 		msmdPreviousPanel:SetScale(Opt.scale.previous)
 		msmdCooldownPanel:SetScale(Opt.scale.cooldown)
@@ -2168,14 +2177,7 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 	if msg[1] == 'reset' then
 		msmdPanel:ClearAllPoints()
 		msmdPanel:SetPoint('CENTER', 0, -169)
-		msmdPreviousPanel:ClearAllPoints()
-		msmdPreviousPanel:SetPoint('BOTTOMRIGHT', msmdPanel, 'BOTTOMLEFT', -10, -5)
-		msmdCooldownPanel:ClearAllPoints()
-		msmdCooldownPanel:SetPoint('BOTTOMLEFT', msmdPanel, 'BOTTOMRIGHT', 10, -5)
-		msmdInterruptPanel:ClearAllPoints()
-		msmdInterruptPanel:SetPoint('TOPLEFT', msmdPanel, 'TOPRIGHT', 16, 25)
-		msmdTouchPanel:ClearAllPoints()
-		msmdTouchPanel:SetPoint('TOPRIGHT', msmdPanel, 'TOPLEFT', -16, 25)
+		SnapAllPanels()
 		return print('MonkSeeMonkDo - Position has been reset to default')
 	end
 	print('MonkSeeMonkDo (version: |cFFFFD000' .. GetAddOnMetadata('MonkSeeMonkDo', 'Version') .. '|r) - Commands:')
