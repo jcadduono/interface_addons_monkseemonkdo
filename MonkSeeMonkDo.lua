@@ -1206,7 +1206,7 @@ APL.WW_ST = function()
 	if ItemEquipped.TheEmperorsCapacitor and CracklingJadeLightning:usable() and EnergyTimeToMax() > 3 and not RisingSunKick:ready(4 * HasteFactor()) and (TheEmperorsCapacitor:stack() >= 19 or (Serenity.known and TheEmperorsCapacitor:stack() >= 14 and Serenity:ready(13))) then
 		return CracklingJadeLightning
 	end
-	if SpinningCraneKick:usable() and SpinningCraneKick:combo() and Enemies() >= 3 then
+	if SpinningCraneKick:usable() and SpinningCraneKick:combo() and (Enemies() >= 3 or (BlackoutKickProc:remains() > GCD() * 2 and ChiDeficit() <= (Tier.T21P >= 2 and 1 or 0))) then
 		return SpinningCraneKick
 	end
 	if RushingJadeWind.known and RushingJadeWind:usable() and RushingJadeWind:combo() and ChiDeficit() > 1 then
