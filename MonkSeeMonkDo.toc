@@ -3,5 +3,5 @@
 ## Notes: MonkSeeMonkDo is an addon for monks that simplifies gameplay and maximizes DPS by doing all the decision making for you
 ## Author: Jpapertowels @ curse.com or Spy#1955 @ BattleTag
 ## SavedVariablesPerCharacter: MonkSeeMonkDo
-## Version: 7.3.5-5
+## Version: 7.3.5-6
 MonkSeeMonkDo.lua
