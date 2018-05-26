@@ -1224,6 +1224,9 @@ APL.WW_ST = function()
 	if ChiBurst.known and ChiBurst:usable() and Chi() <= 3 and EnergyTimeToMax() > 1 and (RisingSunKick:cooldown() >= 5 or WhirlingDragonPunch:cooldown() >= 5) then
 		UseCooldown(ChiBurst)
 	end
+	if ChiDeficit() == 0 and SpinningCraneKick:usable() and SpinningCraneKick:combo() and EnergyTimeToMax() <= GCD() * 2 then
+		return SpinningCraneKick
+	end
 	if TigerPalm:usable() and TigerPalm:combo() and not EnergizingElixir:previous() and EnergyTimeToMax() <= ChiDeficit() then
 		return TigerPalm
 	end
