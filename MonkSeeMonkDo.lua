@@ -116,7 +116,9 @@ local ItemEquipped = {
 	DrinkingHornCover = false,
 	TheEmperorsCapacitor = false,
 	HiddenMastersForbiddenTouch = false,
-	SephuzsSecret = false
+	SephuzsSecret = false,
+	SalsalabimsLostTunic = false,
+	StormstoutsLastGasp = false
 }
 
 local var = {
@@ -989,14 +991,40 @@ APL[SPEC.BREWMASTER] = function()
 	if ArcaneTorrent.known and ArcaneTorrent:usable() and Energy() < 31 then
 		UseCooldown(ArcaneTorrent)
 	end
-	if KegSmash:usable() and Enemies() >= 3 then
+	if ItemEquipped.StormstoutsLastGasp and KegSmash:charges() == 2 then
 		return KegSmash
+	end
+	if Enemies() >= 3 then
+		if KegSmash:usable() and KegSmash:down() then
+			return KegSmash
+		end
+		if BreathOfFire:usable() and BreathOfFire:down() and KegSmash:up() then
+			return BreathOfFire
+		end
+		if ItemEquipped.SalsalabimsLostTunic and BreathOfFire:usable() and KegSmash:ready(GCD()) then
+			return BreathOfFire
+		end
+		if KegSmash:usable() then
+			if ItemEquipped.StormstoutsLastGasp then
+				if KegSmash:charges_fractional() >= 1.75 then
+					return KegSmash
+				end
+			else
+				return KegSmash
+			end
+		end
 	end
 	if TigerPalmBM:usable() and BlackoutCombo:up() then
 		return TigerPalmBM
 	end
 	if KegSmash:usable() then
-		return KegSmash
+		if ItemEquipped.StormstoutsLastGasp then
+			if KegSmash:charges_fractional() >= 1.75 then
+				return KegSmash
+			end
+		else
+			return KegSmash
+		end
 	end
 	if BlackoutStrike:usable() then
 		return BlackoutStrike
@@ -1004,8 +1032,17 @@ APL[SPEC.BREWMASTER] = function()
 	if BreathOfFire:usable() and BlackoutCombo:down() and (not BloodlustActive() or (BloodlustActive() and BreathOfFire:refreshable())) then
 		return BreathOfFire
 	end
+	if RushingJadeWindBM.known and RushingJadeWindBM:usable() and RushingJadeWindBM:down() then
+		return RushingJadeWindBM
+	end
+	if ItemEquipped.SalsalabimsLostTunic and BreathOfFire:usable() and BlackoutCombo:down() and KegSmash:up() then
+		return BreathOfFire
+	end
 	if RushingJadeWindBM.known and RushingJadeWindBM:usable() then
 		return RushingJadeWindBM
+	end
+	if KegSmash:usable() then
+		return KegSmash
 	end
 	if ChiBurst.known and ChiBurst:usable() then
 		return ChiBurst
@@ -1892,6 +1929,8 @@ function events:PLAYER_EQUIPMENT_CHANGED()
 	ItemEquipped.TheEmperorsCapacitor = Equipped("The Emperor's Capacitor")
 	ItemEquipped.HiddenMastersForbiddenTouch = Equipped("Hidden Master's Forbidden Touch")
 	ItemEquipped.SephuzsSecret = Equipped("Sephuz's Secret")
+	ItemEquipped.SalsalabimsLostTunic = Equipped("Sal'salabim's Lost Tunic")
+	ItemEquipped.StormstoutsLastGasp = Equipped("Stormstout's Last Gasp")
 end
 
 function events:PLAYER_SPECIALIZATION_CHANGED(unitName)
