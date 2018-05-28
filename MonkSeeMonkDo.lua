@@ -1155,17 +1155,20 @@ APL.WW_SERENITY = function()
 	if StrikeOfTheWindlord.known and StrikeOfTheWindlord:usable() then
 		return StrikeOfTheWindlord
 	end
-	if FistsOfFury:usable() and not ItemEquipped.DrinkingHornCover and ((RisingSunKick:previous() and not StrikeOfTheWindlord:ready(4 * HasteFactor())) or (StrikeOfTheWindlord:previous() and PreviousGCD[2] == RisingSunKick)) then
+	if FistsOfFury:usable() and (BloodlustActive() or not ItemEquipped.DrinkingHornCover) and RisingSunKick:previous() and not StrikeOfTheWindlord:ready(4 * HasteFactor()) then
 		return FistsOfFury
 	end
 	if BlackoutKick:usable() and BlackoutKick:combo() and Enemies() < 2 and (StrikeOfTheWindlord:previous() or FistsOfFury:previous()) then
 		return BlackoutKick
 	end
-	if FistsOfFury:usable() and (RisingSunKick:cooldown() > 1 or Enemies() > 1) and (not ItemEquipped.DrinkingHornCover or BloodlustActive() or (ItemEquipped.DrinkingHornCover and Tier.T20P >= 4 and PressurePoint:remains() < 2)) then
+	if FistsOfFury:usable() and ItemEquipped.DrinkingHornCover and Tier.T20P >= 4 and PressurePoint:remains() < 2 and (RisingSunKick:cooldown() > 1 or Enemies() > 1) then
 		return FistsOfFury
 	end
 	if SpinningCraneKick:usable() and SpinningCraneKick:combo() and Enemies() >= 3 then
 		return SpinningCraneKick
+	end
+	if FistsOfFury:usable() and Serenity:remains() < (ItemEquipped.DrinkingHornCover and 0.7 or 1) then
+		return FistsOfFury
 	end
 	if RushingJadeWind.known and RushingJadeWind:usable() and RushingJadeWind:combo() and RushingJadeWind:down() and Serenity:remains() > 4 then
 		return RushingJadeWind
