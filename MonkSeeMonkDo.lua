@@ -73,6 +73,7 @@ local function InitializeVariables()
 		interrupt = true,
 		aoe = false,
 		auto_aoe = false,
+		auto_aoe_ttl = 10,
 		healthstone = true,
 		pot = false
 	})
@@ -89,9 +90,6 @@ local SPEC = {
 local events, glows = {}, {}
 
 local abilityTimer, currentSpec, targetMode, combatStartTime = 0, 0, 0, 0
-
--- list of targets detected in AoE proximity
-local Targets = {}
 
 -- current target information
 local Target = {
@@ -240,9 +238,64 @@ msmdTouchPanel.border = msmdTouchPanel:CreateTexture(nil, 'ARTWORK')
 msmdTouchPanel.border:SetAllPoints(msmdTouchPanel)
 msmdTouchPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
 
+-- Start Auto AoE
+
+local autoAoe = {
+	abilities = {},
+	targets = {}
+}
+
+function autoAoe:update()
+	local count, i = 0
+	for i in next, self.targets do
+		count = count + 1
+	end
+	if count <= 1 then
+		MonkSeeMonkDo_SetTargetMode(1)
+		return
+	end
+	for i = #targetModes[currentSpec], 1, -1 do
+		if count >= targetModes[currentSpec][i][1] then
+			MonkSeeMonkDo_SetTargetMode(i)
+			return
+		end
+	end
+end
+
+function autoAoe:add(guid)
+	local new = not self.targets[guid]
+	self.targets[guid] = GetTime()
+	if new then
+		self:update()
+	end
+end
+
+function autoAoe:remove(guid)
+	if self.targets[guid] then
+		self.targets[guid] = nil
+		self:update()
+	end
+end
+
+function autoAoe:purge()
+	local update, guid, t
+	local now = GetTime()
+	for guid, t in next, self.targets do
+		if now - t > Opt.auto_aoe_ttl then
+			self.targets[guid] = nil
+			update = true
+		end
+	end
+	if update then
+		self:update()
+	end
+end
+
+-- End Auto AoE
+
 -- Start Abilities
 
-local Ability, abilities, abilityBySpellId, abilitiesAutoAoe = {}, {}, {}, {}
+local Ability, abilities, abilityBySpellId = {}, {}, {}
 Ability.__index = Ability
 
 function Ability.add(spellId, buff, player, spellId2)
@@ -428,16 +481,16 @@ function Ability:setAutoAoe(enabled)
 		self.auto_aoe = true
 		self.first_hit_time = nil
 		self.targets_hit = {}
-		abilitiesAutoAoe[#abilitiesAutoAoe + 1] = self
+		autoAoe.abilities[#autoAoe.abilities + 1] = self
 	end
 	if not enabled and self.auto_aoe then
 		self.auto_aoe = nil
 		self.first_hit_time = nil
 		self.targets_hit = nil
 		local i
-		for i = 1, #abilitiesAutoAoe do
-			if abilitiesAutoAoe[i] == self then
-				abilitiesAutoAoe[i] = nil
+		for i = 1, #autoAoe.abilities do
+			if autoAoe.abilities[i] == self then
+				autoAoe.abilities[i] = nil
 				break
 			end
 		end
@@ -447,49 +500,25 @@ end
 function Ability:recordTargetHit(guid)
 	local t = GetTime()
 	self.targets_hit[guid] = t
-	Targets[guid] = t
 	if not self.first_hit_time then
 		self.first_hit_time = t
-	end
-end
-
-local function AutoAoeUpdateTargetMode()
-	local count, i = 0
-	for i in next, Targets do
-		count = count + 1
-	end
-	if count <= 1 then
-		MonkSeeMonkDo_SetTargetMode(1)
-		return
-	end
-	for i = #targetModes[currentSpec], 1, -1 do
-		if count >= targetModes[currentSpec][i][1] then
-			MonkSeeMonkDo_SetTargetMode(i)
-			return
-		end
-	end
-end
-
-local function AutoAoeRemoveTarget(guid)
-	if Targets[guid] then
-		Targets[guid] = nil
-		AutoAoeUpdateTargetMode()
 	end
 end
 
 function Ability:updateTargetsHit()
 	if self.first_hit_time and GetTime() - self.first_hit_time >= 0.3 then
 		self.first_hit_time = nil
-		local guid
-		for guid in next, Targets do
+		local guid, t
+		for guid in next, autoAoe.targets do
 			if not self.targets_hit[guid] then
-				Targets[guid] = nil
+				autoAoe.targets[guid] = nil
 			end
 		end
-		for guid in next, self.targets_hit do
+		for guid, t in next, self.targets_hit do
+			autoAoe.targets[guid] = t
 			self.targets_hit[guid] = nil
 		end
-		AutoAoeUpdateTargetMode()
+		autoAoe:update()
 	end
 end
 
@@ -1792,7 +1821,7 @@ end
 
 function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, srcGUID, srcName, srcFlags, srcRaidFlags, dstGUID, dstName, dstFlags, dstRaidFlags, spellId, spellName)
 	if Opt.auto_aoe and (eventType == 'UNIT_DIED' or eventType == 'UNIT_DESTROYED' or eventType == 'UNIT_DISSIPATES' or eventType == 'SPELL_INSTAKILL' or eventType == 'PARTY_KILL') then
-		AutoAoeRemoveTarget(dstGUID)
+		autoAoe:remove(dstGUID)
 	end
 	if srcGUID ~= UnitGUID('player') then
 		return
@@ -1830,10 +1859,10 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 	end
 	if eventType == 'SPELL_DAMAGE' then
 		if Opt.auto_aoe then
-			local i
-			for i = 1, #abilitiesAutoAoe do
-				if spellId == abilitiesAutoAoe[i].spellId or spellId == abilitiesAutoAoe[i].spellId2 then
-					abilitiesAutoAoe[i]:recordTargetHit(dstGUID)
+			local _, ability
+			for _, ability in next, autoAoe.abilities do
+				if spellId == ability.spellId or spellId == ability.spellId2 then
+					ability:recordTargetHit(dstGUID)
 				end
 			end
 		end
@@ -1844,7 +1873,16 @@ function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, sr
 			SephuzsSecret.cooldown_start = GetTime()
 			return
 		end
-		return
+		if spellId == MarkOfTheCrane.spellId then
+			autoAoe:add(dstGUID)
+			return
+		end
+	end
+	if eventType == 'SPELL_AURA_REFRESH' then
+		if spellId == MarkOfTheCrane.spellId then
+			autoAoe:add(dstGUID)
+			return
+		end
 	end
 end
 
@@ -1910,8 +1948,8 @@ function events:PLAYER_REGEN_ENABLED()
 	combatStartTime = 0
 	if Opt.auto_aoe then
 		local guid
-		for guid in next, Targets do
-			Targets[guid] = nil
+		for guid in next, autoAoe.targets do
+			autoAoe.targets[guid] = nil
 		end
 		MonkSeeMonkDo_SetTargetMode(1)
 	end
@@ -1976,10 +2014,11 @@ msmdPanel:SetScript('OnUpdate', function(self, elapsed)
 	abilityTimer = abilityTimer + elapsed
 	if abilityTimer >= Opt.frequency then
 		if Opt.auto_aoe then
-			local i
-			for i = 1, #abilitiesAutoAoe do
-				abilitiesAutoAoe[i]:updateTargetsHit()
+			local _, ability
+			for _, ability in next, autoAoe.abilities do
+				ability:updateTargetsHit()
 			end
+			autoAoe:purge()
 		end
 		UpdateCombat()
 	end
@@ -2210,6 +2249,12 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 		end
 		return print('MonkSeeMonkDo - Automatically change target mode on AoE spells: ' .. (Opt.auto_aoe and '|cFF00C000On' or '|cFFC00000Off'))
 	end
+	if msg[1] == 'ttl' then
+		if msg[2] then
+			Opt.auto_aoe_ttl = tonumber(msg[2]) or 10
+		end
+		return print('MonkSeeMonkDo - Length of time target exists in auto AoE after being hit: |cFFFFD000' .. Opt.auto_aoe_ttl .. '|r seconds')
+	end
 	if startsWith(msg[1], 'pot') then
 		if msg[2] then
 			Opt.pot = msg[2] == 'on'
@@ -2243,6 +2288,7 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 		'hidespec |cFFFFD000brewmaster|r/|cFFFFD000mistweaver|r/|cFFFFD000windwalker|r - toggle disabling MonkSeeMonkDo for specializations',
 		'interrupt |cFF00C000on|r/|cFFC00000off|r - show an icon for interruptable spells',
 		'auto |cFF00C000on|r/|cFFC00000off|r  - automatically change target mode on AoE spells',
+		'ttl |cFFFFD000[seconds]|r  - time target exists in auto AoE after being hit (default is 10 seconds)',
 		'pot |cFF00C000on|r/|cFFC00000off|r - show Prolonged Power potions in cooldown UI',
 		'|cFFFFD000reset|r - reset the location of the MonkSeeMonkDo UI to default',
 	} do
