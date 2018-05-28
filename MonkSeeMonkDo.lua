@@ -1828,10 +1828,18 @@ function events:ADDON_LOADED(name)
 end
 
 function events:COMBAT_LOG_EVENT_UNFILTERED(timeStamp, eventType, hideCaster, srcGUID, srcName, srcFlags, srcRaidFlags, dstGUID, dstName, dstFlags, dstRaidFlags, spellId, spellName)
-	if Opt.auto_aoe and (eventType == 'UNIT_DIED' or eventType == 'UNIT_DESTROYED' or eventType == 'UNIT_DISSIPATES' or eventType == 'SPELL_INSTAKILL' or eventType == 'PARTY_KILL') then
-		autoAoe:remove(dstGUID)
+	if Opt.auto_aoe then
+		if eventType == 'SWING_DAMAGE' or eventType == 'SWING_MISSED' then
+			if dstGUID == var.player then
+				autoAoe:add(srcGUID)
+			elseif srcGUID == var.player then
+				autoAoe:add(dstGUID)
+			end
+		elseif eventType == 'UNIT_DIED' or eventType == 'UNIT_DESTROYED' or eventType == 'UNIT_DISSIPATES' or eventType == 'SPELL_INSTAKILL' or eventType == 'PARTY_KILL' then
+			autoAoe:remove(dstGUID)
+		end
 	end
-	if srcGUID ~= UnitGUID('player') then
+	if srcGUID ~= var.player then
 		return
 	end
 	if eventType == 'SPELL_CAST_SUCCESS' then
@@ -1916,7 +1924,7 @@ local function UpdateTargetInfo()
 		return
 	end
 	if guid ~= Target.guid then
-		Target.guid = UnitGUID('target')
+		Target.guid = guid
 		local i
 		for i = 1, #Target.healthArray do
 			Target.healthArray[i] = UnitHealth('target')
@@ -2003,6 +2011,7 @@ function events:PLAYER_ENTERING_WORLD()
 		CreateOverlayGlows()
 		HookResourceFrame()
 	end
+	var.player = UnitGUID('player')
 	UpdateVars()
 end
 
