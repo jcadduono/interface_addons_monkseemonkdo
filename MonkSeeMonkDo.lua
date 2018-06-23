@@ -2174,7 +2174,7 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 			end
 			return print('MonkSeeMonkDo - Glow color:', '|cFFFF0000' .. Opt.glow.color.r, '|cFF00FF00' .. Opt.glow.color.g, '|cFF0000FF' .. Opt.glow.color.b)
 		end
-		return print('MonkSeeMonkDo - Possible glow options: |cFFFFD000main|r, |cFFFFD000cd|r, |cFFFFD000interrupt|r, |cFFFFD000pet|r, |cFFFFD000blizzard|r, and |cFFFFD000color')
+		return print('MonkSeeMonkDo - Possible glow options: |cFFFFD000main|r, |cFFFFD000cd|r, |cFFFFD000interrupt|r, |cFFFFD000touch|r, |cFFFFD000blizzard|r, and |cFFFFD000color')
 	end
 	if startsWith(msg[1], 'prev') then
 		if msg[2] then
@@ -2194,7 +2194,7 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 		if msg[2] then
 			Opt.cooldown = msg[2] == 'on'
 		end
-		return print('MonkSeeMonkDo - Use MonkSeeMonkDo for cooldown energygement: ' .. (Opt.cooldown and '|cFF00C000On' or '|cFFC00000Off'))
+		return print('MonkSeeMonkDo - Use MonkSeeMonkDo for cooldown management: ' .. (Opt.cooldown and '|cFF00C000On' or '|cFFC00000Off'))
 	end
 	if msg[1] == 'swipe' then
 		if msg[2] then
@@ -2296,7 +2296,7 @@ function SlashCmdList.MonkSeeMonkDo(msg, editbox)
 		'glow color |cFFF000000.0-1.0|r |cFF00FF000.1-1.0|r |cFF0000FF0.0-1.0|r - adjust the color of the ability button glow',
 		'previous |cFF00C000on|r/|cFFC00000off|r - previous ability icon',
 		'always |cFF00C000on|r/|cFFC00000off|r - show the MonkSeeMonkDo UI without a target',
-		'cd |cFF00C000on|r/|cFFC00000off|r - use MonkSeeMonkDo for cooldown energygement',
+		'cd |cFF00C000on|r/|cFFC00000off|r - use MonkSeeMonkDo for cooldown management',
 		'swipe |cFF00C000on|r/|cFFC00000off|r - show spell casting swipe animation on main ability icon',
 		'dim |cFF00C000on|r/|cFFC00000off|r - dim main ability icon when you don\'t have enough energy to use it',
 		'miss |cFF00C000on|r/|cFFC00000off|r - red border around previous ability when it fails to hit',
