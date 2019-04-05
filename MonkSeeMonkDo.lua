@@ -437,14 +437,17 @@ function Ability:usable()
 	if not self.known then
 		return false
 	end
-	if self:chiCost() > var.chi then
-		return false
-	end
-	if self:manaCost() > var.mana then
-		return false
-	end
-	if self:energyCost() > var.energy then
-		return false
+	if currentSpec == SPEC.MISTWEAVER then
+		if self:manaCost() > var.mana then
+			return false
+		end
+	elseif currentSpec == SPEC.WINDWALKER then
+		if self:chiCost() > var.chi then
+			return false
+		end
+		if self:energyCost() > var.energy then
+			return false
+		end
 	end
 	if self.requires_charge and self:charges() == 0 then
 		return false
@@ -821,7 +824,7 @@ SpinningCraneKick:autoAoe(true)
 local StormEarthAndFire = Ability.add(137639, true, true)
 StormEarthAndFire.buff_duration = 15
 StormEarthAndFire.cooldown_duration = 90
-StormEarthAndFire.hasted_cooldown = true
+StormEarthAndFire.requires_charge = true
 local TigerPalm = Ability.add(100780, false, true)
 TigerPalm.chi_cost = -2
 TigerPalm.energy_cost = 50
@@ -843,9 +846,9 @@ ChiWave.cooldown_duration = 15
 ChiWave.triggers_combo = true
 local EnergizingElixir = Ability.add(115288, false, true)
 EnergizingElixir.cooldown_duration = 60
-EnergizingElixir.triggers_gcd = false
 local FistOfTheWhiteTiger = Ability.add(261947, false, true, 261977)
 FistOfTheWhiteTiger.cooldown_duration = 24
+FistOfTheWhiteTiger.energy_cost = 40
 FistOfTheWhiteTiger.chi_cost = -3
 FistOfTheWhiteTiger.triggers_combo = true
 local HitCombo = Ability.add(196740, true, true, 196741)
@@ -864,9 +867,7 @@ RushingJadeWind.hasted_cooldown = true
 RushingJadeWind.triggers_combo = true
 local Serenity = Ability.add(152173, true, true)
 Serenity.cooldown_duration = 90
-Serenity.buff_duration = 8
-Serenity.hasted_cooldown = true
-Serenity.triggers_gcd = false
+Serenity.buff_duration = 12
 local WhirlingDragonPunch = Ability.add(152175, false, true, 158221)
 WhirlingDragonPunch.cooldown_duration = 24
 WhirlingDragonPunch.hasted_cooldown = true
@@ -882,9 +883,6 @@ local SwiftRoundhouse = Ability.add(277669, true, true, 278710)
 SwiftRoundhouse.buff_duration = 12
 -- Racials
 local ArcaneTorrent = Ability.add(129597, true, false) -- Blood Elf
--- Potion Effects
-local ProlongedPower = Ability.add(229206, true, true)
-ProlongedPower.triggers_gcd = false
 -- Trinket Effects
 
 -- End Abilities
@@ -1412,9 +1410,7 @@ actions.cd+=/serenity,if=cooldown.rising_sun_kick.remains<=2|target.time_to_die<
 		UseExtra(ArcaneTorrent)
 	end
 	if TouchOfDeath:usable() and TouchOfDeath:combo() and TouchOfDeath:down() and Target.timeToDie > 9 then
-		if Serenity.known and Serenity:ready(3) and (FistsOfFury:ready(7) or RisingSunKick:ready(4)) then
-			UseExtra(TouchOfDeath)
-		end
+		UseExtra(TouchOfDeath)
 	end
 	if StormEarthAndFire:usable() and (Target.timeToDie <= 15 or StormEarthAndFire:charges() >= 2 or (FistsOfFury:ready(6) and Chi() >= 3 and RisingSunKick:ready(1))) then
 		UseCooldown(StormEarthAndFire)
@@ -1847,8 +1843,6 @@ local function UpdateDisplay()
 		else
 			msmdPanel.text:Hide()
 		end
-	else
-		msmdPanel.text:Hide()
 	end
 	if Serenity.known then
 		local remains = Serenity:remains()
@@ -1858,10 +1852,12 @@ local function UpdateDisplay()
 				msmdPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\serenity.blp')
 			end
 			msmdPanel.text:SetText(format('%.1f', remains))
+			msmdPanel.text:Show()
 		elseif msmdPanel.serenityOverlayOn then
 			msmdPanel.serenityOverlayOn = false
 			msmdPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
 			msmdPanel.text:SetText()
+			msmdPanel.text:Hide()
 		end
 	end
 end
@@ -2088,7 +2084,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED()
 			castedAbility:removeAura(dstGUID)
 		end
 	end
-	if eventType == 'SPELL_MISSED' or eventType == 'SPELL_DAMAGE' or eventType == 'SPELL_AURA_APPLIED' or eventType == 'SPELL_AURA_REFRESH' then
+	if dstGUID ~= var.player and (eventType == 'SPELL_MISSED' or eventType == 'SPELL_DAMAGE' or eventType == 'SPELL_AURA_APPLIED' or eventType == 'SPELL_AURA_REFRESH') then
 		if castedAbility.travel_start and castedAbility.travel_start[dstGUID] then
 			castedAbility.travel_start[dstGUID] = nil
 		end
@@ -2220,8 +2216,11 @@ local function UpdateAbilityData()
 	elseif currentSpec == SPEC.WINDWALKER then
 		var.chi_max = UnitPowerMax('player', 12)
 		var.energy_max = UnitPowerMax('player', 3)
-		BlackoutKickProc.known = BlackoutKick.known and TigerPalm.known
+		BlackoutKickProc.known = true
 		MarkOfTheCrane.known = true
+		if Serenity.known then
+			StormEarthAndFire.known = false
+		end
 	end
 	abilities.bySpellId = {}
 	abilities.velocity = {}
