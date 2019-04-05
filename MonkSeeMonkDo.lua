@@ -807,7 +807,7 @@ FlyingSerpentKick.triggers_combo = true
 FlyingSerpentKick:autoAoe()
 local MarkOfTheCrane = Ability.add(228287, false, true)
 MarkOfTheCrane.buff_duration = 15
-local RisingSunKick = Ability.add(107428, false, true)
+local RisingSunKick = Ability.add(107428, false, true, 185099)
 RisingSunKick.chi_cost = 2
 RisingSunKick.cooldown_duration = 10
 RisingSunKick.hasted_cooldown = true
@@ -835,7 +835,7 @@ TouchOfKarma.cooldown_duration = 90
 TouchOfKarma.triggers_gcd = false
 TouchOfKarma.buff_duration = 10
 ------ Talents
-local ChiBurst = Ability.add(123986, false, true)
+local ChiBurst = Ability.add(123986, false, true, 148135)
 ChiBurst.cooldown_duration = 30
 ChiBurst.triggers_combo = true
 local ChiWave = Ability.add(115098, false, true)
@@ -844,7 +844,7 @@ ChiWave.triggers_combo = true
 local EnergizingElixir = Ability.add(115288, false, true)
 EnergizingElixir.cooldown_duration = 60
 EnergizingElixir.triggers_gcd = false
-local FistOfTheWhiteTiger = Ability.add(261947, false, true)
+local FistOfTheWhiteTiger = Ability.add(261947, false, true, 261977)
 FistOfTheWhiteTiger.cooldown_duration = 24
 FistOfTheWhiteTiger.chi_cost = -3
 FistOfTheWhiteTiger.triggers_combo = true
@@ -1328,6 +1328,9 @@ actions.precombat+=/chi_wave
 		if ChiWave:usable() then
 			return ChiWave
 		end
+		if FlyingSerpentKick:usable() then
+			UseCooldown(FlyingSerpentKick)
+		end
 	end
 --[[
 # Touch of Karma on cooldown, if Good Karma is enabled equal to 100% of maximum health
@@ -1346,18 +1349,9 @@ actions+=/call_action_list,name=aoe,if=active_enemies>=3
 	if Opt.pot and BattlePotionOfAgility:usable() and (Serenity:up() or StormEarthAndFire:up() or BloodlustActive() or Target.timeToDie <= 60) then
 		UseCooldown(BattlePotionOfAgility)
 	end
-	if Serenity.known then
-		if Serenity:up() then
-			local serenity = self:serenity()
-			if serenity then
-				return serenity
-			end
-		elseif Serenity:usable() and Serenity:down() and (FistsOfFury:ready(4) or RisingSunKick:ready(1)) then
-			if TigerPalm:usable() and TigerPalm:combo() and not EnergizingElixir:previous() and Energy() >= EnergyMax() and Chi() < 1 then
-				return TigerPalm
-			end
-			UseCooldown(Serenity)
-		end
+	if Serenity.known and Serenity:up() then
+		local apl = self:serenity()
+		if apl then return apl end
 	end
 	if FistOfTheWhiteTiger:usable() and ChiDeficit() >= 3 and (EnergyTimeToMax() < 1 or (Serenity.known and Serenity:ready(2)))  then
 		return FistOfTheWhiteTiger
@@ -1367,7 +1361,8 @@ actions+=/call_action_list,name=aoe,if=active_enemies>=3
 	end
 	self:cd()
 	if Enemies() >= 3 then
-		return self:aoe()
+		local apl = self:aoe()
+		if apl then return apl end
 	end
 	return self:st()
 end
@@ -1380,21 +1375,14 @@ actions.serenity+=/fists_of_fury,if=(buff.bloodlust.up&prev_gcd.1.rising_sun_kic
 actions.serenity+=/spinning_crane_kick,if=!prev_gcd.1.spinning_crane_kick&(active_enemies>=3|(active_enemies=2&prev_gcd.1.blackout_kick))
 actions.serenity+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains
 ]]
-	self:cd()
-	if RisingSunKick:usable() and RisingSunKick:combo() and Enemies() < 3 then
+	if RisingSunKick:usable() and RisingSunKick:combo() and (Enemies() < 3 or SpinningCraneKick:previous()) then
 		return RisingSunKick
 	end
-	if FistsOfFury:usable() and (BloodlustActive() or not ItemEquipped.DrinkingHornCover) and RisingSunKick:previous() then
+	if FistsOfFury:usable() and ((BloodlustActive() and RisingSunKick:previous()) or Serenity:remains() < 1 or between(Enemies(), 2, 4)) then
 		return FistsOfFury
-	end
-	if BlackoutKick:usable() and BlackoutKick:combo() and Enemies() < 2 and FistsOfFury:previous() then
-		return BlackoutKick
 	end
 	if SpinningCraneKick:usable() and SpinningCraneKick:combo() and Enemies() >= (BlackoutKick:previous() and 2 or 3) then
 		return SpinningCraneKick
-	end
-	if FistsOfFury:usable() and Serenity:remains() < (ItemEquipped.DrinkingHornCover and 0.7 or 1) then
-		return FistsOfFury
 	end
 	if BlackoutKick:usable() and BlackoutKick:combo() then
 		return BlackoutKick
@@ -1895,24 +1883,26 @@ local function UpdateCombat()
 	var.ability_casting = abilities.bySpellId[spellId]
 	var.execute_remains = max(remains and (remains / 1000 - var.time) or 0, var.gcd_remains)
 	var.haste_factor = 1 / (1 + UnitSpellHaste('player') / 100)
-	if currentSpec == SPEC.MISTWEAVER then
-		var.mana_regen = GetPowerRegen()
-		var.gcd = 1.5 * var.haste_factor
-	else
-		var.gcd = 1
-		var.energy_regen = GetPowerRegen()
-		var.energy_max = UnitPowerMax('player', 3)
-		var.energy = UnitPower('player', 3) + (var.energy_regen * var.execute_remains)
-		var.energy = min(max(var.energy, 0), var.energy_max)
-		var.combo_points = UnitPower('player', 4)
-	end
 	var.health = UnitHealth('player')
 	var.health_max = UnitHealthMax('player')
-	var.mana = UnitPower('player', 0) + (var.mana_regen * var.execute_remains)
-	if var.ability_casting then
-		var.mana = var.mana - var.ability_casting:manaCost()
+
+	if currentSpec == SPEC.BREWMASTER then
+		var.gcd = 1
+	elseif currentSpec == SPEC.MISTWEAVER then
+		var.mana = UnitPower('player', 0) + (var.mana_regen * var.execute_remains)
+		if var.ability_casting then
+			var.mana = var.mana - var.ability_casting:manaCost()
+		end
+		var.mana = min(max(var.mana, 0), var.mana_max)
+		var.mana_regen = GetPowerRegen()
+		var.gcd = 1.5 * var.haste_factor
+	elseif currentSpec == SPEC.WINDWALKER then
+		var.gcd = 1
+		var.energy_regen = GetPowerRegen()
+		var.energy = UnitPower('player', 3) + (var.energy_regen * var.execute_remains)
+		var.energy = min(max(var.energy, 0), var.energy_max)
+		var.chi = UnitPower('player', 12)
 	end
-	var.mana = min(max(var.mana, 0), var.mana_max)
 
 	trackAuras:purge()
 	if Opt.auto_aoe then
@@ -2076,15 +2066,15 @@ function events:COMBAT_LOG_EVENT_UNFILTERED()
 			castedAbility.travel_start[dstGUID] = var.time
 		end
 		if currentSpec == SPEC.WINDWALKER then
-			if not var.last_ability.triggers_combo then
+			if not castedAbility.triggers_combo then
 				return
 			end
-			var.last_combo_ability = var.last_ability
+			var.last_combo_ability = castedAbility
 		end
 		if Opt.previous and msmdPanel:IsVisible() then
-			msmdPreviousPanel.ability = var.last_ability
+			msmdPreviousPanel.ability = castedAbility
 			msmdPreviousPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
-			msmdPreviousPanel.icon:SetTexture(var.last_ability.icon)
+			msmdPreviousPanel.icon:SetTexture(castedAbility.icon)
 			msmdPreviousPanel:Show()
 		end
 		return
@@ -2108,7 +2098,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED()
 			elseif castedAbility.auto_aoe then
 				castedAbility:recordTargetHit(dstGUID)
 			elseif eventType == 'SPELL_AURA_APPLIED' or eventType == 'SPELL_AURA_REFRESH' then
-				if spellId == MarkOfTheCrane.spellId then
+				if castedAbility == MarkOfTheCrane then
 					autoAoe:add(dstGUID)
 				end
 			end
@@ -2219,14 +2209,19 @@ function events:PLAYER_REGEN_ENABLED()
 end
 
 local function UpdateAbilityData()
-	var.mana_base = BaseMana[UnitLevel('player')]
-	var.mana_max = UnitPowerMax('player', 0)
-	var.chi_max = UnitPowerMax('player', 12)
-	var.energy_max = UnitPowerMax('player', 3)
 	local _, ability
 	for _, ability in next, abilities.all do
 		ability.name, _, ability.icon = GetSpellInfo(ability.spellId)
 		ability.known = (IsPlayerSpell(ability.spellId) or (ability.spellId2 and IsPlayerSpell(ability.spellId2)) or Azerite.traits[ability.spellId]) and true or false
+	end
+	if currentSpec == SPEC.MISTWEAVER then
+		var.mana_base = BaseMana[UnitLevel('player')]
+		var.mana_max = UnitPowerMax('player', 0)
+	elseif currentSpec == SPEC.WINDWALKER then
+		var.chi_max = UnitPowerMax('player', 12)
+		var.energy_max = UnitPowerMax('player', 3)
+		BlackoutKickProc.known = BlackoutKick.known and TigerPalm.known
+		MarkOfTheCrane.known = true
 	end
 	abilities.bySpellId = {}
 	abilities.velocity = {}
