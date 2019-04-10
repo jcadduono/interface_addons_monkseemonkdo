@@ -170,6 +170,7 @@ local var = {
 	energy_regen = 0,
 	chi = 0,
 	chi_max = 6,
+	stagger = 0,
 }
 
 local msmdPanel = CreateFrame('Frame', 'msmdPanel', UIParent)
@@ -743,7 +744,9 @@ local SpearHandStrike = Ability.add(116705, false, true)
 SpearHandStrike.cooldown_duration = 15
 SpearHandStrike.triggers_gcd = false
 ------ Talents
-
+local HealingElixir = Ability.add(122281, true, true)
+HealingElixir.cooldown_duration = 30
+HealingElixir.requires_charge = true
 ------ Procs
 ---- Brewmaster
 local BlackoutStrike = Ability.add(205523, false, true)
@@ -752,6 +755,9 @@ local BreathOfFire = Ability.add(115181, false, true, 123725)
 BreathOfFire.cooldown_duration = 15
 BreathOfFire.buff_duration = 16
 BreathOfFire:autoAoe(true)
+local ExpelHarm = Ability.add(115072, true, true)
+ExpelHarm.energy_cost = 15
+ExpelHarm.requires_charge = true
 local IronskinBrew = Ability.add(115308, true, true)
 IronskinBrew.hasted_cooldown = true
 IronskinBrew.cooldown_duration = 15
@@ -782,14 +788,17 @@ BlackOxBrew.triggers_gcd = false
 local InvokeNiuzaoTheBlackOx = Ability.add(132578, true, true)
 InvokeNiuzaoTheBlackOx.cooldown_duration = 180
 InvokeNiuzaoTheBlackOx.buff_duration = 45
-local RushingJadeWindBM = Ability.add(116847, true, true)
+local LightBrewing = Ability.add(196721, false, true)
+local RushingJadeWindBM = Ability.add(116847, true, true, 148187)
 RushingJadeWindBM.buff_duration = 9
 RushingJadeWindBM.cooldown_duration = 6
 RushingJadeWindBM.hasted_duration = true
 RushingJadeWindBM.hasted_cooldown = true
 RushingJadeWindBM:autoAoe(true)
+local SpecialDelivery = Ability.add(196730, false, true)
 ------ Procs
-
+local ElusiveBrawler = Ability.add(195630, true, true)
+ElusiveBrawler.buff_duration = 10
 ---- Mistweaver
 
 ------ Talents
@@ -850,6 +859,7 @@ TouchOfKarma.buff_duration = 10
 local ChiBurst = Ability.add(123986, false, true, 148135)
 ChiBurst.cooldown_duration = 30
 ChiBurst.triggers_combo = true
+ChiBurst:autoAoe()
 local ChiWave = Ability.add(115098, false, true)
 ChiWave.cooldown_duration = 15
 ChiWave.triggers_combo = true
@@ -1155,11 +1165,10 @@ function Stagger:ticks_remaining()
 end
 
 function Stagger:tick()
-	local stagger = UnitStagger('player')
-	if stagger <= 0 then
+	if var.stagger <= 0 then
 		return 0
 	end
-	return stagger / max(1, self:ticks_remaining() + (combatStartTime > 0 and -1 or 1))
+	return var.stagger / max(1, self:ticks_remaining() + (combatStartTime > 0 and -1 or 1))
 end
 
 function Stagger:tick_pct()
@@ -1178,6 +1187,15 @@ end
 function Stagger:heavy()
 	return self:tick_pct() > 6.5
 end
+
+function PurifyingBrew:duration()
+	local duration = Ability.duration(self)
+	if LightBrewing.known then
+		duration = duration - 3
+	end
+	return duration
+end
+IronskinBrew.duration = PurifyingBrew.duration
 
 -- End Ability Modifications
 
@@ -1221,77 +1239,78 @@ APL[SPEC.BREWMASTER].main = function(self)
 			return ChiWave
 		end
 	end
-	if InvokeNiuzaoTheBlackOx:usable() and Target.timeToDie > 45 then
+--[[
+actions+=/invoke_niuzao_the_black_ox,if=target.time_to_die>25
+# Ironskin Brew priority whenever it took significant damage and ironskin brew buff is missing (adjust the health.max coefficient according to intensity of damage taken), and to dump excess charges before BoB.
+actions+=/ironskin_brew,if=buff.blackout_combo.down&incoming_damage_1999ms>(health.max*0.1+stagger.last_tick_damage_4)&buff.elusive_brawler.stack<2&!buff.ironskin_brew.up
+actions+=/ironskin_brew,if=cooldown.brews.charges_fractional>1&cooldown.black_ox_brew.remains<3
+# Purifying behaviour is based on normalization (iE the late expression triggers if stagger size increased over the last 30 ticks or 15 seconds).
+actions+=/purifying_brew,if=stagger.pct>(6*(3-(cooldown.brews.charges_fractional)))&(stagger.last_tick_damage_1>((0.02+0.001*(3-cooldown.brews.charges_fractional))*stagger.last_tick_damage_30))
+# Black Ox Brew is currently used to either replenish brews based on less than half a brew charge available, or low energy to enable Keg Smash
+actions+=/black_ox_brew,if=cooldown.brews.charges_fractional<0.5
+actions+=/black_ox_brew,if=(energy+(energy.regen*cooldown.keg_smash.remains))<40&buff.blackout_combo.down&cooldown.keg_smash.up
+# Offensively, the APL prioritizes KS on cleave, BoS else, with energy spenders and cds sorted below
+actions+=/keg_smash,if=spell_targets>=2
+actions+=/tiger_palm,if=talent.rushing_jade_wind.enabled&buff.blackout_combo.up&buff.rushing_jade_wind.up
+actions+=/tiger_palm,if=(talent.invoke_niuzao_the_black_ox.enabled|talent.special_delivery.enabled)&buff.blackout_combo.up
+actions+=/blackout_strike
+actions+=/keg_smash
+actions+=/rushing_jade_wind,if=buff.rushing_jade_wind.down
+actions+=/breath_of_fire,if=buff.blackout_combo.down&(buff.bloodlust.down|(buff.bloodlust.up&&dot.breath_of_fire_dot.refreshable))
+actions+=/chi_burst
+actions+=/chi_wave
+actions+=/tiger_palm,if=!talent.blackout_combo.enabled&cooldown.keg_smash.remains>gcd&(energy+(energy.regen*(cooldown.keg_smash.remains+gcd)))>=65
+actions+=/arcane_torrent,if=energy<31
+actions+=/rushing_jade_wind
+]]
+	if InvokeNiuzaoTheBlackOx:usable() and Target.timeToDie > 25 then
 		UseCooldown(InvokeNiuzaoTheBlackOx)
+	elseif ExpelHarm:usable() and HealthPct() < 40 and ExpelHarm:charges() >= 3 then
+		UseCooldown(ExpelHarm)
+	elseif HealingElixir:usable() and (HealthPct() < 60 or (HealthPct() < 80 and HealingElixir:chargesFractional() > 1.5)) then
+		UseCooldown(HealingElixir)
 	end
 	if PurifyingBrew:usable() and (Stagger:heavy() or (Stagger:moderate() and PurifyingBrew:chargesFractional() >= (PurifyingBrew:maxCharges() - 0.5) and IronskinBrew:remains() >= IronskinBrew:duration() * 2.5)) then
 		UseExtra(PurifyingBrew)
 	end
-	if IronskinBrew:usable() and BlackoutCombo:down() and IronskinBrew:chargesFractional() >= (IronskinBrew:maxCharges() - 0.5) and IronskinBrew:remains() <= IronskinBrew:duration() * 2 then
+	if IronskinBrew:usable() and BlackoutCombo:down() and ElusiveBrawler:stack() < 2 and IronskinBrew:chargesFractional() >= (IronskinBrew:up() and (IronskinBrew:maxCharges() - 0.5) or 1.5) and IronskinBrew:remains() < IronskinBrew:duration() * 2 then
 		UseExtra(IronskinBrew)
 	end
 	if BlackOxBrew:usable() then
-		if Stagger:heavy() and PurifyingBrew:chargesFractional() <= 0.75 then
+		if Stagger:heavy() and PurifyingBrew:chargesFractional() <= 0.5 then
 			UseCooldown(BlackOxBrew)
 		elseif (Energy() + (EnergyRegen() * KegSmash:cooldown())) < 40 and BlackoutCombo:down() and KegSmash:ready() then
 			UseCooldown(BlackOxBrew)
 		end
 	end
-	if ArcaneTorrent:usable() and Energy() < 31 then
-		UseCooldown(ArcaneTorrent)
-	end
-	if ItemEquipped.StormstoutsLastGasp and KegSmash:usable() and KegSmash:charges() == 2 then
+	if KegSmash:usable() and Enemies() >= 2 then
 		return KegSmash
 	end
-	if Enemies() >= 3 then
-		if KegSmash:usable() and KegSmash:down() then
-			return KegSmash
+	if BlackoutCombo.known and TigerPalmBM:usable() and BlackoutCombo:up() then
+		if RushingJadeWindBM.known and RushingJadeWindBM:up() then
+			return TigerPalmBM
 		end
-		if BreathOfFire:usable() and BreathOfFire:down() and KegSmash:ticking() > 0 then
-			return BreathOfFire
-		end
-		if ItemEquipped.SalsalabimsLostTunic and BreathOfFire:usable() and KegSmash:ready(GCD()) then
-			return BreathOfFire
-		end
-		if KegSmash:usable() then
-			if ItemEquipped.StormstoutsLastGasp then
-				if KegSmash:chargesFractional() >= 1.75 then
-					return KegSmash
-				end
-			else
-				return KegSmash
-			end
-		end
-	end
-	if TigerPalmBM:usable() and BlackoutCombo:up() then
-		return TigerPalmBM
-	end
-	if KegSmash:usable() then
-		if ItemEquipped.StormstoutsLastGasp then
-			if KegSmash:chargesFractional() >= 1.75 then
-				return KegSmash
-			end
-		else
-			return KegSmash
+		if InvokeNiuzaoTheBlackOx.known or SpecialDelivery.known then
+			return TigerPalmBM
 		end
 	end
 	if BlackoutStrike:usable() then
 		return BlackoutStrike
 	end
-	if BreathOfFire:usable() and BlackoutCombo:down() and (not BloodlustActive() or (BloodlustActive() and BreathOfFire:refreshable())) then
-		return BreathOfFire
+	if KegSmash:usable() then
+		return KegSmash
 	end
 	if RushingJadeWindBM:usable() and RushingJadeWindBM:down() then
 		return RushingJadeWindBM
 	end
-	if ItemEquipped.SalsalabimsLostTunic and BreathOfFire:usable() and BlackoutCombo:down() and KegSmash:up() then
+	if ExpelHarm:usable() and HealthPct() < 70 and ExpelHarm:charges() >= 5 then
+		UseCooldown(ExpelHarm)
+	end
+	if BreathOfFire:usable() and BlackoutCombo:down() and (not BloodlustActive() or (BloodlustActive() and BreathOfFire:refreshable())) then
 		return BreathOfFire
 	end
-	if RushingJadeWindBM:usable() and (Enemies() > 1 or Target.timeToDie > (RushingJadeWindBM:remains() + 2)) then
+	if RushingJadeWindBM:usable() and RushingJadeWindBM:remains() < 1.5 and (Enemies() > 1 or Target.timeToDie > 3) then
 		return RushingJadeWindBM
-	end
-	if KegSmash:usable() then
-		return KegSmash
 	end
 	if ChiBurst:usable() then
 		return ChiBurst
@@ -1299,8 +1318,23 @@ APL[SPEC.BREWMASTER].main = function(self)
 	if ChiWave:usable() then
 		return ChiWave
 	end
-	if not BlackoutCombo.known and TigerPalmBM:usable() and KegSmash:cooldown() > GCD() and (Energy() + (EnergyRegen() * (KegSmash:cooldown() + GCD()))) >= 55 then
+	if KegSmash:ready(0.5) then
+		return Pool(KegSmash)
+	end
+	if BlackoutStrike:ready(0.5) then
+		return BlackoutStrike
+	end
+	if not BlackoutCombo.known and TigerPalmBM:usable() and (Energy() + (EnergyRegen() * (KegSmash:cooldown() + GCD()))) >= 75 then
 		return TigerPalmBM
+	end
+	if ExpelHarm:usable() and HealthPct() < 80 and ExpelHarm:charges() >= 3 then
+		UseCooldown(ExpelHarm)
+	end
+	if RushingJadeWindBM:usable() and (Enemies() > 1 or Target.timeToDie > (RushingJadeWindBM:remains() + 2)) then
+		return RushingJadeWindBM
+	end
+	if ArcaneTorrent:usable() and Energy() < 31 then
+		UseCooldown(ArcaneTorrent)
 	end
 end
 
@@ -1833,6 +1867,8 @@ end
 
 local function UpdateDisplay()
 	timer.display = 0
+	local text = false
+
 	if Opt.dimmer then
 		if not var.main then
 			msmdPanel.dimmer:Hide()
@@ -1848,9 +1884,7 @@ local function UpdateDisplay()
 		local deficit = var.pool_energy - UnitPower('player', 3)
 		if deficit > 0 then
 			msmdPanel.text:SetText(format('POOL %d', deficit))
-			msmdPanel.text:Show()
-		else
-			msmdPanel.text:Hide()
+			text = true
 		end
 	end
 	if Serenity.known then
@@ -1861,14 +1895,13 @@ local function UpdateDisplay()
 				msmdPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\serenity.blp')
 			end
 			msmdPanel.text:SetText(format('%.1f', remains))
-			msmdPanel.text:Show()
+			text = true
 		elseif msmdPanel.serenityOverlayOn then
 			msmdPanel.serenityOverlayOn = false
 			msmdPanel.border:SetTexture('Interface\\AddOns\\MonkSeeMonkDo\\border.blp')
-			msmdPanel.text:SetText()
-			msmdPanel.text:Hide()
 		end
 	end
+	msmdPanel.text:SetShown(text)
 end
 
 local function UpdateCombat()
@@ -1906,6 +1939,8 @@ local function UpdateCombat()
 		var.energy = min(max(var.energy, 0), var.energy_max)
 		if currentSpec == SPEC.WINDWALKER then
 			var.chi = UnitPower('player', 12)
+		else
+			var.stagger = UnitStagger('player')
 		end
 	end
 
