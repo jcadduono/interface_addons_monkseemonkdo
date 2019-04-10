@@ -1287,7 +1287,7 @@ APL[SPEC.BREWMASTER].main = function(self)
 	if ItemEquipped.SalsalabimsLostTunic and BreathOfFire:usable() and BlackoutCombo:down() and KegSmash:up() then
 		return BreathOfFire
 	end
-	if RushingJadeWindBM:usable() then
+	if RushingJadeWindBM:usable() and (Enemies() > 1 or Target.timeToDie > (RushingJadeWindBM:remains() + 2)) then
 		return RushingJadeWindBM
 	end
 	if KegSmash:usable() then
