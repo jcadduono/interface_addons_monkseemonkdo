@@ -314,11 +314,19 @@ MonkSeeMonkDo_ToggleTargetModeReverse = ToggleTargetModeReverse
 
 local autoAoe = {
 	targets = {},
-	blacklist = {}
+	blacklist = {},
+	ignored_units = {
+		['120651'] = true, -- Explosives (Mythic+ affix)
+	},
 }
 
 function autoAoe:add(guid, update)
 	if self.blacklist[guid] then
+		return
+	end
+	local _, _, _, _, _, unitId = strsplit('-', guid)
+	if unitId and self.ignored_units[unitId] then
+		self.blacklist[guid] = var.time + 10
 		return
 	end
 	local new = not self.targets[guid]
@@ -329,7 +337,8 @@ function autoAoe:add(guid, update)
 end
 
 function autoAoe:remove(guid)
-	self.blacklist[guid] = var.time
+	-- blacklist enemies for 2 seconds when they die to prevent out of order events from re-adding them
+	self.blacklist[guid] = var.time + 2
 	if self.targets[guid] then
 		self.targets[guid] = nil
 		self:update()
@@ -370,9 +379,9 @@ function autoAoe:purge()
 			update = true
 		end
 	end
-	-- blacklist enemies for 2 seconds when they die to prevent out of order events from re-adding them
+	-- remove expired blacklisted enemies
 	for guid, t in next, self.blacklist do
-		if var.time - t > 2 then
+		if var.time > t then
 			self.blacklist[guid] = nil
 		end
 	end
@@ -2016,6 +2025,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED()
 		if Opt.auto_aoe then
 			autoAoe:remove(dstGUID)
 		end
+		return
 	end
 	if Opt.auto_aoe and (eventType == 'SWING_DAMAGE' or eventType == 'SWING_MISSED') then
 		if dstGUID == var.player then
@@ -2095,7 +2105,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED()
 				castedAbility:recordTargetHit(dstGUID)
 			elseif eventType == 'SPELL_AURA_APPLIED' or eventType == 'SPELL_AURA_REFRESH' then
 				if castedAbility == MarkOfTheCrane then
-					autoAoe:add(dstGUID)
+					autoAoe:add(dstGUID, true)
 				end
 			end
 		end
