@@ -450,11 +450,11 @@ function Ability:usable()
 		if self:manaCost() > var.mana then
 			return false
 		end
-	elseif currentSpec == SPEC.WINDWALKER then
-		if self:chiCost() > var.chi then
+	else
+		if self:energyCost() > var.energy then
 			return false
 		end
-		if self:energyCost() > var.energy then
+		if currentSpec == SPEC.WINDWALKER and self:chiCost() > var.chi then
 			return false
 		end
 	end
@@ -754,8 +754,8 @@ BreathOfFire.buff_duration = 16
 BreathOfFire:autoAoe(true)
 local IronskinBrew = Ability.add(115308, true, true)
 IronskinBrew.hasted_cooldown = true
-IronskinBrew.cooldown_duration = 21
-IronskinBrew.buff_duration = 6
+IronskinBrew.cooldown_duration = 15
+IronskinBrew.buff_duration = 7
 IronskinBrew.triggers_gcd = false
 local KegSmash = Ability.add(121253, false, true)
 KegSmash.hasted_cooldown = true
@@ -765,7 +765,7 @@ KegSmash.energy_cost = 40
 KegSmash:autoAoe(true)
 local PurifyingBrew = Ability.add(119582, true, true)
 PurifyingBrew.hasted_cooldown = true
-PurifyingBrew.cooldown_duration = 21
+PurifyingBrew.cooldown_duration = 15
 PurifyingBrew.triggers_gcd = false
 local Stagger = Ability.add(115069, false, true)
 Stagger.auraTarget = 'player'
@@ -1891,22 +1891,22 @@ local function UpdateCombat()
 	var.health = UnitHealth('player')
 	var.health_max = UnitHealthMax('player')
 
-	if currentSpec == SPEC.BREWMASTER then
-		var.gcd = 1
-	elseif currentSpec == SPEC.MISTWEAVER then
+	if currentSpec == SPEC.MISTWEAVER then
+		var.gcd = 1.5 * var.haste_factor
+		var.mana_regen = GetPowerRegen()
 		var.mana = UnitPower('player', 0) + (var.mana_regen * var.execute_remains)
 		if var.ability_casting then
 			var.mana = var.mana - var.ability_casting:manaCost()
 		end
 		var.mana = min(max(var.mana, 0), var.mana_max)
-		var.mana_regen = GetPowerRegen()
-		var.gcd = 1.5 * var.haste_factor
-	elseif currentSpec == SPEC.WINDWALKER then
+	else
 		var.gcd = 1
 		var.energy_regen = GetPowerRegen()
 		var.energy = UnitPower('player', 3) + (var.energy_regen * var.execute_remains)
 		var.energy = min(max(var.energy, 0), var.energy_max)
-		var.chi = UnitPower('player', 12)
+		if currentSpec == SPEC.WINDWALKER then
+			var.chi = UnitPower('player', 12)
+		end
 	end
 
 	trackAuras:purge()
