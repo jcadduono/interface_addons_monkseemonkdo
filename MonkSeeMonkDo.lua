@@ -1145,7 +1145,7 @@ end
 function Stagger:remains()
 	local _, i, id, expires
 	for i = 1, 40 do
-		_, _, _, _, _, _, expires, _, _, _, id = UnitAura(self.auraTarget, i, self.auraFilter)
+		_, _, _, _, _, expires, _, _, _, id = UnitAura(self.auraTarget, i, self.auraFilter)
 		if not id then
 			return 0
 		end
@@ -1283,8 +1283,14 @@ actions+=/rushing_jade_wind
 			UseCooldown(BlackOxBrew)
 		end
 	end
-	if KegSmash:usable() and Enemies() >= 2 then
-		return KegSmash
+	if KegSmash:usable() then
+		if ItemEquipped.StormstoutsLastGasp then
+			if KegSmash:charges() == 2 then
+				return KegSmash
+			end
+		elseif Enemies() >= 2 then
+			return KegSmash
+		end
 	end
 	if BlackoutCombo.known and TigerPalmBM:usable() and BlackoutCombo:up() then
 		if RushingJadeWindBM.known and RushingJadeWindBM:up() then
@@ -1294,10 +1300,16 @@ actions+=/rushing_jade_wind
 			return TigerPalmBM
 		end
 	end
+	if ItemEquipped.SalsalabimsLostTunic and Enemies() >= 2 and BreathOfFire:usable() and KegSmash:ready(GCD()) and KegSmash:ticking() > 0 then
+		return BreathOfFire
+	end
+	if ItemEquipped.StormstoutsLastGasp and KegSmash:chargesFractional() > 1.75 then
+		return KegSmash
+	end
 	if BlackoutStrike:usable() then
 		return BlackoutStrike
 	end
-	if KegSmash:usable() then
+	if not ItemEquipped.StormstoutsLastGasp and KegSmash:usable() then
 		return KegSmash
 	end
 	if RushingJadeWindBM:usable() and RushingJadeWindBM:down() then
@@ -1306,23 +1318,26 @@ actions+=/rushing_jade_wind
 	if ExpelHarm:usable() and HealthPct() < 70 and ExpelHarm:charges() >= 5 then
 		UseCooldown(ExpelHarm)
 	end
-	if BreathOfFire:usable() and BlackoutCombo:down() and (not BloodlustActive() or (BloodlustActive() and BreathOfFire:refreshable())) then
+	if BreathOfFire:usable() and BlackoutCombo:down() and KegSmash:ticking() > 0 and (Enemies() >= 2 or BreathOfFire:refreshable()) then
 		return BreathOfFire
 	end
 	if RushingJadeWindBM:usable() and RushingJadeWindBM:remains() < 1.5 and (Enemies() > 1 or Target.timeToDie > 3) then
 		return RushingJadeWindBM
 	end
 	if ChiBurst:usable() then
-		return ChiBurst
+		UseCooldown(ChiBurst)
 	end
 	if ChiWave:usable() then
 		return ChiWave
 	end
-	if KegSmash:ready(0.5) then
+	if not ItemEquipped.StormstoutsLastGasp and KegSmash:ready(0.5) and (Enemies() >= 2 or KegSmash:cooldown() < BlackoutStrike:cooldown()) then
 		return Pool(KegSmash)
 	end
 	if BlackoutStrike:ready(0.5) then
 		return BlackoutStrike
+	end
+	if ItemEquipped.SalsalabimsLostTunic and KegSmash:usable() then
+		return KegSmash
 	end
 	if not BlackoutCombo.known and TigerPalmBM:usable() and (Energy() + (EnergyRegen() * (KegSmash:cooldown() + GCD()))) >= 75 then
 		return TigerPalmBM
@@ -1332,6 +1347,9 @@ actions+=/rushing_jade_wind
 	end
 	if RushingJadeWindBM:usable() and (Enemies() > 1 or Target.timeToDie > (RushingJadeWindBM:remains() + 2)) then
 		return RushingJadeWindBM
+	end
+	if BreathOfFire:usable() and BlackoutCombo:down() and KegSmash:ticking() > 0 then
+		return BreathOfFire
 	end
 	if ArcaneTorrent:usable() and Energy() < 31 then
 		UseCooldown(ArcaneTorrent)
