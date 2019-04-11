@@ -758,7 +758,7 @@ BreathOfFire:autoAoe(true)
 local ExpelHarm = Ability.add(115072, true, true)
 ExpelHarm.energy_cost = 15
 ExpelHarm.requires_charge = true
-local IronskinBrew = Ability.add(115308, true, true)
+local IronskinBrew = Ability.add(115308, true, true, 215479)
 IronskinBrew.hasted_cooldown = true
 IronskinBrew.cooldown_duration = 15
 IronskinBrew.buff_duration = 7
@@ -1270,10 +1270,10 @@ actions+=/rushing_jade_wind
 	elseif HealingElixir:usable() and (HealthPct() < 60 or (HealthPct() < 80 and HealingElixir:chargesFractional() > 1.5)) then
 		UseCooldown(HealingElixir)
 	end
-	if PurifyingBrew:usable() and (Stagger:heavy() or (Stagger:moderate() and PurifyingBrew:chargesFractional() >= (PurifyingBrew:maxCharges() - 0.5) and IronskinBrew:remains() >= IronskinBrew:duration() * 2.5)) then
+	if PurifyingBrew:usable() and (Stagger:heavy() or (Stagger:moderate() and PurifyingBrew:chargesFractional() >= (PurifyingBrew:maxCharges() - 0.5) and IronskinBrew:remains() > IronskinBrew:duration() * 2)) then
 		UseExtra(PurifyingBrew)
 	end
-	if IronskinBrew:usable() and BlackoutCombo:down() and ElusiveBrawler:stack() < 2 and IronskinBrew:chargesFractional() >= (IronskinBrew:up() and (IronskinBrew:maxCharges() - 0.5) or 1.5) and IronskinBrew:remains() < IronskinBrew:duration() * 2 then
+	if IronskinBrew:usable() and BlackoutCombo:down() and ElusiveBrawler:stack() < 2 and (IronskinBrew:remains() < (IronskinBrew:chargesFractional() * 2) or (IronskinBrew:chargesFractional() >= (IronskinBrew:maxCharges() - 0.5) and IronskinBrew:remains() < IronskinBrew:duration() * 2)) then
 		UseExtra(IronskinBrew)
 	end
 	if BlackOxBrew:usable() then
