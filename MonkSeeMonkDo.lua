@@ -769,6 +769,7 @@ KegSmash.cooldown_duration = 8
 KegSmash.buff_duration = 15
 KegSmash.energy_cost = 40
 KegSmash:autoAoe(true)
+KegSmash:trackAuras()
 local PurifyingBrew = Ability.add(119582, true, true)
 PurifyingBrew.hasted_cooldown = true
 PurifyingBrew.cooldown_duration = 15
@@ -1273,7 +1274,7 @@ actions+=/rushing_jade_wind
 	if PurifyingBrew:usable() and (Stagger:heavy() or (Stagger:moderate() and PurifyingBrew:chargesFractional() >= (PurifyingBrew:maxCharges() - 0.5) and IronskinBrew:remains() > IronskinBrew:duration() * 2)) then
 		UseExtra(PurifyingBrew)
 	end
-	if IronskinBrew:usable() and BlackoutCombo:down() and ElusiveBrawler:stack() < 2 and (IronskinBrew:remains() < (IronskinBrew:chargesFractional() * 2) or (IronskinBrew:chargesFractional() >= (IronskinBrew:maxCharges() - 0.5) and IronskinBrew:remains() < IronskinBrew:duration() * 2)) then
+	if IronskinBrew:usable() and BlackoutCombo:down() and (ElusiveBrawler:stack() < 3 or Enemies() >= 3) and (IronskinBrew:remains() < (IronskinBrew:chargesFractional() * 2) or (IronskinBrew:chargesFractional() >= (IronskinBrew:maxCharges() - 0.5) and IronskinBrew:remains() < IronskinBrew:duration() * 2)) then
 		UseExtra(IronskinBrew)
 	end
 	if BlackOxBrew:usable() then
@@ -1284,11 +1285,14 @@ actions+=/rushing_jade_wind
 		end
 	end
 	if KegSmash:usable() then
+		if IronskinBrew:charges() < 1 then
+			return KegSmash
+		end
 		if ItemEquipped.StormstoutsLastGasp then
 			if KegSmash:charges() == 2 then
 				return KegSmash
 			end
-		elseif Enemies() >= 2 then
+		elseif Enemies() >= 2 or (KegSmash:down() and BreathOfFire:down() and BreathOfFire:ready(GCD())) then
 			return KegSmash
 		end
 	end
@@ -1305,6 +1309,9 @@ actions+=/rushing_jade_wind
 	end
 	if ItemEquipped.StormstoutsLastGasp and KegSmash:chargesFractional() > 1.75 then
 		return KegSmash
+	end
+	if BreathOfFire:usable() and Enemies() >= 3 and BlackoutCombo:down() and KegSmash:ticking() > 0 and BreathOfFire:down() then
+		return BreathOfFire
 	end
 	if BlackoutStrike:usable() then
 		return BlackoutStrike
@@ -1351,9 +1358,11 @@ actions+=/rushing_jade_wind
 	if BreathOfFire:usable() and BlackoutCombo:down() and KegSmash:ticking() > 0 then
 		return BreathOfFire
 	end
+--[[
 	if ArcaneTorrent:usable() and Energy() < 31 then
 		UseCooldown(ArcaneTorrent)
 	end
+]]
 end
 
 APL[SPEC.MISTWEAVER].main = function(self)
