@@ -1229,11 +1229,11 @@ local APL = {
 
 APL[SPEC.BREWMASTER].main = function(self)
 	if TimeInCombat() == 0 then
+		if ChiBurst:usable() then
+			UseCooldown(ChiBurst)
+		end
 		if RushingJadeWindBM:usable() and RushingJadeWindBM:down() then
 			return RushingJadeWindBM
-		end
-		if ChiBurst:usable() then
-			return ChiBurst
 		end
 		if ChiWave:usable() then
 			return ChiWave
