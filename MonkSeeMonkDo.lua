@@ -1082,9 +1082,9 @@ local function BloodlustActive()
 			id == 2825 or   -- Bloodlust (Horde Shaman)
 			id == 32182 or  -- Heroism (Alliance Shaman)
 			id == 80353 or  -- Time Warp (Mage)
-			id == 90355 or  -- Ancient Hysteria (Druid Pet - Core Hound)
-			id == 160452 or -- Netherwinds (Druid Pet - Nether Ray)
-			id == 264667 or -- Primal Rage (Druid Pet - Ferocity)
+			id == 90355 or  -- Ancient Hysteria (Hunter Pet - Core Hound)
+			id == 160452 or -- Netherwinds (Hunter Pet - Nether Ray)
+			id == 264667 or -- Primal Rage (Hunter Pet - Ferocity)
 			id == 178207 or -- Drums of Fury (Leatherworking)
 			id == 146555 or -- Drums of Rage (Leatherworking)
 			id == 230935 or -- Drums of the Mountain (Leatherworking)
@@ -2341,6 +2341,10 @@ function events:PLAYER_SPECIALIZATION_CHANGED(unitName)
 		UpdateTargetInfo()
 		events:PLAYER_REGEN_ENABLED()
 	end
+end
+
+function events:PLAYER_PVP_TALENT_UPDATE()
+	UpdateAbilityData()
 end
 
 function events:PLAYER_ENTERING_WORLD()
