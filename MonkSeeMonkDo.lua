@@ -88,6 +88,7 @@ local function InitOpts()
 		aoe = false,
 		auto_aoe = false,
 		auto_aoe_ttl = 10,
+		cd_ttd = 8,
 		pot = false,
 		trinket = true,
 	})
@@ -1437,7 +1438,8 @@ actions+=/tiger_palm,if=!talent.blackout_combo.enabled&cooldown.keg_smash.remain
 actions+=/arcane_torrent,if=energy<31
 actions+=/rushing_jade_wind
 ]]
-	if InvokeNiuzaoTheBlackOx:Usable() and Target.timeToDie > 25 then
+	Player.use_cds = Opt.cooldown and (Target.boss or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd))
+	if Player.use_cds and InvokeNiuzaoTheBlackOx:Usable() and Target.timeToDie > 25 then
 		UseCooldown(InvokeNiuzaoTheBlackOx)
 	elseif ExpelHarm:Usable() and Player:HealthPct() < 40 and ExpelHarm:Charges() >= 3 then
 		UseCooldown(ExpelHarm)
@@ -1565,7 +1567,8 @@ actions+=/call_action_list,name=cd_serenity,if=talent.serenity.enabled
 actions+=/call_action_list,name=st,if=active_enemies<3
 actions+=/call_action_list,name=aoe,if=active_enemies>=3
 ]]
-	Player.hold_xuen = not InvokeXuenTheWhiteTiger:Ready(Target.timeToDie) or (Serenity.known and Target.timeToDie < 120 and Target.timeToDie > Serenity:Cooldown() and not Serenity:Ready(10))
+	Player.use_cds = Opt.cooldown and (Target.boss or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd))
+	Player.hold_xuen = not Player.use_cds or not InvokeXuenTheWhiteTiger:Ready(Target.timeToDie) or (Serenity.known and Target.timeToDie < 120 and Target.timeToDie > Serenity:Cooldown() and not Serenity:Ready(10))
 	if Opt.pot and Target.boss and not Player:InArenaOrBattleground() and PotionOfUnbridledFury:Usable() and (((Serenity:Up() or StormEarthAndFire:Up()) and InvokeXuenTheWhiteTiger:Up()) or Target.timeToDie <= 60) then
 		UseCooldown(PotionOfUnbridledFury)
 	end
@@ -1777,7 +1780,7 @@ actions.cd_serenity+=/bonedust_brew
 actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remains<15
 ]]
 	Player.serenity_burst = Serenity:Ready(1) or (InvokeXuenTheWhiteTiger:Up() and not Serenity:Ready(30)) or Target.timeToDie < 20
-	if InvokeXuenTheWhiteTiger:Usable() and (not Player.hold_xuen or Target.timeToDie < 25) then
+	if Player.use_cds and InvokeXuenTheWhiteTiger:Usable() and (not Player.hold_xuen or Target.timeToDie < 25) then
 		UseCooldown(InvokeXuenTheWhiteTiger)
 	end
 	if TouchOfDeath:Usable() and TouchOfDeath:Combo() and (InvokeXuenTheWhiteTiger:Up() or Target.timeToDie < 10 or Target.timeToDie > 180) then
@@ -1786,7 +1789,7 @@ actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remai
 	if TouchOfKarma:Usable() and Player:UnderAttack() and (InvokeXuenTheWhiteTiger:Up() or Target.timeToDie < 10 or Target.timeToDie > 90) then
 		UseExtra(TouchOfKarma)
 	end
-	if WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
+	if Player.use_cds and WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
 		UseCooldown(WeaponsOfOrder)
 	end
 	if FaelineStomp:Usable() then
@@ -1798,7 +1801,7 @@ actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remai
 	if BonedustBrew:Usable() then
 		UseCooldown(BonedustBrew)
 	end
-	if Serenity:Usable() and (RisingSunKick:Ready(2) or Target.timeToDie < 15) then
+	if Player.use_cds and Serenity:Usable() and (RisingSunKick:Ready(2) or Target.timeToDie < 15) then
 		UseCooldown(Serenity)
 	end
 end
@@ -1815,13 +1818,13 @@ actions.cd_sef+=/storm_earth_and_fire,if=cooldown.storm_earth_and_fire.charges=2
 actions.cd_sef+=/storm_earth_and_fire,if=covenant.kyrian&(buff.weapons_of_order.up|(fight_remains<cooldown.weapons_of_order.remains|cooldown.weapons_of_order.remains>cooldown.storm_earth_and_fire.full_recharge_time)&cooldown.fists_of_fury.remains<=9&chi>=2&cooldown.whirling_dragon_punch.remains<=12)
 actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.active|variable.hold_xuen
 ]]
-	if InvokeXuenTheWhiteTiger:Usable() and (not Player.hold_xuen or Target.timeToDie < 25) then
+	if Player.use_cds and InvokeXuenTheWhiteTiger:Usable() and (not Player.hold_xuen or Target.timeToDie < 25) then
 		UseCooldown(InvokeXuenTheWhiteTiger)
 	end
 	if TouchOfDeath:Usable() and TouchOfDeath:Combo() and ((StormEarthAndFire:Down() and InvokeXuenTheWhiteTiger:Up()) or Target.timeToDie < 10 or Target.timeToDie > 180) then
 		UseExtra(TouchOfDeath)
 	end
-	if WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
+	if Player.use_cds and WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
 		UseCooldown(WeaponsOfOrder)
 	end
 	if FaelineStomp:Usable() then
@@ -1833,7 +1836,7 @@ actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.ac
 	if BonedustBrew:Usable() then
 		UseCooldown(BonedustBrew)
 	end
-	if StormEarthAndFire:Usable() then
+	if Player.use_cds and StormEarthAndFire:Usable() then
 		if Target.timeToDie < 20 or StormEarthAndFire:Charges() >= 2 then
 			UseCooldown(StormEarthAndFire)
 		end
@@ -2918,6 +2921,12 @@ SlashCmdList[ADDON] = function(msg, editbox)
 		end
 		return Status('Length of time target exists in auto AoE after being hit', Opt.auto_aoe_ttl, 'seconds')
 	end
+	if msg[1] == 'ttd' then
+		if msg[2] then
+			Opt.cd_ttd = tonumber(msg[2]) or 8
+		end
+		return Status('Minimum enemy lifetime to use cooldowns on (ignored on bosses)', Opt.cd_ttd, 'seconds')
+	end
 	if startsWith(msg[1], 'pot') then
 		if msg[2] then
 			Opt.pot = msg[2] == 'on'
@@ -2958,6 +2967,7 @@ SlashCmdList[ADDON] = function(msg, editbox)
 		'interrupt |cFF00C000on|r/|cFFC00000off|r - show an icon for interruptable spells',
 		'auto |cFF00C000on|r/|cFFC00000off|r  - automatically change target mode on AoE spells',
 		'ttl |cFFFFD000[seconds]|r  - time target exists in auto AoE after being hit (default is 10 seconds)',
+		'ttd |cFFFFD000[seconds]|r  - minimum enemy lifetime to use cooldowns on (default is 8 seconds, ignored on bosses)',
 		'pot |cFF00C000on|r/|cFFC00000off|r - show flasks and battle potions in cooldown UI',
 		'trinket |cFF00C000on|r/|cFFC00000off|r - show on-use trinkets in cooldown UI',
 		'|cFFFFD000reset|r - reset the location of the ' .. ADDON .. ' UI to default',
