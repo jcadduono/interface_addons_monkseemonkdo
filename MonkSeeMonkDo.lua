@@ -917,7 +917,7 @@ local ComboStrikes = Ability:Add(115636, true, true) -- Mastery
 local BonedustBrew = Ability:Add(325216, false, true) -- Necrolord
 BonedustBrew.cooldown_duration = 60
 BonedustBrew.buff_duration = 10
-local FaelineStomp = Ability:Add(327104, false, true) -- Night Fae
+local FaelineStomp = Ability:Add(327104, true, true) -- Night Fae
 FaelineStomp.cooldown_duration = 30
 FaelineStomp.mana_cost = 4
 FaelineStomp.triggers_combo = true
@@ -1779,7 +1779,7 @@ actions.cd_serenity+=/fallen_order
 actions.cd_serenity+=/bonedust_brew
 actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remains<15
 ]]
-	Player.serenity_burst = Serenity:Ready(1) or (InvokeXuenTheWhiteTiger:Up() and not Serenity:Ready(30)) or Target.timeToDie < 20
+	--Player.serenity_burst = Serenity:Ready(1) or (InvokeXuenTheWhiteTiger:Up() and not Serenity:Ready(30)) or Target.timeToDie < 20
 	if Player.use_cds and InvokeXuenTheWhiteTiger:Usable() and (not Player.hold_xuen or Target.timeToDie < 25) then
 		UseCooldown(InvokeXuenTheWhiteTiger)
 	end
@@ -1789,20 +1789,24 @@ actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remai
 	if TouchOfKarma:Usable() and Player:UnderAttack() and (InvokeXuenTheWhiteTiger:Up() or Target.timeToDie < 10 or Target.timeToDie > 90) then
 		UseExtra(TouchOfKarma)
 	end
-	if Player.use_cds and WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
-		UseCooldown(WeaponsOfOrder)
+	if Player.use_cds or Player:Enemies() > 1 then
+		if FaelineStomp:Usable() then
+			UseCooldown(FaelineStomp)
+		end
+		if BonedustBrew:Usable() then
+			UseCooldown(BonedustBrew)
+		end
 	end
-	if FaelineStomp:Usable() then
-		UseCooldown(FaelineStomp)
-	end
-	if FallenOrder:Usable() then
-		UseCooldown(FallenOrder)
-	end
-	if BonedustBrew:Usable() then
-		UseCooldown(BonedustBrew)
-	end
-	if Player.use_cds and Serenity:Usable() and (RisingSunKick:Ready(2) or Target.timeToDie < 15) then
-		UseCooldown(Serenity)
+	if Player.use_cds then
+		if WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
+			UseCooldown(WeaponsOfOrder)
+		end
+		if FallenOrder:Usable() then
+			UseCooldown(FallenOrder)
+		end
+		if Serenity:Usable() and (RisingSunKick:Ready(2) or Target.timeToDie < 15) then
+			UseCooldown(Serenity)
+		end
 	end
 end
 
@@ -1824,29 +1828,33 @@ actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.ac
 	if TouchOfDeath:Usable() and TouchOfDeath:Combo() and ((StormEarthAndFire:Down() and InvokeXuenTheWhiteTiger:Up()) or Target.timeToDie < 10 or Target.timeToDie > 180) then
 		UseExtra(TouchOfDeath)
 	end
-	if Player.use_cds and WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
-		UseCooldown(WeaponsOfOrder)
-	end
-	if FaelineStomp:Usable() then
-		UseCooldown(FaelineStomp)
-	end
-	if FallenOrder:Usable() then
-		UseCooldown(FallenOrder)
-	end
-	if BonedustBrew:Usable() then
-		UseCooldown(BonedustBrew)
-	end
-	if Player.use_cds and StormEarthAndFire:Usable() then
-		if Target.timeToDie < 20 or StormEarthAndFire:Charges() >= 2 then
-			UseCooldown(StormEarthAndFire)
+	if Player.use_cds or Player:Enemies() > 1 then
+		if FaelineStomp:Usable() then
+			UseCooldown(FaelineStomp)
 		end
-		if WeaponsOfOrder.known then
-			if WeaponsOfOrder:Up() or ((WeaponsOfOrder:Ready(Target.timeToDie) or not WeaponsOfOrder:Ready(StormEarthAndFire:FullRechargeTime())) and FistsOfFury:Ready(9) and Player:Chi() >= 2 and (not WhirlingDragonPunch.known or WhirlingDragonPunch:Ready(12))) then
+		if BonedustBrew:Usable() then
+			UseCooldown(BonedustBrew)
+		end
+	end
+	if Player.use_cds then
+		if WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
+			UseCooldown(WeaponsOfOrder)
+		end
+		if FallenOrder:Usable() then
+			UseCooldown(FallenOrder)
+		end
+		if StormEarthAndFire:Usable() then
+			if Target.timeToDie < 20 or StormEarthAndFire:Charges() >= 2 then
 				UseCooldown(StormEarthAndFire)
 			end
-		else
-			if (Player.hold_xuen or not InvokeXuenTheWhiteTiger:Ready(StormEarthAndFire:FullRechargeTime())) and FistsOfFury:Ready(9) and Player:Chi() >= 2 and (not WhirlingDragonPunch.known or WhirlingDragonPunch:Ready(12)) then
-				UseCooldown(StormEarthAndFire)
+			if WeaponsOfOrder.known then
+				if WeaponsOfOrder:Up() or ((WeaponsOfOrder:Ready(Target.timeToDie) or not WeaponsOfOrder:Ready(StormEarthAndFire:FullRechargeTime())) and FistsOfFury:Ready(9) and Player:Chi() >= 2 and (not WhirlingDragonPunch.known or WhirlingDragonPunch:Ready(12))) then
+					UseCooldown(StormEarthAndFire)
+				end
+			else
+				if (Player.hold_xuen or not InvokeXuenTheWhiteTiger:Ready(StormEarthAndFire:FullRechargeTime())) and FistsOfFury:Ready(9) and Player:Chi() >= 2 and (not WhirlingDragonPunch.known or WhirlingDragonPunch:Ready(12)) then
+					UseCooldown(StormEarthAndFire)
+				end
 			end
 		end
 	end
