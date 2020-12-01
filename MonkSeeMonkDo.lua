@@ -1288,6 +1288,10 @@ function SpinningCraneKick:ChiCost()
 	return Ability.ChiCost(self)
 end
 
+function ChiBurst:ChiCost()
+	return Ability.ChiCost(self) - min(2, Player:Enemies())
+end
+
 function WhirlingDragonPunch:Usable()
 	if FistsOfFury:Ready() or RisingSunKick:Ready() then
 		return false
@@ -1541,7 +1545,7 @@ actions.precombat+=/chi_wave,if=!talent.energizing_elixir.enabled
 				UseCooldown(PotionOfUnbridledFury)
 			end
 		end
-		if ChiBurst:Usable() then
+		if ChiBurst:Usable() and Player:ChiDeficit() >= min(2, Player:Enemies()) then
 			UseCooldown(ChiBurst)
 		end
 		if ChiWave:Usable() and not EnergizingElixir.known then
@@ -1718,8 +1722,8 @@ actions.weapons_of_order+=/flying_serpent_kick,interrupt=1
 	if ExpelHarm:Usable() and Player:ChiDeficit() >= 1 then
 		return ExpelHarm
 	end
-	if ChiBurst:Usable() and Player:ChiDeficit() >= (Player:Enemies() > 1 and 2 or 1) then
-		return ChiBurst
+	if ChiBurst:Usable() and Player:ChiDeficit() >= min(2, Player:Enemies()) then
+		UseCooldown(ChiBurst)
 	end
 	if TigerPalm:Usable() and (TigerPalm:Combo() or not HitCombo.known) and Player:ChiDeficit() >= 2 then
 		return TigerPalm
@@ -1911,7 +1915,7 @@ actions.st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=com
 	if ExpelHarm:Usable() and Player:ChiDeficit() >= 1 then
 		return ExpelHarm
 	end
-	if ChiBurst:Usable() and Player:ChiDeficit() >= (Player:Enemies() == 1 and 1 or 2) then
+	if ChiBurst:Usable() and Player:ChiDeficit() >= min(2, Player:Enemies()) then
 		UseCooldown(ChiBurst)
 	end
 	if ChiWave:Usable() then
@@ -2317,6 +2321,9 @@ function UI:UpdateCombat()
 			Player.stagger = UnitStagger('player')
 		else
 			Player.chi = UnitPower('player', 12)
+			if Player.ability_casting then
+				Player.chi = Player.chi - Player.ability_casting:ChiCost()
+			end
 			Player.chi = min(max(Player.chi, 0), Player.chi_max)
 			if Serenity.known then
 				Player.serenity_remains = Serenity:Remains()
