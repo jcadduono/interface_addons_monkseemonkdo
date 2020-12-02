@@ -935,7 +935,9 @@ local CalculatedStrikes = Ability:Add(336526, true, true)
 -- Legendary effects
 local JadeIgnition = Ability:Add(337483, true, true, 337571) -- Chi Energy
 JadeIgnition.buff_duration = 45
+JadeIgnition.bonus_id = 7071
 local LastEmperorsCapacitor = Ability:Add(337292, true, true, 337291) -- The Emperor's Capacitor
+LastEmperorsCapacitor.bonus_id = 7069
 -- PvP talents
 
 -- Racials
@@ -1112,6 +1114,24 @@ function Player:Equipped(itemID, slot)
 	return false
 end
 
+function Player:BonusIdEquipped(bonusId)
+	local i, id, link, item
+	for i = 1, 19 do
+		link = GetInventoryItemLink('player', i)
+		if link then
+			item = link:match('Hitem:%d+:([%d:]+)')
+			if item then
+				for id in item:gmatch('(%d+)') do
+					if tonumber(id) == bonusId then
+						return true
+					end
+				end
+			end
+		end
+	end
+	return false
+end
+
 function Player:InArenaOrBattleground()
 	return self.instance == 'arena' or self.instance == 'pvp'
 end
@@ -1134,6 +1154,9 @@ function Player:UpdateAbilities()
 		end
 		if C_LevelLink.IsSpellLocked(ability.spellId) then
 			ability.known = false -- spell is locked, do not mark as known
+		end
+		if ability.bonus_id then -- used for checking Legendary crafted effects
+			ability.known = self:BonusIdEquipped(ability.bonus_id)
 		end
 	end
 
@@ -1300,7 +1323,7 @@ function WhirlingDragonPunch:Usable()
 end
 
 function TouchOfDeath:Usable()
-	if Target.healthPercentage >= 15 then
+	if Target.healthPercentage >= 15 and (Target.player or Target.health > Player.health) then
 		return false
 	end
 	return Ability.Usable(self)
