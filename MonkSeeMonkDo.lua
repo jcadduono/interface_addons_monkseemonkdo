@@ -1500,6 +1500,22 @@ actions+=/rushing_jade_wind
 			return TigerPalm
 		end
 	end
+	if Player.use_cds then
+		if WeaponsOfOrder:Usable() then
+			UseCooldown(WeaponsOfOrder)
+		end
+		if FallenOrder:Usable() then
+			UseCooldown(FallenOrder)
+		end
+	end
+	if Player.use_cds or Player:Enemies() > 1 then
+		if FaelineStomp:Usable() then
+			UseCooldown(FaelineStomp)
+		end
+		if BonedustBrew:Usable() then
+			UseCooldown(BonedustBrew)
+		end
+	end
 	if BreathOfFire:Usable() and Player:Enemies() >= 3 and BlackoutCombo:Down() and KegSmash:Ticking() > 0 and BreathOfFire:Down() then
 		return BreathOfFire
 	end
