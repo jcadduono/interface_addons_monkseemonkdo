@@ -1783,7 +1783,7 @@ actions.weapons_of_order+=/flying_serpent_kick,interrupt=1
 	if TigerPalm:Usable(0, true) and (TigerPalm:Combo() or not HitCombo.known) and Player:ChiDeficit() >= 2 then
 		return Pool(TigerPalm)
 	end
-	if FlyingSerpentKick:Usable() and (TigerPalm:Previous() or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
+	if FlyingSerpentKick:Usable() and ((TigerPalm:Previous() and Player:ChiDeficit() >= 2) or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
 		UseCooldown(FlyingSerpentKick)
 	end
 end
@@ -1979,7 +1979,7 @@ actions.st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=com
 	if TigerPalm:Usable() and TigerPalm:Combo() and Player:ChiDeficit() >= 2 then
 		return TigerPalm
 	end
-	if FlyingSerpentKick:Usable() and (TigerPalm:Previous() or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
+	if FlyingSerpentKick:Usable() and ((TigerPalm:Previous() and Player:ChiDeficit() >= 2) or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
 		UseCooldown(FlyingSerpentKick)
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and ((FistsOfFury:Ready(3) and Player:Chi() == 2 and TigerPalm:Previous() and Player:EnergyTimeToMax(50) < 1) or (Player:EnergyTimeToMax() < 2 and (Player:ChiDeficit() <= 1 or TigerPalm:Previous()))) then
@@ -2050,7 +2050,7 @@ actions.aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=co
 	if ChiWave:Usable() and ChiWave:Combo() then
 		return ChiWave
 	end
-	if FlyingSerpentKick:Usable() and (TigerPalm:Previous() or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
+	if FlyingSerpentKick:Usable() and ((TigerPalm:Previous() and Player:ChiDeficit() >= 2) or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
 		UseCooldown(FlyingSerpentKick)
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and (BlackoutKick.free:Up() or (HitCombo.known and TigerPalm:Previous() and Player:Chi() == 2 and FistsOfFury:Ready(3)) or (Player:ChiDeficit() <= 1 and SpinningCraneKick:Previous() and Player:EnergyTimeToMax() < 3)) then
