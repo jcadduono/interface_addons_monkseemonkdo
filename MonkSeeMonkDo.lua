@@ -930,8 +930,9 @@ local WeaponsOfOrder = Ability:Add(310454, true, true) -- Kyrian
 WeaponsOfOrder.cooldown_duration = 120
 WeaponsOfOrder.buff_duration = 30
 WeaponsOfOrder.mana_cost = 5
--- Conduits
+-- Soulbind conduits
 local CalculatedStrikes = Ability:Add(336526, true, true)
+CalculatedStrikes.conduit_id = 19
 -- Legendary effects
 local JadeIgnition = Ability:Add(337483, true, true, 337571) -- Chi Energy
 JadeIgnition.buff_duration = 45
@@ -1157,6 +1158,9 @@ function Player:UpdateAbilities()
 		end
 		if ability.bonus_id then -- used for checking Legendary crafted effects
 			ability.known = self:BonusIdEquipped(ability.bonus_id)
+		end
+		if ability.conduit_id then
+			ability.known = C_Soulbinds.IsConduitInstalledInSoulbind(C_Soulbinds.GetActiveSoulbindID(), ability.conduit_id)
 		end
 	end
 
