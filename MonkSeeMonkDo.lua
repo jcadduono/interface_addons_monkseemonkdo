@@ -1627,9 +1627,13 @@ actions+=/call_action_list,name=aoe,if=active_enemies>=3
 		apl = self:weapons_of_order()
 		if apl then return apl end
 	end
-	if Player:TimeInCombat() < 4 and Player:Chi() < 5 and not InvokeXuenTheWhiteTiger:Up() then
-		apl = self:opener()
-		if apl then return apl end
+	if not Player.opener_done then
+		if Player:Chi() >= 5 or InvokeXuenTheWhiteTiger:Up() then
+			Player.opener_done = true
+		else
+			apl = self:opener()
+			if apl then return apl end
+		end
 	end
 	if FistOfTheWhiteTiger:Usable() and Player:ChiDeficit() >= 3 and (Player:EnergyTimeToMax() < 1 or (Player:EnergyTimeToMax() < 4 and FistsOfFury:Ready(1.5)) or (WeaponsOfOrder.known and WeaponsOfOrder:Ready(2))) then
 		return FistOfTheWhiteTiger
@@ -1779,7 +1783,7 @@ actions.weapons_of_order+=/flying_serpent_kick,interrupt=1
 	if TigerPalm:Usable(0, true) and (TigerPalm:Combo() or not HitCombo.known) and Player:ChiDeficit() >= 2 then
 		return Pool(TigerPalm)
 	end
-	if FlyingSerpentKick:Usable() then
+	if FlyingSerpentKick:Usable() and (TigerPalm:Previous() or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
 		UseCooldown(FlyingSerpentKick)
 	end
 end
@@ -1843,7 +1847,7 @@ actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remai
 			UseCooldown(BonedustBrew)
 		end
 	end
-	if Player.use_cds then
+	if Player.use_cds or InvokeXuenTheWhiteTiger:Up() then
 		if WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
 			UseCooldown(WeaponsOfOrder)
 		end
@@ -1882,7 +1886,7 @@ actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.ac
 			UseCooldown(BonedustBrew)
 		end
 	end
-	if Player.use_cds then
+	if Player.use_cds or InvokeXuenTheWhiteTiger:Up() then
 		if WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
 			UseCooldown(WeaponsOfOrder)
 		end
@@ -1975,7 +1979,7 @@ actions.st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=com
 	if TigerPalm:Usable() and TigerPalm:Combo() and Player:ChiDeficit() >= 2 then
 		return TigerPalm
 	end
-	if FlyingSerpentKick:Usable() then
+	if FlyingSerpentKick:Usable() and (TigerPalm:Previous() or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
 		UseCooldown(FlyingSerpentKick)
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and ((FistsOfFury:Ready(3) and Player:Chi() == 2 and TigerPalm:Previous() and Player:EnergyTimeToMax(50) < 1) or (Player:EnergyTimeToMax() < 2 and (Player:ChiDeficit() <= 1 or TigerPalm:Previous()))) then
@@ -1983,6 +1987,9 @@ actions.st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=com
 	end
 	if TigerPalm:Usable(0, true) and TigerPalm:Combo() and Player:ChiDeficit() >= 2 then
 		return Pool(TigerPalm)
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player:Chi() >= 4 and not (FistsOfFury:Ready(2) or RisingSunKick:Ready(2)) then
+		return SpinningCraneKick
 	end
 end
 
@@ -2043,7 +2050,7 @@ actions.aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=co
 	if ChiWave:Usable() and ChiWave:Combo() then
 		return ChiWave
 	end
-	if FlyingSerpentKick:Usable() and BlackoutKick.free:Down() then
+	if FlyingSerpentKick:Usable() and (TigerPalm:Previous() or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
 		UseCooldown(FlyingSerpentKick)
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and (BlackoutKick.free:Up() or (HitCombo.known and TigerPalm:Previous() and Player:Chi() == 2 and FistsOfFury:Ready(3)) or (Player:ChiDeficit() <= 1 and SpinningCraneKick:Previous() and Player:EnergyTimeToMax() < 3)) then
@@ -2051,6 +2058,9 @@ actions.aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=co
 	end
 	if TigerPalm:Usable(0, true) and TigerPalm:Combo() and Player:ChiDeficit() >= 2 then
 		return Pool(TigerPalm)
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player:Chi() >= 4 and not (FistsOfFury:Ready(2) or RisingSunKick:Ready(2)) then
+		return SpinningCraneKick
 	end
 end
 
@@ -2579,6 +2589,7 @@ function events:PLAYER_REGEN_ENABLED()
 	Player.last_swing_taken = 0
 	Target.estimated_range = 30
 	Player.previous_gcd = {}
+	Player.opener_done = false
 	if Player.last_ability then
 		Player.last_ability = nil
 		msmdPreviousPanel:Hide()
