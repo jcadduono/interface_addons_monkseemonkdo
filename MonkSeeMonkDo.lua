@@ -771,6 +771,9 @@ local ExpelHarm = Ability:Add(322101, false, true)
 ExpelHarm.mana_cost = 3
 ExpelHarm.energy_cost = 15
 ExpelHarm.triggers_combo = true
+local FortifyingBrew = Ability:Add({243435, 115203}, true, true, 120954)
+FortifyingBrew.buff_duration = 15
+FortifyingBrew.cooldown_duration = 180
 local LegSweep = Ability:Add(119381, false, true)
 LegSweep.cooldown_duration = 60
 local Resuscitate = Ability:Add(115178)
@@ -783,11 +786,9 @@ RisingSunKick.triggers_combo = true
 local SpearHandStrike = Ability:Add(116705, false, true)
 SpearHandStrike.cooldown_duration = 15
 SpearHandStrike.triggers_gcd = false
-local SpinningCraneKick = Ability:Add(101546, true, true, 107270)
-SpinningCraneKick.buff_duration = 1.5
+local SpinningCraneKick = Ability:Add({322729, 101546}, true, true, 107270)
 SpinningCraneKick.mana_cost = 1
-SpinningCraneKick.chi_cost = 3
-SpinningCraneKick.hasted_duration = true
+SpinningCraneKick.chi_cost = 2
 SpinningCraneKick.triggers_combo = true
 SpinningCraneKick:AutoAoe(true)
 local TigerPalm = Ability:Add(100780, false, true)
@@ -817,17 +818,18 @@ RushingJadeWind.damage:AutoAoe(true)
 local BreathOfFire = Ability:Add(115181, false, true, 123725)
 BreathOfFire.cooldown_duration = 15
 BreathOfFire.buff_duration = 16
-BreathOfFire:AutoAoe(true)
+BreathOfFire:AutoAoe()
 local CelestialBrew = Ability:Add(322507, true, true)
 CelestialBrew.buff_duration = 8
 CelestialBrew.cooldown_duration = 60
+local Clash = Ability:Add(324312, false, true)
+Clash.cooldown_duration = 30
 local KegSmash = Ability:Add(121253, false, true)
 KegSmash.cooldown_duration = 8
 KegSmash.buff_duration = 15
 KegSmash.energy_cost = 40
 KegSmash.hasted_cooldown = true
-KegSmash:AutoAoe(true)
-KegSmash:TrackAuras()
+KegSmash:AutoAoe()
 local PurifyingBrew = Ability:Add(119582, true, true)
 PurifyingBrew.hasted_cooldown = true
 PurifyingBrew.cooldown_duration = 20
@@ -838,6 +840,9 @@ local Stagger = Ability:Add(115069, false, true)
 Stagger.auraTarget = 'player'
 Stagger.tick_interval = 0.5
 Stagger.buff_duration = 10
+local ZenMeditation = Ability:Add(115176, true, true)
+ZenMeditation.buff_duration = 8
+ZenMeditation.cooldown_duration = 300
 ------ Talents
 local BlackoutCombo = Ability:Add(196736, true, true, 228563)
 BlackoutCombo.buff_duration = 15
@@ -847,11 +852,14 @@ BlackOxBrew.triggers_gcd = false
 local InvokeNiuzaoTheBlackOx = Ability:Add(132578, true, true)
 InvokeNiuzaoTheBlackOx.cooldown_duration = 180
 InvokeNiuzaoTheBlackOx.buff_duration = 45
-local LightBrewing = Ability:Add(196721, false, true)
 local SpecialDelivery = Ability:Add(196730, false, true)
+local Spitfire = Ability:Add(242580, true, true, 242581)
+Spitfire.buff_duration = 2
 ------ Procs
 local ElusiveBrawler = Ability:Add(117906, true, true, 195630) -- Mastery
 ElusiveBrawler.buff_duration = 10
+local PurifiedChi = Ability:Add(325092, true, true) -- Purifying Brew buff
+PurifiedChi.buff_duration = 15
 ---- Mistweaver
 
 ------ Talents
@@ -933,11 +941,16 @@ WeaponsOfOrder.mana_cost = 5
 local CalculatedStrikes = Ability:Add(336526, true, true)
 CalculatedStrikes.conduit_id = 19
 -- Legendary effects
+local CharredPassions = Ability:Add(338138, true, true, 338140)
+CharredPassions.buff_duration = 8
+CharredPassions.bonus_id = 7076
 local JadeIgnition = Ability:Add(337483, true, true, 337571) -- Chi Energy
 JadeIgnition.buff_duration = 45
 JadeIgnition.bonus_id = 7071
 local LastEmperorsCapacitor = Ability:Add(337292, true, true, 337291) -- The Emperor's Capacitor
 LastEmperorsCapacitor.bonus_id = 7069
+local StormstoutsLastKeg = Ability:Add(337288, true, true)
+StormstoutsLastKeg.bonus_id = 7077
 -- PvP talents
 
 -- Racials
@@ -1167,12 +1180,15 @@ function Player:UpdateAbilities()
 		BlackoutKick.cooldown_duration = 4
 		BlackoutKick.hasted_cooldown = false
 		ExpelHarm.cooldown_duration = 5
+		RisingSunKick.cooldown_duration = 10
+		SpinningCraneKick.energy_cost = 25
 		TigerPalm.energy_cost = 25
 	elseif Player.spec == SPEC.MISTWEAVER then
 		BlackoutKick.cooldown_duration = 3
 		BlackoutKick.hasted_cooldown = true
 		ExpelHarm.cooldown_duration = 15
 		RisingSunKick.cooldown_duration = 12
+		SpinningCraneKick.energy_cost = 0
 		TigerPalm.energy_cost = 0
 	elseif Player.spec == SPEC.WINDWALKER then
 		BlackoutKick.cooldown_duration = 0
@@ -1181,6 +1197,7 @@ function Player:UpdateAbilities()
 		ExpelHarm.cooldown_duration = 15
 		MarkOfTheCrane.known = true
 		RisingSunKick.cooldown_duration = 10
+		SpinningCraneKick.energy_cost = 0
 		TigerPalm.energy_cost = 50
 	end
 	if Serenity.known then
@@ -1365,23 +1382,15 @@ function Stagger:TickPct()
 end
 
 function Stagger:Light()
-	return self:TickPct() < 3.5
+	return self:TickPct() < 2.5
 end
 
 function Stagger:Moderate()
-	return between(self:TickPct(), 3.5, 6.5)
+	return between(self:TickPct(), 2.5, 5)
 end
 
 function Stagger:Heavy()
-	return self:TickPct() > 6.5
-end
-
-function PurifyingBrew:Duration()
-	local duration = Ability.Duration(self)
-	if LightBrewing.known then
-		duration = duration * 0.8
-	end
-	return duration
+	return self:TickPct() > 5
 end
 
 function LegSweep:Usable()
@@ -1404,6 +1413,7 @@ function InvokeXuenTheWhiteTiger:Remains()
 	end
 	return 0
 end
+InvokeNiuzaoTheBlackOx.Remains = InvokeXuenTheWhiteTiger.Remains
 
 -- End Ability Modifications
 
@@ -1437,10 +1447,21 @@ local APL = {
 
 APL[SPEC.BREWMASTER].main = function(self)
 	if Player:TimeInCombat() == 0 then
+		if Opt.pot and not Player:InArenaOrBattleground() then
+			if GreaterFlaskOfTheCurrents:Usable() and GreaterFlaskOfTheCurrents.buff:Remains() < 300 then
+				UseCooldown(GreaterFlaskOfTheCurrents)
+			end
+			if Target.boss and PotionOfUnbridledFury:Usable() then
+				UseCooldown(PotionOfUnbridledFury)
+			end
+		end
 		if ChiBurst:Usable() then
 			UseCooldown(ChiBurst)
 		end
-		if RushingJadeWind:Usable() and RushingJadeWind:Down() then
+		if Clash:Usable() then
+			UseCooldown(Clash)
+		end
+		if RushingJadeWind:Usable() then
 			return RushingJadeWind
 		end
 		if ChiWave:Usable() then
@@ -1449,92 +1470,123 @@ APL[SPEC.BREWMASTER].main = function(self)
 	end
 --[[
 actions+=/invoke_niuzao_the_black_ox,if=target.time_to_die>25
-# Purifying behaviour is based on normalization (iE the late expression triggers if stagger size increased over the last 30 ticks or 15 seconds).
-actions+=/purifying_brew,if=stagger.pct>(6*(3-(cooldown.brews.charges_fractional)))&(stagger.last_tick_damage_1>((0.02+0.001*(3-cooldown.brews.charges_fractional))*stagger.last_tick_damage_30))
+actions+=/touch_of_death,if=target.health.pct<=15
+actions+=/weapons_of_order
+actions+=/fallen_order
+actions+=/bonedust_brew
+actions+=/purifying_brew
 # Black Ox Brew is currently used to either replenish brews based on less than half a brew charge available, or low energy to enable Keg Smash
-actions+=/black_ox_brew,if=cooldown.brews.charges_fractional<0.5
+actions+=/black_ox_brew,if=cooldown.purifying_brew.charges_fractional<0.5
 actions+=/black_ox_brew,if=(energy+(energy.regen*cooldown.keg_smash.remains))<40&buff.blackout_combo.down&cooldown.keg_smash.up
 # Offensively, the APL prioritizes KS on cleave, BoS else, with energy spenders and cds sorted below
 actions+=/keg_smash,if=spell_targets>=2
+actions+=/faeline_stomp,if=spell_targets>=2
+# cast KS at top prio during WoO buff
+actions+=/keg_smash,if=buff.weapons_of_order.up
+# Celestial Brew priority whenever it took significant damage (adjust the health.max coefficient according to intensity of damage taken), and to dump excess charges before BoB.
+actions+=/celestial_brew,if=buff.blackout_combo.down&incoming_damage_1999ms>(health.max*0.1+stagger.last_tick_damage_4)&buff.elusive_brawler.stack<2
 actions+=/tiger_palm,if=talent.rushing_jade_wind.enabled&buff.blackout_combo.up&buff.rushing_jade_wind.up
-actions+=/tiger_palm,if=(talent.invoke_niuzao_the_black_ox.enabled|talent.special_delivery.enabled)&buff.blackout_combo.up
-actions+=/blackout_strike
+actions+=/breath_of_fire,if=buff.charred_passions.down&runeforge.charred_passions.equipped
+actions+=/blackout_kick
 actions+=/keg_smash
+actions+=/faeline_stomp
 actions+=/rushing_jade_wind,if=buff.rushing_jade_wind.down
-actions+=/breath_of_fire,if=buff.blackout_combo.down&(buff.bloodlust.down|(buff.bloodlust.up&&dot.breath_of_fire_dot.refreshable))
+actions+=/spinning_crane_kick,if=buff.charred_passions.up
+actions+=/breath_of_fire,if=buff.blackout_combo.down&(buff.bloodlust.down|(buff.bloodlust.up&dot.breath_of_fire_dot.refreshable))
 actions+=/chi_burst
 actions+=/chi_wave
+actions+=/spinning_crane_kick,if=active_enemies>=3&cooldown.keg_smash.remains>gcd&(energy+(energy.regen*(cooldown.keg_smash.remains+execute_time)))>=65&(!talent.spitfire.enabled|!runeforge.charred_passions.equipped)
 actions+=/tiger_palm,if=!talent.blackout_combo.enabled&cooldown.keg_smash.remains>gcd&(energy+(energy.regen*(cooldown.keg_smash.remains+gcd)))>=65
 actions+=/arcane_torrent,if=energy<31
 actions+=/rushing_jade_wind
 ]]
 	Player.use_cds = Opt.cooldown and (Target.boss or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd))
-	if Player.use_cds and InvokeNiuzaoTheBlackOx:Usable() and Target.timeToDie > 25 then
-		UseCooldown(InvokeNiuzaoTheBlackOx)
-	elseif ExpelHarm:Usable() and Player:HealthPct() < 40 and ExpelHarm:Charges() >= 3 then
-		UseCooldown(ExpelHarm)
-	elseif HealingElixir:Usable() and (Player:HealthPct() < 60 or (Player:HealthPct() < 80 and HealingElixir:ChargesFractional() > 1.5)) then
+	if HealingElixir:Usable() and (Player:HealthPct() < 60 or (Player:HealthPct() < 80 and HealingElixir:ChargesFractional() > 1.5)) then
 		UseCooldown(HealingElixir)
 	end
-	if PurifyingBrew:Usable() and (Stagger:Heavy() or (Stagger:Moderate() and PurifyingBrew:ChargesFractional() >= (PurifyingBrew:MaxCharges() - 0.5))) then
-		UseExtra(PurifyingBrew)
+	if TouchOfDeath:Usable() and (Stagger:Heavy() or Stagger:Moderate()) then
+		UseCooldown(TouchOfDeath)
 	end
-	if BlackOxBrew:Usable() then
-		if Stagger:Heavy() and PurifyingBrew:ChargesFractional() <= 0.5 then
-			UseCooldown(BlackOxBrew)
-		elseif (Player:Energy() + (Player:EnergyRegen() * KegSmash:Cooldown())) < 40 and BlackoutCombo:Down() and KegSmash:Ready() then
-			UseCooldown(BlackOxBrew)
-		end
+	if FortifyingBrew:Usable() and Player:HealthPct() < 15 then
+		UseCooldown(FortifyingBrew)
 	end
-	if KegSmash:Usable() then
-		if Player:Enemies() >= 2 or (KegSmash:Down() and BreathOfFire:Down() and BreathOfFire:Ready(Player.gcd)) then
-			return KegSmash
-		end
-	end
-	if BlackoutCombo.known and TigerPalm:Usable() and BlackoutCombo:Up() then
-		if RushingJadeWind.known and RushingJadeWind:Up() then
-			return TigerPalm
-		end
-		if InvokeNiuzaoTheBlackOx.known or SpecialDelivery.known then
-			return TigerPalm
-		end
-	end
-	if Player.use_cds then
-		if WeaponsOfOrder:Usable() then
+	if Player.use_cds or InvokeNiuzaoTheBlackOx:Up() then
+		if InvokeNiuzaoTheBlackOx:Usable() then
+			UseCooldown(InvokeNiuzaoTheBlackOx)
+		elseif WeaponsOfOrder:Usable() then
 			UseCooldown(WeaponsOfOrder)
-		end
-		if FallenOrder:Usable() then
+		elseif FallenOrder:Usable() then
 			UseCooldown(FallenOrder)
 		end
 	end
-	if Player.use_cds or Player:Enemies() > 1 then
-		if FaelineStomp:Usable() then
-			UseCooldown(FaelineStomp)
-		end
+	if Player.use_cds or Player:Enemies() > 1 or InvokeNiuzaoTheBlackOx:Up() then
 		if BonedustBrew:Usable() then
 			UseCooldown(BonedustBrew)
 		end
 	end
-	if BreathOfFire:Usable() and Player:Enemies() >= 3 and BlackoutCombo:Down() and KegSmash:Ticking() > 0 and BreathOfFire:Down() then
+	if PurifyingBrew:Usable() and (Stagger:Heavy() or (Stagger:Moderate() and (PurifyingBrew:ChargesFractional() >= (PurifyingBrew:MaxCharges() - 0.5) or CelestialBrew:Up() or CelestialBrew:Ready()))) then
+		UseExtra(PurifyingBrew)
+	end
+	if BlackOxBrew:Usable() and not CelestialBrew:Ready() and (Stagger:Heavy() or Stagger:Moderate()) then
+		if PurifyingBrew:ChargesFractional() < 0.5 then
+			UseExtra(BlackOxBrew)
+		elseif (Player:Energy() + (Player:EnergyRegen() * KegSmash:Cooldown())) < 40 and (not BlackoutCombo.known or BlackoutCombo:Down()) and KegSmash:Ready() then
+			UseExtra(BlackOxBrew)
+		end
+	end
+	if KegSmash:Usable() then
+		if StormstoutsLastKeg.known then
+			if KegSmash:FullRechargeTime() < Player.gcd then
+				return KegSmash
+			end
+		elseif Player:Enemies() >= 2 or (KegSmash:Down() and BreathOfFire:Down() and BreathOfFire:Ready(Player.gcd)) then
+			return KegSmash
+		end
+	end
+	if FaelineStomp:Usable() and Player:Enemies() >= 2 then
+		UseCooldown(FaelineStomp)
+	end
+	if WeaponsOfOrder.known and KegSmash:Usable() and WeaponsOfOrder:Up() then
+		return KegSmash
+	end
+	if CelestialBrew:Usable() and (not BlackoutCombo.known or BlackoutCombo:Down()) and ElusiveBrawler:Stack() < 2 then
+		UseExtra(CelestialBrew)
+	end
+	if BlackoutCombo.known and RushingJadeWind.known and TigerPalm:Usable() and BlackoutCombo:Up() and RushingJadeWind:Up() then
+		return TigerPalm
+	end
+	if BreathOfFire:Usable() and ((CharredPassions.known and CharredPassions:Down()) or ((not CharredPassions.known or CharredPassions:Down()) and Player:Enemies() >= 3 and BreathOfFire:Down() and KegSmash:Up())) then
 		return BreathOfFire
+	end
+	if not StormstoutsLastKeg.known and KegSmash:Usable() then
+		return KegSmash
 	end
 	if BlackoutKick:Usable() then
 		return BlackoutKick
 	end
-	if KegSmash:Usable() then
+	if StormstoutsLastKeg.known and KegSmash:Usable() and KegSmash:FullRechargeTime() < 1.5 then
 		return KegSmash
+	end
+	if FaelineStomp:Usable() then
+		UseCooldown(FaelineStomp)
 	end
 	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
 		return RushingJadeWind
 	end
-	if ExpelHarm:Usable() and Player:HealthPct() < 70 and ExpelHarm:Charges() >= 5 then
-		UseCooldown(ExpelHarm)
+	if CharredPassions.known and SpinningCraneKick:Usable() and CharredPassions:Up() then
+		return SpinningCraneKick
 	end
-	if BreathOfFire:Usable() and BlackoutCombo:Down() and KegSmash:Ticking() > 0 and (Player:Enemies() >= 2 or BreathOfFire:Refreshable()) then
+	if BreathOfFire:Usable() and BlackoutCombo:Down() and (not Player:BloodlustActive() or Player:BloodlustActive() and BreathOfFire:Refreshable()) then
 		return BreathOfFire
 	end
-	if RushingJadeWind:Usable() and RushingJadeWind:Remains() < 1.5 and (Player:Enemies() > 1 or Target.timeToDie > 3) then
-		return RushingJadeWind
+	if BlackoutKick:Usable(0.5) and (Player:Enemies() < 3 or BlackoutKick:Cooldown() < KegSmash:Cooldown()) then
+		return BlackoutKick
+	end
+	if KegSmash:Usable(0.5, true) then
+		return Pool(KegSmash)
+	end
+	if ExpelHarm:Usable() and Player:HealthPct() < 70 and ExpelHarm:Charges() >= 5 then
+		return ExpelHarm
 	end
 	if ChiBurst:Usable() then
 		UseCooldown(ChiBurst)
@@ -1542,23 +1594,17 @@ actions+=/rushing_jade_wind
 	if ChiWave:Usable() then
 		return ChiWave
 	end
-	if KegSmash:Usable(0.5, true) and (Player:Enemies() >= 2 or KegSmash:Cooldown() < BlackoutKick:Cooldown()) then
-		return Pool(KegSmash)
+	if SpinningCraneKick:Usable() and Player:Enemies() >= 3 and not KegSmash:Ready(Player.gcd) and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + 1.5))) >= 65 and (not Spitfire.known or not CharredPassions.known) and (Stagger:Light() or PurifyingBrew:ChargesFractional() > 0.8 or (BlackOxBrew.known and BlackOxBrew:Ready())) then
+		return SpinningCraneKick
 	end
-	if BlackoutKick:Ready(0.5) then
-		return BlackoutKick
-	end
-	if not BlackoutCombo.known and TigerPalm:Usable() and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + Player.gcd))) >= 75 then
+	if not BlackoutCombo.known and TigerPalm:Usable() and not KegSmash:Ready(Player.gcd) and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + Player.gcd))) >= 65 then
 		return TigerPalm
 	end
 	if ExpelHarm:Usable() and Player:HealthPct() < 80 and ExpelHarm:Charges() >= 3 then
-		UseCooldown(ExpelHarm)
+		return ExpelHarm
 	end
-	if RushingJadeWind:Usable() and (Player:Enemies() > 1 or Target.timeToDie > (RushingJadeWind:Remains() + 2)) then
+	if RushingJadeWind:Usable() then
 		return RushingJadeWind
-	end
-	if BreathOfFire:Usable() and BlackoutCombo:Down() and KegSmash:Ticking() > 0 then
-		return BreathOfFire
 	end
 end
 
@@ -1615,6 +1661,9 @@ actions+=/call_action_list,name=aoe,if=active_enemies>=3
 ]]
 	Player.use_cds = Opt.cooldown and (Target.boss or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd))
 	Player.hold_xuen = not Player.use_cds or not InvokeXuenTheWhiteTiger:Ready(Target.timeToDie) or (Serenity.known and Target.timeToDie < 120 and Target.timeToDie > Serenity:Cooldown() and not Serenity:Ready(10))
+	if FortifyingBrew:Usable() and Player:HealthPct() < 15 then
+		UseCooldown(FortifyingBrew)
+	end
 	if Opt.pot and Target.boss and not Player:InArenaOrBattleground() and PotionOfUnbridledFury:Usable() and (((Serenity:Up() or StormEarthAndFire:Up()) and InvokeXuenTheWhiteTiger:Up()) or Target.timeToDie <= 60) then
 		UseCooldown(PotionOfUnbridledFury)
 	end
@@ -2243,7 +2292,7 @@ UI.anchor_points = {
 	kui = { -- Kui Nameplates
 		[SPEC.BREWMASTER] = {
 			['above'] = { 'BOTTOM', 'TOP', 0, 28 },
-			['below'] = { 'TOP', 'BOTTOM', 0, 4 }
+			['below'] = { 'TOP', 'BOTTOM', 0, -3 }
 		},
 		[SPEC.MISTWEAVER] = {
 			['above'] = { 'BOTTOM', 'TOP', 0, 28 },
@@ -2489,7 +2538,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED()
 
 	local ability = spellId and abilities.bySpellId[spellId]
 	if not ability then
-		--print(format('EVENT %s TRACK CHECK FOR UNKNOWN %s ID %d', eventType, spellName or 'Unknown', spellId or 0))
+		--print(format('EVENT %s TRACK CHECK FOR UNKNOWN %s ID %d', eventType, type(spellName) == 'string' and spellName or 'Unknown', spellId or 0))
 		return
 	end
 
@@ -2652,6 +2701,7 @@ function events:PLAYER_SPECIALIZATION_CHANGED(unitName)
 	Target:Update()
 	events:PLAYER_EQUIPMENT_CHANGED()
 	events:PLAYER_REGEN_ENABLED()
+	UI.OnResourceFrameShow()
 end
 
 function events:SPELL_UPDATE_COOLDOWN()
