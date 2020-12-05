@@ -1,5 +1,5 @@
 <Bindings>
-	<Binding name="Toggle Targets +" header="MSMD" category="ADDONS">
+	<Binding name="Toggle Targets +" header="BINDING_HEADER_MONKSEEMONKDO" category="ADDONS">
 		MonkSeeMonkDo_ToggleTargetMode()
 	</Binding>
 	<Binding name="Toggle Targets -" category="ADDONS">
