@@ -955,7 +955,7 @@ StormstoutsLastKeg.bonus_id = 7077
 
 -- Racials
 
--- Trinket Effects
+-- Trinket effects
 
 -- End Abilities
 
@@ -1150,9 +1150,9 @@ function Player:InArenaOrBattleground()
 end
 
 function Player:UpdateAbilities()
-	Player.mana_max = UnitPowerMax('player', 0)
-	Player.energy_max = UnitPowerMax('player', 3)
-	Player.chi_max = UnitPowerMax('player', 12)
+	self.mana_max = UnitPowerMax('player', 0)
+	self.energy_max = UnitPowerMax('player', 3)
+	self.chi_max = UnitPowerMax('player', 12)
 
 	local _, ability, spellId
 
@@ -1176,21 +1176,21 @@ function Player:UpdateAbilities()
 		end
 	end
 
-	if Player.spec == SPEC.BREWMASTER then
+	if self.spec == SPEC.BREWMASTER then
 		BlackoutKick.cooldown_duration = 4
 		BlackoutKick.hasted_cooldown = false
 		ExpelHarm.cooldown_duration = 5
 		RisingSunKick.cooldown_duration = 10
 		SpinningCraneKick.energy_cost = 25
 		TigerPalm.energy_cost = 25
-	elseif Player.spec == SPEC.MISTWEAVER then
+	elseif self.spec == SPEC.MISTWEAVER then
 		BlackoutKick.cooldown_duration = 3
 		BlackoutKick.hasted_cooldown = true
 		ExpelHarm.cooldown_duration = 15
 		RisingSunKick.cooldown_duration = 12
 		SpinningCraneKick.energy_cost = 0
 		TigerPalm.energy_cost = 0
-	elseif Player.spec == SPEC.WINDWALKER then
+	elseif self.spec == SPEC.WINDWALKER then
 		BlackoutKick.cooldown_duration = 0
 		BlackoutKick.hasted_cooldown = false
 		BlackoutKick.free.known = true
@@ -1625,6 +1625,7 @@ actions.precombat+=/chi_burst
 actions.precombat+=/chi_wave,if=!talent.energizing_elixir.enabled
 ]]
 	if Player:TimeInCombat() == 0 then
+		Player.opener_done = false
 		if Opt.pot and not Player:InArenaOrBattleground() then
 			if GreaterFlaskOfTheCurrents:Usable() and GreaterFlaskOfTheCurrents.buff:Remains() < 300 then
 				UseCooldown(GreaterFlaskOfTheCurrents)
@@ -1849,7 +1850,7 @@ actions.opener=fist_of_the_white_tiger,target_if=min:debuff.mark_of_the_crane.re
 actions.opener+=/expel_harm,if=talent.chi_burst.enabled&chi.max-chi>=3
 actions.opener+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=combo_strike&chi.max-chi>=2
 actions.opener+=/chi_wave,if=chi.max-chi=2
-actions.opener+=/expel_harm
+actions.opener+=/expel_harm,if=chi.max-chi>=1
 actions.opener+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=chi.max-chi>=2
 ]]
 	if FistOfTheWhiteTiger:Usable() and Player:ChiDeficit() >= 3 then
@@ -1864,7 +1865,7 @@ actions.opener+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debu
 	if ChiWave:Usable() and Player:ChiDeficit() == 2 then
 		return ChiWave
 	end
-	if ExpelHarm:Usable() then
+	if ExpelHarm:Usable() and Player:ChiDeficit() >= 1 then
 		return ExpelHarm
 	end
 	if TigerPalm:Usable() and Player:ChiDeficit() >= 2 then
@@ -2425,7 +2426,10 @@ function UI:UpdateCombat()
 		Player.gcd = 1
 		Player.energy_regen = GetPowerRegen()
 		Player.energy = UnitPower('player', 3) + (Player.energy_regen * Player.execute_remains)
-		Player.energy = min(Player.energy_max, max(0, Player.energy))
+		if Player.ability_casting then
+			Player.energy = Player.energy - Player.ability_casting:EnergyCost()
+		end
+		Player.energy = min(max(Player.energy, 0), Player.energy_max)
 		if Player.spec == SPEC.BREWMASTER then
 			Player.stagger = UnitStagger('player')
 		else
@@ -2848,7 +2852,7 @@ SlashCmdList[ADDON] = function(msg, editbox)
 				Opt.snap = 'below'
 			else
 				Opt.snap = false
-				doomedPanel:ClearAllPoints()
+				msmdPanel:ClearAllPoints()
 			end
 			UI.OnResourceFrameShow()
 		end
@@ -2883,12 +2887,12 @@ SlashCmdList[ADDON] = function(msg, editbox)
 			end
 			return Status('Interrupt ability icon scale', Opt.scale.interrupt, 'times')
 		end
-		if startsWith(msg[2], 'ex') or startsWith(msg[2], 'pet') then
+		if startsWith(msg[2], 'ex') then
 			if msg[3] then
 				Opt.scale.extra = tonumber(msg[3]) or 0.4
 				UI:UpdateScale()
 			end
-			return Status('Extra/Pet cooldown ability icon scale', Opt.scale.extra, 'times')
+			return Status('Extra cooldown ability icon scale', Opt.scale.extra, 'times')
 		end
 		if msg[2] == 'glow' then
 			if msg[3] then
@@ -2897,7 +2901,7 @@ SlashCmdList[ADDON] = function(msg, editbox)
 			end
 			return Status('Action button glow scale', Opt.scale.glow, 'times')
 		end
-		return Status('Default icon scale options', '|cFFFFD000prev 0.7|r, |cFFFFD000main 1|r, |cFFFFD000cd 0.7|r, |cFFFFD000interrupt 0.4|r, |cFFFFD000pet 0.4|r, and |cFFFFD000glow 1|r')
+		return Status('Default icon scale options', '|cFFFFD000prev 0.7|r, |cFFFFD000main 1|r, |cFFFFD000cd 0.7|r, |cFFFFD000interrupt 0.4|r, |cFFFFD000extra 0.4|r, and |cFFFFD000glow 1|r')
 	end
 	if msg[1] == 'alpha' then
 		if msg[2] then
@@ -2934,12 +2938,12 @@ SlashCmdList[ADDON] = function(msg, editbox)
 			end
 			return Status('Glowing ability buttons (interrupt icon)', Opt.glow.interrupt)
 		end
-		if startsWith(msg[2], 'ex') or startsWith(msg[2], 'pet') then
+		if startsWith(msg[2], 'ex') then
 			if msg[3] then
 				Opt.glow.extra = msg[3] == 'on'
 				UI:UpdateGlows()
 			end
-			return Status('Glowing ability buttons (extra/pet cooldown icon)', Opt.glow.extra)
+			return Status('Glowing ability buttons (extra cooldown icon)', Opt.glow.extra)
 		end
 		if startsWith(msg[2], 'bliz') then
 			if msg[3] then
@@ -2957,7 +2961,7 @@ SlashCmdList[ADDON] = function(msg, editbox)
 			end
 			return Status('Glow color', '|cFFFF0000' .. Opt.glow.color.r, '|cFF00FF00' .. Opt.glow.color.g, '|cFF0000FF' .. Opt.glow.color.b)
 		end
-		return Status('Possible glow options', '|cFFFFD000main|r, |cFFFFD000cd|r, |cFFFFD000interrupt|r, |cFFFFD000pet|r, |cFFFFD000blizzard|r, and |cFFFFD000color')
+		return Status('Possible glow options', '|cFFFFD000main|r, |cFFFFD000cd|r, |cFFFFD000interrupt|r, |cFFFFD000extra|r, |cFFFFD000blizzard|r, and |cFFFFD000color')
 	end
 	if startsWith(msg[1], 'prev') then
 		if msg[2] then
@@ -2971,13 +2975,13 @@ SlashCmdList[ADDON] = function(msg, editbox)
 			Opt.always_on = msg[2] == 'on'
 			Target:Update()
 		end
-		return Status('Show the Doomed UI without a target', Opt.always_on)
+		return Status('Show the ' .. ADDON .. ' UI without a target', Opt.always_on)
 	end
 	if msg[1] == 'cd' then
 		if msg[2] then
 			Opt.cooldown = msg[2] == 'on'
 		end
-		return Status('Use Doomed for cooldown management', Opt.cooldown)
+		return Status('Use ' .. ADDON .. ' for cooldown management', Opt.cooldown)
 	end
 	if msg[1] == 'swipe' then
 		if msg[2] then
