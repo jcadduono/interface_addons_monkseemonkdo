@@ -1896,7 +1896,7 @@ actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remai
 		UseExtra(TouchOfKarma)
 	end
 	if Player.use_cds or Player:Enemies() > 1 then
-		if FaelineStomp:Usable() then
+		if FaelineStomp:Usable() and FaelineStomp:Combo() then
 			UseCooldown(FaelineStomp)
 		end
 		if BonedustBrew:Usable() then
@@ -1935,7 +1935,7 @@ actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.ac
 		UseExtra(TouchOfDeath)
 	end
 	if Player.use_cds or Player:Enemies() > 1 then
-		if FaelineStomp:Usable() then
+		if FaelineStomp:Usable() and FaelineStomp:Combo() then
 			UseCooldown(FaelineStomp)
 		end
 		if BonedustBrew:Usable() then
