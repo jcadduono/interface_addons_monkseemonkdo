@@ -824,6 +824,12 @@ CelestialBrew.buff_duration = 8
 CelestialBrew.cooldown_duration = 60
 local Clash = Ability:Add(324312, false, true)
 Clash.cooldown_duration = 30
+local GiftOfTheOx = Ability:Add(124502, true, true, 124506)
+GiftOfTheOx.buff_duration = 30
+GiftOfTheOx.count = 0
+GiftOfTheOx.lowhp = Ability:Add(124503, true, true)
+GiftOfTheOx.expire = Ability:Add(178173, true, true)
+GiftOfTheOx.pickup = Ability:Add(124507, true, true)
 local KegSmash = Ability:Add(121253, false, true)
 KegSmash.cooldown_duration = 8
 KegSmash.buff_duration = 15
@@ -1200,6 +1206,9 @@ function Player:UpdateAbilities()
 		SpinningCraneKick.energy_cost = 0
 		TigerPalm.energy_cost = 50
 	end
+	GiftOfTheOx.lowhp.known = GiftOfTheOx.known
+	GiftOfTheOx.expire.known = GiftOfTheOx.known
+	GiftOfTheOx.pickup.known = GiftOfTheOx.known
 	if Serenity.known then
 		StormEarthAndFire.known = false
 	end
@@ -1347,6 +1356,10 @@ function TouchOfDeath:Usable()
 		return false
 	end
 	return Ability.Usable(self)
+end
+
+function GiftOfTheOx:Charges()
+	return self.count
 end
 
 function Stagger:Remains()
@@ -1585,7 +1598,7 @@ actions+=/rushing_jade_wind
 	if KegSmash:Usable(0.5, true) then
 		return Pool(KegSmash)
 	end
-	if ExpelHarm:Usable() and Player:HealthPct() < 70 and ExpelHarm:Charges() >= 5 then
+	if ExpelHarm:Usable() and Player:HealthPct() < 70 and GiftOfTheOx.count >= 4 then
 		return ExpelHarm
 	end
 	if ChiBurst:Usable() then
@@ -1600,7 +1613,7 @@ actions+=/rushing_jade_wind
 	if not BlackoutCombo.known and TigerPalm:Usable() and not KegSmash:Ready(Player.gcd) and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + Player.gcd))) >= 65 then
 		return TigerPalm
 	end
-	if ExpelHarm:Usable() and Player:HealthPct() < 80 and ExpelHarm:Charges() >= 3 then
+	if ExpelHarm:Usable() and Player:HealthPct() < 80 and GiftOfTheOx.count >= 2 then
 		return ExpelHarm
 	end
 	if RushingJadeWind:Usable() then
@@ -2368,7 +2381,7 @@ end
 
 function UI:UpdateDisplay()
 	timer.display = 0
-	local dim, text_center
+	local dim, text_center, text_tl
 	if Opt.dimmer then
 		dim = not ((not Player.main) or
 		           (Player.main.spellId and IsUsableSpell(Player.main.spellId)) or
@@ -2391,8 +2404,12 @@ function UI:UpdateDisplay()
 		msmdPanel.serenityOverlayOn = false
 		msmdPanel.border:SetTexture(ADDON_PATH .. 'border.blp')
 	end
+	if GiftOfTheOx.known then
+		text_tl = GiftOfTheOx.count
+	end
 	msmdPanel.dimmer:SetShown(dim)
 	msmdPanel.text.center:SetText(text_center)
+	msmdPanel.text.tl:SetText(text_tl)
 	--msmdPanel.text.bl:SetText(format('%.1fs', Target.timeToDie))
 end
 
@@ -2564,6 +2581,7 @@ function events:COMBAT_LOG_EVENT_UNFILTERED()
 	   eventType == 'SPELL_PERIODIC_DAMAGE' or
 	   eventType == 'SPELL_MISSED' or
 	   eventType == 'SPELL_ENERGIZE' or
+	   eventType == 'SPELL_HEAL' or
 	   eventType == 'SPELL_AURA_APPLIED' or
 	   eventType == 'SPELL_AURA_REFRESH' or
 	   eventType == 'SPELL_AURA_REMOVED')
@@ -2572,6 +2590,20 @@ function events:COMBAT_LOG_EVENT_UNFILTERED()
 	end
 
 	UI:UpdateCombatWithin(0.05)
+
+	if GiftOfTheOx.known then
+		if eventType == 'SPELL_CAST_SUCCESS' then
+			if ability == GiftOfTheOx or ability == GiftOfTheOx.lowhp then
+				GiftOfTheOx.count = GiftOfTheOx.count + 1
+			elseif ability == ExpelHarm then
+				GiftOfTheOx.count = 0
+			end
+		elseif eventType == 'SPELL_HEAL' then
+			if ability == GiftOfTheOx.expire or ability == GiftOfTheOx.pickup then
+				GiftOfTheOx.count = max(0, GiftOfTheOx.count - 1)
+			end
+		end
+	end
 	if eventType == 'SPELL_CAST_SUCCESS' then
 		Player.last_ability = ability
 		ability.last_used = Player.time
@@ -2708,6 +2740,7 @@ function events:PLAYER_SPECIALIZATION_CHANGED(unitName)
 		return
 	end
 	Player.spec = GetSpecialization() or 0
+	GiftOfTheOx.count = 0
 	msmdPreviousPanel.ability = nil
 	Player:SetTargetMode(1)
 	Target:Update()
