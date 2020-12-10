@@ -1524,7 +1524,7 @@ actions+=/rushing_jade_wind
 		UseCooldown(FortifyingBrew)
 	end
 	if Player.use_cds or InvokeNiuzaoTheBlackOx:Up() then
-		if InvokeNiuzaoTheBlackOx:Usable() then
+		if InvokeNiuzaoTheBlackOx:Usable() and (Stagger:Heavy() or Stagger:Moderate()) and (Player.enemies >= 3 or Target.timeToDie > 25) then
 			UseCooldown(InvokeNiuzaoTheBlackOx)
 		elseif WeaponsOfOrder:Usable() then
 			UseCooldown(WeaponsOfOrder)
