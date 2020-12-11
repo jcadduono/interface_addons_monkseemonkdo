@@ -1962,7 +1962,7 @@ actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.ac
 		if FallenOrder:Usable() then
 			UseCooldown(FallenOrder)
 		end
-		if StormEarthAndFire:Usable() then
+		if StormEarthAndFire:Usable() and StormEarthAndFire:Down() then
 			if Target.timeToDie < 20 or StormEarthAndFire:Charges() >= 2 then
 				UseCooldown(StormEarthAndFire)
 			end
