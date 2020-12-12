@@ -943,6 +943,8 @@ local WeaponsOfOrder = Ability:Add(310454, true, true) -- Kyrian
 WeaponsOfOrder.cooldown_duration = 120
 WeaponsOfOrder.buff_duration = 30
 WeaponsOfOrder.mana_cost = 5
+WeaponsOfOrder.ww = Ability:Add(311054, true, true) -- Chi Cost Reduction
+WeaponsOfOrder.ww.buff_duration = 5
 -- Soulbind conduits
 local CalculatedStrikes = Ability:Add(336526, true, true)
 CalculatedStrikes.conduit_id = 19
@@ -1213,6 +1215,7 @@ function Player:UpdateAbilities()
 		StormEarthAndFire.known = false
 	end
 	RushingJadeWind.damage.known = RushingJadeWind.known
+	WeaponsOfOrder.ww.known = WeaponsOfOrder.known and RisingSunKick.known
 
 	abilities.bySpellId = {}
 	abilities.velocity = {}
@@ -1320,10 +1323,16 @@ function Ability:Combo()
 end
 
 function Ability:ChiCost()
-	if self.chi_cost > 0 and Serenity:Up() then
-		return 0
+	local cost = self.chi_cost
+	if cost > 0 then
+		if WeaponsOfOrder.known and WeaponsOfOrder.ww:Up() then
+			cost = cost - 1
+		end
+		if Serenity:Up() then
+			cost = 0
+		end
 	end
-	return self.chi_cost
+	return cost
 end
 
 function BlackoutKick:ChiCost()
@@ -1746,7 +1755,7 @@ actions.serenity+=/spinning_crane_kick
 	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
 		return SpinningCraneKick
 	end
-	if WeaponsOfOrder.known and BlackoutKick:Usable() and BlackoutKick:Combo() and WeaponsOfOrder:Up() and not RisingSunKick:Ready(2) then
+	if WeaponsOfOrder.known and BlackoutKick:Usable() and BlackoutKick:Combo() and WeaponsOfOrder.ww:Up() and not RisingSunKick:Ready(2) then
 		return BlackoutKick
 	end
 	--[[
@@ -1806,13 +1815,13 @@ actions.weapons_of_order+=/spinning_crane_kick,if=combo_strike&chi>=4&cooldown.r
 		return SpinningCraneKick
 	end
 	if Player:Enemies() >= 2 then
-		if FistsOfFury:Usable() and WeaponsOfOrder:Remains() < 1 then
+		if FistsOfFury:Usable() and WeaponsOfOrder.ww:Remains() < 1 then
 			return FistsOfFury
 		end
 		if WhirlingDragonPunch:Usable() then
 			return WhirlingDragonPunch
 		end
-		if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player:Enemies() >= 3 and WeaponsOfOrder:Up() then
+		if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player:Enemies() >= 3 and WeaponsOfOrder.ww:Up() then
 			return SpinningCraneKick
 		end
 	end
@@ -1843,7 +1852,7 @@ actions.weapons_of_order+=/spinning_crane_kick,if=combo_strike&chi>=4&cooldown.r
 	if ChiWave:Usable() then
 		return ChiWave
 	end
-	if BlackoutKick:Usable() and (Player:Chi() >= 3 or WeaponsOfOrder:Up()) then
+	if BlackoutKick:Usable() and (Player:Chi() >= 3 or WeaponsOfOrder.ww:Up()) then
 		return BlackoutKick
 	end
 	if TigerPalm:Usable(0, true) and (TigerPalm:Combo() or not HitCombo.known) and Player:ChiDeficit() >= 2 then
