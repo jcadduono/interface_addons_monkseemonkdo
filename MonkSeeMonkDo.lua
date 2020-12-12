@@ -1513,7 +1513,7 @@ actions+=/tiger_palm,if=!talent.blackout_combo.enabled&cooldown.keg_smash.remain
 actions+=/arcane_torrent,if=energy<31
 actions+=/rushing_jade_wind
 ]]
-	Player.use_cds = Opt.cooldown and (Target.boss or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd))
+	Player.use_cds = Opt.cooldown and (Target.boss or Target.player or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd) or InvokeNiuzaoTheBlackOx:Up() or (WeaponsOfOrder.known and WeaponsOfOrder:Up()) or (FallenOrder.known and FallenOrder:Up()))
 	if HealingElixir:Usable() and (Player:HealthPct() < 60 or (Player:HealthPct() < 80 and HealingElixir:ChargesFractional() > 1.5)) then
 		UseCooldown(HealingElixir)
 	end
@@ -1523,7 +1523,7 @@ actions+=/rushing_jade_wind
 	if FortifyingBrew:Usable() and Player:HealthPct() < 15 then
 		UseCooldown(FortifyingBrew)
 	end
-	if Player.use_cds or InvokeNiuzaoTheBlackOx:Up() then
+	if Player.use_cds then
 		if InvokeNiuzaoTheBlackOx:Usable() and (Stagger:Heavy() or Stagger:Moderate()) and (Player.enemies >= 3 or Target.timeToDie > 25) then
 			UseCooldown(InvokeNiuzaoTheBlackOx)
 		elseif WeaponsOfOrder:Usable() then
@@ -1532,7 +1532,7 @@ actions+=/rushing_jade_wind
 			UseCooldown(FallenOrder)
 		end
 	end
-	if Player.use_cds or Player:Enemies() > 1 or InvokeNiuzaoTheBlackOx:Up() then
+	if Player.use_cds or Player:Enemies() > 1 then
 		if BonedustBrew:Usable() then
 			UseCooldown(BonedustBrew)
 		end
@@ -1674,7 +1674,7 @@ actions+=/call_action_list,name=cd_serenity,if=talent.serenity.enabled
 actions+=/call_action_list,name=st,if=active_enemies<3
 actions+=/call_action_list,name=aoe,if=active_enemies>=3
 ]]
-	Player.use_cds = Opt.cooldown and (Target.boss or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd))
+	Player.use_cds = Opt.cooldown and (Target.boss or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd) or InvokeXuenTheWhiteTiger:Up() or (WeaponsOfOrder.known and WeaponsOfOrder:Up()) or (FallenOrder.known and FallenOrder:Up()))
 	Player.hold_xuen = not Player.use_cds or not InvokeXuenTheWhiteTiger:Ready(Target.timeToDie) or (Serenity.known and Target.timeToDie < 120 and Target.timeToDie > Serenity:Cooldown() and not Serenity:Ready(10))
 	if FortifyingBrew:Usable() and Player:HealthPct() < 15 then
 		UseCooldown(FortifyingBrew)
@@ -1916,7 +1916,7 @@ actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remai
 			UseCooldown(BonedustBrew)
 		end
 	end
-	if Player.use_cds or InvokeXuenTheWhiteTiger:Up() then
+	if Player.use_cds then
 		if WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
 			UseCooldown(WeaponsOfOrder)
 		end
@@ -1955,7 +1955,7 @@ actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.ac
 			UseCooldown(BonedustBrew)
 		end
 	end
-	if Player.use_cds or InvokeXuenTheWhiteTiger:Up() then
+	if Player.use_cds then
 		if WeaponsOfOrder:Usable() and RisingSunKick:Ready(Player.gcd) then
 			UseCooldown(WeaponsOfOrder)
 		end
