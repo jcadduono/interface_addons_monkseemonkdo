@@ -1616,13 +1616,16 @@ actions+=/rushing_jade_wind
 	if ChiWave:Usable() then
 		return ChiWave
 	end
+	if ExpelHarm:Usable() and Player:HealthPct() < 80 and GiftOfTheOx.count >= 2 then
+		return ExpelHarm
+	end
 	if SpinningCraneKick:Usable() and Player:Enemies() >= 3 and not KegSmash:Ready(Player.gcd) and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + 1.5))) >= 65 and (not Spitfire.known or not CharredPassions.known) and (Stagger:Light() or PurifyingBrew:ChargesFractional() > 0.8 or (BlackOxBrew.known and BlackOxBrew:Ready())) then
 		return SpinningCraneKick
 	end
 	if not BlackoutCombo.known and TigerPalm:Usable() and not KegSmash:Ready(Player.gcd) and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + Player.gcd))) >= 65 then
 		return TigerPalm
 	end
-	if ExpelHarm:Usable() and Player:HealthPct() < 80 and GiftOfTheOx.count >= 2 then
+	if ExpelHarm:Usable() and Player:HealthPct() < 90 then
 		return ExpelHarm
 	end
 	if RushingJadeWind:Usable() then
