@@ -1800,8 +1800,7 @@ actions.weapons_of_order+=/chi_burst,if=chi.max-chi>=(1+active_enemies>1)
 actions.weapons_of_order+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=(!talent.hit_combo.enabled|combo_strike)&chi.max-chi>=2
 actions.weapons_of_order+=/chi_wave
 actions.weapons_of_order+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=chi>=3|buff.weapons_of_order_ww.up
-actions.weapons_of_order+=/flying_serpent_kick,interrupt=1,if=(prev_gcd.1.tiger_palm&chi.max-chi>=2)|(prev_gcd.1.blackout_kick&(chi>=1|buff.bok_proc.up))
-actions.weapons_of_order+=/spinning_crane_kick,if=combo_strike&chi>=4&cooldown.rising_sun_kick.remains>2&cooldown.fists_of_fury.remains>2
+actions.weapons_of_order+=/flying_serpent_kick,interrupt=1
 ]]
 	if Serenity.known then
 		self:cd_serenity()
@@ -1861,11 +1860,8 @@ actions.weapons_of_order+=/spinning_crane_kick,if=combo_strike&chi>=4&cooldown.r
 	if TigerPalm:Usable(0, true) and (TigerPalm:Combo() or not HitCombo.known) and Player:ChiDeficit() >= 2 then
 		return Pool(TigerPalm)
 	end
-	if FlyingSerpentKick:Usable() and ((TigerPalm:Previous() and Player:ChiDeficit() >= 2) or (BlackoutKick:Previous() and BlackoutKick:Usable())) then
+	if FlyingSerpentKick:Usable() then
 		UseCooldown(FlyingSerpentKick)
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player:Chi() >= 4 and not (FistsOfFury:Ready(2) or RisingSunKick:Ready(2)) then
-		return SpinningCraneKick
 	end
 end
 
