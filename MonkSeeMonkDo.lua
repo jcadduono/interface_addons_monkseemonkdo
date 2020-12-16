@@ -1790,6 +1790,7 @@ actions.weapons_of_order+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chi
 actions.weapons_of_order+=/fists_of_fury,if=active_enemies>=2&buff.weapons_of_order_ww.remains<1
 actions.weapons_of_order+=/whirling_dragon_punch,if=active_enemies>=2
 actions.weapons_of_order+=/spinning_crane_kick,if=combo_strike&active_enemies>=3&buff.weapons_of_order_ww.up
+actions.weapons_of_order+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=combo_strike&chi.max-chi>=2&buff.weapons_of_order_ww.down&cooldown.rising_sun_kick.remains<1
 actions.weapons_of_order+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&active_enemies<=2
 actions.weapons_of_order+=/whirling_dragon_punch
 actions.weapons_of_order+=/fists_of_fury,interrupt=1,if=buff.storm_earth_and_fire.up&raid_event.adds.in>cooldown.fists_of_fury.duration*0.6
@@ -1826,6 +1827,9 @@ actions.weapons_of_order+=/flying_serpent_kick,interrupt=1
 		if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player:Enemies() >= 3 and WeaponsOfOrder.ww:Up() then
 			return SpinningCraneKick
 		end
+	end
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player:ChiDeficit() >= 2 and WeaponsOfOrder.ww:Down() and RisingSunKick:Ready(1) then
+		return TigerPalm
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and Player:Enemies() <= 2 then
 		return BlackoutKick
