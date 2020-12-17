@@ -1949,7 +1949,8 @@ actions.cd_sef+=/weapons_of_order,if=(raid_event.adds.in>45|raid_event.adds.up)&
 actions.cd_sef+=/faeline_stomp,if=combo_strike&(raid_event.adds.in>10|raid_event.adds.up)
 actions.cd_sef+=/fallen_order,if=raid_event.adds.in>30|raid_event.adds.up
 actions.cd_sef+=/bonedust_brew,if=raid_event.adds.in>50|raid_event.adds.up,line_cd=60
-actions.cd_sef+=/storm_earth_and_fire,if=cooldown.storm_earth_and_fire.charges=2|fight_remains<20|(raid_event.adds.remains>15|!covenant.kyrian&((raid_event.adds.in>cooldown.storm_earth_and_fire.full_recharge_time|!raid_event.adds.exists)&(cooldown.invoke_xuen_the_white_tiger.remains>cooldown.storm_earth_and_fire.full_recharge_time|variable.hold_xuen))&cooldown.fists_of_fury.remains<=9&chi>=2&cooldown.whirling_dragon_punch.remains<=12)
+actions.cd_sef+=/storm_earth_and_fire,if=cooldown.storm_earth_and_fire.charges=2|fight_remains<20|raid_event.adds.remains>15
+actions.cd_sef+=/storm_earth_and_fire,if=!covenant.kyrian&(((raid_event.adds.in>cooldown.storm_earth_and_fire.full_recharge_time|!raid_event.adds.exists)&(cooldown.invoke_xuen_the_white_tiger.remains>cooldown.storm_earth_and_fire.full_recharge_time|variable.hold_xuen))&cooldown.fists_of_fury.remains<=9&chi>=2&cooldown.whirling_dragon_punch.remains<=12)
 actions.cd_sef+=/storm_earth_and_fire,if=covenant.kyrian&(buff.weapons_of_order.up|(fight_remains<cooldown.weapons_of_order.remains|cooldown.weapons_of_order.remains>cooldown.storm_earth_and_fire.full_recharge_time)&cooldown.fists_of_fury.remains<=9&chi>=2&cooldown.whirling_dragon_punch.remains<=12)
 actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.active|variable.hold_xuen
 ]]
@@ -1975,11 +1976,11 @@ actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.ac
 			UseCooldown(FallenOrder)
 		end
 		if StormEarthAndFire:Usable() and StormEarthAndFire:Down() then
-			if Target.timeToDie < 20 or StormEarthAndFire:Charges() >= 2 then
+			if (Target.boss and Target.timeToDie < 20) or StormEarthAndFire:Charges() >= 2 then
 				UseCooldown(StormEarthAndFire)
 			end
 			if WeaponsOfOrder.known then
-				if WeaponsOfOrder:Up() or ((WeaponsOfOrder:Ready(Target.timeToDie) or not WeaponsOfOrder:Ready(StormEarthAndFire:FullRechargeTime())) and FistsOfFury:Ready(9) and Player:Chi() >= 2 and (not WhirlingDragonPunch.known or WhirlingDragonPunch:Ready(12))) then
+				if WeaponsOfOrder:Up() or (((Target.boss and not WeaponsOfOrder:Ready(Target.timeToDie)) or not WeaponsOfOrder:Ready(StormEarthAndFire:FullRechargeTime())) and FistsOfFury:Ready(9) and Player:Chi() >= 2 and (not WhirlingDragonPunch.known or WhirlingDragonPunch:Ready(12))) then
 					UseCooldown(StormEarthAndFire)
 				end
 			else
