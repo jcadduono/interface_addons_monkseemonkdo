@@ -1106,8 +1106,8 @@ function Player:BloodlustActive()
 		if not id then
 			return false
 		elseif (
-			id == 2825 or   -- Bloodlust (Horde Monk)
-			id == 32182 or  -- Heroism (Alliance Monk)
+			id == 2825 or   -- Bloodlust (Horde Shaman)
+			id == 32182 or  -- Heroism (Alliance Shaman)
 			id == 80353 or  -- Time Warp (Mage)
 			id == 90355 or  -- Ancient Hysteria (Hunter Pet - Core Hound)
 			id == 160452 or -- Netherwinds (Hunter Pet - Nether Ray)
