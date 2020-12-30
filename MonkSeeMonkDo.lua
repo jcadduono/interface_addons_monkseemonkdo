@@ -1535,7 +1535,7 @@ actions+=/rushing_jade_wind
 	if Player.use_cds then
 		if InvokeNiuzaoTheBlackOx:Usable() and (Stagger:Heavy() or Stagger:Moderate()) and (Player.enemies >= 3 or Target.timeToDie > 25) then
 			UseCooldown(InvokeNiuzaoTheBlackOx)
-		elseif WeaponsOfOrder:Usable() then
+		elseif WeaponsOfOrder:Usable() and (not KegSmash:Ready(4 * Player.haste_factor) or (StormstoutsLastKeg.known and KegSmash:ChargesFractional() < 1.2))  then
 			UseCooldown(WeaponsOfOrder)
 		elseif FallenOrder:Usable() then
 			UseCooldown(FallenOrder)
