@@ -935,7 +935,7 @@ FaelineStomp.cooldown_duration = 30
 FaelineStomp.mana_cost = 4
 FaelineStomp.triggers_combo = true
 FaelineStomp:AutoAoe()
-local FallenOrder = Ability:Add(310454, true, true) -- Venthyr
+local FallenOrder = Ability:Add(326860, true, true) -- Venthyr
 FallenOrder.cooldown_duration = 180
 FallenOrder.buff_duration = 24
 FallenOrder.mana_cost = 2
@@ -948,6 +948,8 @@ WeaponsOfOrder.ww.buff_duration = 5
 -- Soulbind conduits
 local CalculatedStrikes = Ability:Add(336526, true, true)
 CalculatedStrikes.conduit_id = 19
+local ScaldingBrew = Ability:Add(337119, true, true)
+ScaldingBrew.conduit_id = 46
 -- Legendary effects
 local CharredPassions = Ability:Add(338138, true, true, 338140)
 CharredPassions.buff_duration = 8
@@ -1535,7 +1537,7 @@ actions+=/rushing_jade_wind
 	if Player.use_cds then
 		if InvokeNiuzaoTheBlackOx:Usable() and (Stagger:Heavy() or Stagger:Moderate()) and (Player.enemies >= 3 or Target.timeToDie > 25) then
 			UseCooldown(InvokeNiuzaoTheBlackOx)
-		elseif WeaponsOfOrder:Usable() and (not KegSmash:Ready(4 * Player.haste_factor) or (StormstoutsLastKeg.known and KegSmash:ChargesFractional() < 1.2))  then
+		elseif WeaponsOfOrder:Usable() and (not KegSmash:Ready(4 * Player.haste_factor) or (StormstoutsLastKeg.known and KegSmash:ChargesFractional() < 1.2)) then
 			UseCooldown(WeaponsOfOrder)
 		elseif FallenOrder:Usable() then
 			UseCooldown(FallenOrder)
@@ -1568,19 +1570,16 @@ actions+=/rushing_jade_wind
 	if FaelineStomp:Usable() and Player:Enemies() >= 2 then
 		UseCooldown(FaelineStomp)
 	end
-	if WeaponsOfOrder.known and KegSmash:Usable() and WeaponsOfOrder:Up() then
-		return KegSmash
-	end
 	if CelestialBrew:Usable() and (not BlackoutCombo.known or BlackoutCombo:Down()) and ElusiveBrawler:Stack() < 2 then
 		UseExtra(CelestialBrew)
 	end
 	if BlackoutCombo.known and RushingJadeWind.known and TigerPalm:Usable() and BlackoutCombo:Up() and RushingJadeWind:Up() then
 		return TigerPalm
 	end
-	if BreathOfFire:Usable() and ((CharredPassions.known and CharredPassions:Down()) or ((not CharredPassions.known or CharredPassions:Down()) and Player:Enemies() >= 3 and BreathOfFire:Down() and KegSmash:Up())) then
+	if BreathOfFire:Usable() and ((CharredPassions.known and CharredPassions:Down()) or ((ScaldingBrew.known or ((not CharredPassions.known or CharredPassions:Down()) and Player:Enemies() >= 3)) and BreathOfFire:Down() and KegSmash:Up())) then
 		return BreathOfFire
 	end
-	if not StormstoutsLastKeg.known and KegSmash:Usable() then
+	if KegSmash:Usable() and (not StormstoutsLastKeg.known or (WeaponsOfOrder.known and WeaponsOfOrder:Up())) then
 		return KegSmash
 	end
 	if BlackoutKick:Usable() then
