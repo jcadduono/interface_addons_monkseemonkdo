@@ -1156,10 +1156,6 @@ local DanceOfChiJi = Ability:Add(325201, true, true, 325202)
 DanceOfChiJi.buff_duration = 15
 local EnergizingElixir = Ability:Add(115288, false, true)
 EnergizingElixir.cooldown_duration = 60
-local FistOfTheWhiteTiger = Ability:Add(261947, false, true, 261977)
-FistOfTheWhiteTiger.cooldown_duration = 30
-FistOfTheWhiteTiger.energy_cost = 40
-FistOfTheWhiteTiger.triggers_combo = true
 local HitCombo = Ability:Add(196740, true, true, 196741)
 HitCombo.buff_duration = 10
 local Serenity = Ability:Add(152173, true, true)
@@ -1740,7 +1736,7 @@ function SpinningCraneKick:ChiCost()
 end
 
 function ChiBurst:ChiCost()
-	return Ability.ChiCost(self) - min(2, Player:Enemies())
+	return Ability.ChiCost(self) - min(2, Player.enemies)
 end
 
 function WhirlingDragonPunch:Usable()
@@ -1751,7 +1747,7 @@ function WhirlingDragonPunch:Usable()
 end
 
 function TouchOfDeath:Usable()
-	if Target.healthPercentage >= 15 and (Target.player or Target.health.current > Player.health.current) then
+	if Target.health.pct >= 15 and (Target.player or Target.health.current > Player.health.current) then
 		return false
 	end
 	return Ability.Usable(self)
@@ -1908,7 +1904,7 @@ actions+=/tiger_palm,if=!talent.blackout_combo.enabled&cooldown.keg_smash.remain
 actions+=/arcane_torrent,if=energy<31
 actions+=/rushing_jade_wind
 ]]
-	Player.use_cds = Opt.cooldown and (Target.boss or Target.player or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd) or InvokeNiuzaoTheBlackOx:Up()
+	Player.use_cds = Opt.cooldown and ((Target.boss or Target.player or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd)) or InvokeNiuzaoTheBlackOx:Up())
 	if HealingElixir:Usable() and (Player.health.pct < 60 or (Player.health.pct < 80 and HealingElixir:ChargesFractional() > 1.5)) then
 		UseCooldown(HealingElixir)
 	end
@@ -1923,7 +1919,7 @@ actions+=/rushing_jade_wind
 			UseCooldown(InvokeNiuzaoTheBlackOx)
 		end
 	end
-	if Player.use_cds or Player:Enemies() > 1 then
+	if Player.use_cds or Player.enemies > 1 then
 		if BonedustBrew:Usable() then
 			UseCooldown(BonedustBrew)
 		end
@@ -1943,11 +1939,11 @@ actions+=/rushing_jade_wind
 			if KegSmash:FullRechargeTime() < Player.gcd then
 				return KegSmash
 			end
-		elseif Player:Enemies() >= 2 or (KegSmash:Down() and BreathOfFire:Down() and BreathOfFire:Ready(Player.gcd)) then
+		elseif Player.enemies >= 2 or (KegSmash:Down() and BreathOfFire:Down() and BreathOfFire:Ready(Player.gcd)) then
 			return KegSmash
 		end
 	end
-	if FaelineStomp:Usable() and Player:Enemies() >= 2 then
+	if FaelineStomp:Usable() and Player.enemies >= 2 then
 		UseCooldown(FaelineStomp)
 	end
 	if CelestialBrew:Usable() and (not BlackoutCombo.known or BlackoutCombo:Down()) and ElusiveBrawler:Stack() < 2 then
@@ -1956,7 +1952,7 @@ actions+=/rushing_jade_wind
 	if BlackoutCombo.known and RushingJadeWind.known and TigerPalm:Usable() and BlackoutCombo:Up() and RushingJadeWind:Up() then
 		return TigerPalm
 	end
-	if BreathOfFire:Usable() and ((CharredPassions.known and CharredPassions:Down()) or ((ScaldingBrew.known or ((not CharredPassions.known or CharredPassions:Down()) and Player:Enemies() >= 3)) and BreathOfFire:Down() and KegSmash:Up())) then
+	if BreathOfFire:Usable() and ((CharredPassions.known and CharredPassions:Down()) or ((ScaldingBrew.known or ((not CharredPassions.known or CharredPassions:Down()) and Player.enemies >= 3)) and BreathOfFire:Down() and KegSmash:Up())) then
 		return BreathOfFire
 	end
 	if KegSmash:Usable() and not StormstoutsLastKeg.known then
@@ -1980,7 +1976,7 @@ actions+=/rushing_jade_wind
 	if BreathOfFire:Usable() and BlackoutCombo:Down() and (not Player:BloodlustActive() or Player:BloodlustActive() and BreathOfFire:Refreshable()) then
 		return BreathOfFire
 	end
-	if BlackoutKick:Usable(0.5) and (Player:Enemies() < 3 or BlackoutKick:Cooldown() < KegSmash:Cooldown()) then
+	if BlackoutKick:Usable(0.5) and (Player.enemies < 3 or BlackoutKick:Cooldown() < KegSmash:Cooldown()) then
 		return BlackoutKick
 	end
 	if KegSmash:Usable(0.5, true) then
@@ -1998,7 +1994,7 @@ actions+=/rushing_jade_wind
 	if ExpelHarm:Usable() and Player.health.pct < 80 and GiftOfTheOx.count >= 2 then
 		return ExpelHarm
 	end
-	if SpinningCraneKick:Usable() and Player:Enemies() >= 3 and not KegSmash:Ready(Player.gcd) and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + 1.5))) >= 65 and (not Spitfire.known or not CharredPassions.known) and (Stagger:Light() or PurifyingBrew:ChargesFractional() > 0.8 or (BlackOxBrew.known and BlackOxBrew:Ready())) then
+	if SpinningCraneKick:Usable() and Player.enemies >= 3 and not KegSmash:Ready(Player.gcd) and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + 1.5))) >= 65 and (not Spitfire.known or not CharredPassions.known) and (Stagger:Light() or PurifyingBrew:ChargesFractional() > 0.8 or (BlackOxBrew.known and BlackOxBrew:Ready())) then
 		return SpinningCraneKick
 	end
 	if not BlackoutCombo.known and TigerPalm:Usable() and not KegSmash:Ready(Player.gcd) and (Player:Energy() + (Player:EnergyRegen() * (KegSmash:Cooldown() + Player.gcd))) >= 65 then
@@ -2021,27 +2017,23 @@ APL[SPEC.WINDWALKER].Main = function(self)
 actions.precombat=flask
 actions.precombat+=/food
 actions.precombat+=/augmentation
-# Snapshot raid buffed stats before combat begins and pre-potting is done.
 actions.precombat+=/snapshot_stats
-actions.precombat+=/potion
-actions.precombat+=/variable,name=xuen_on_use_trinket,op=set,value=0
-actions.precombat+=/chi_burst
-actions.precombat+=/chi_wave,if=!talent.energizing_elixir.enabled
+actions.precombat+=/summon_white_tiger_statue
+actions.precombat+=/expel_harm,if=chi<chi.max
+actions.precombat+=/chi_burst,if=!talent.faeline_stomp
+actions.precombat+=/chi_wave
 ]]
 	if Player:TimeInCombat() == 0 then
-		Player.opener_done = false
-		if Opt.pot and not Player:InArenaOrBattleground() then
-			if GreaterFlaskOfTheCurrents:Usable() and GreaterFlaskOfTheCurrents.buff:Remains() < 300 then
-				UseCooldown(GreaterFlaskOfTheCurrents)
-			end
-			if Target.boss and PotionOfUnbridledFury:Usable() then
-				UseCooldown(PotionOfUnbridledFury)
-			end
+		if SummonWhiteTigerStatue:Usable() then
+			UseCooldown(SummonWhiteTigerStatue)
 		end
-		if ChiBurst:Usable() and Player.chi.deficit >= min(2, Player:Enemies()) then
+		if ExpelHarm:Usable() and Player.chi.deficit > 0 then
+			return ExpelHarm
+		end
+		if ChiBurst:Usable() and not FaelineStomp.known then
 			UseCooldown(ChiBurst)
 		end
-		if ChiWave:Usable() and not EnergizingElixir.known then
+		if ChiWave:Usable() then
 			return ChiWave
 		end
 		if FlyingSerpentKick:Usable() then
@@ -2050,358 +2042,940 @@ actions.precombat+=/chi_wave,if=!talent.energizing_elixir.enabled
 	end
 --[[
 actions=auto_attack
+actions+=/roll,if=movement.distance>5
+actions+=/chi_torpedo,if=movement.distance>5
+actions+=/flying_serpent_kick,if=movement.distance>5
 actions+=/spear_hand_strike,if=target.debuff.casting.react
-actions+=/variable,name=opener_done,op=set,value=1,if=chi>=5|pet.xuen_the_white_tiger.active
-actions+=/variable,name=hold_xuen,op=set,value=cooldown.invoke_xuen_the_white_tiger.remains>fight_remains|fight_remains<120&fight_remains>cooldown.serenity.remains&cooldown.serenity.remains>10
-actions+=/potion,if=(buff.serenity.up|buff.storm_earth_and_fire.up)&pet.xuen_the_white_tiger.active|fight_remains<=60
-actions+=/call_action_list,name=serenity,if=buff.serenity.up
-actions+=/call_action_list,name=opener,if=!variable.opener_done
-actions+=/fist_of_the_white_tiger,target_if=min:debuff.mark_of_the_crane.remains,if=chi.max-chi>=3&(energy.time_to_max<1|energy.time_to_max<4&cooldown.fists_of_fury.remains<1.5)
-actions+=/expel_harm,if=chi.max-chi>=1&(energy.time_to_max<1|cooldown.serenity.remains<2|energy.time_to_max<4&cooldown.fists_of_fury.remains<1.5)
-actions+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&chi.max-chi>=2&(energy.time_to_max<1|cooldown.serenity.remains<2|energy.time_to_max<4&cooldown.fists_of_fury.remains<1.5)
-actions+=/call_action_list,name=cd_sef,if=!talent.serenity.enabled
-actions+=/call_action_list,name=cd_serenity,if=talent.serenity.enabled
-actions+=/call_action_list,name=st,if=active_enemies<3
-actions+=/call_action_list,name=aoe,if=active_enemies>=3
+actions+=/variable,name=hold_xuen,op=set,value=!talent.invoke_xuen_the_white_tiger|cooldown.invoke_xuen_the_white_tiger.duration>fight_remains
+actions+=/variable,name=hold_tp_rsk,op=set,value=!debuff.skyreach_exhaustion.remains<1&cooldown.rising_sun_kick.remains<1
+actions+=/potion,if=buff.serenity.up|buff.storm_earth_and_fire.up&pet.xuen_the_white_tiger.active|fight_remains<=30
+actions+=/call_action_list,name=opener,if=time<4&chi<5&!pet.xuen_the_white_tiger.active&!talent.serenity
+actions+=/call_action_list,name=trinkets
+actions+=/faeline_stomp,target_if=min:debuff.fae_exposure_damage.remains,if=combo_strike&talent.faeline_harmony&debuff.fae_exposure_damage.remains<1
+actions+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.skyreach_exhaustion.up*20),if=!buff.serenity.up&buff.teachings_of_the_monastery.stack<3&combo_strike&chi.max-chi>=(2+buff.power_strikes.up)&(!talent.invoke_xuen_the_white_tiger&!talent.serenity|((!talent.skyreach&!talent.skytouch)|time>5|pet.xuen_the_white_tiger.active))&!variable.hold_tp_rsk
+actions+=/chi_burst,if=talent.faeline_stomp&cooldown.faeline_stomp.remains&(chi.max-chi>=1&active_enemies=1|chi.max-chi>=2&active_enemies>=2)&!talent.faeline_harmony
+actions+=/call_action_list,name=cd_sef,if=!talent.serenity
+actions+=/call_action_list,name=cd_serenity,if=talent.serenity
+actions+=/call_action_list,name=serenity_lust,if=buff.serenity.up&buff.bloodlust.up
+actions+=/call_action_list,name=serenity_aoe,if=buff.serenity.up&active_enemies>4
+actions+=/call_action_list,name=serenity_4t,if=buff.serenity.up&active_enemies=4
+actions+=/call_action_list,name=serenity_3t,if=buff.serenity.up&active_enemies=3
+actions+=/call_action_list,name=serenity_2t,if=buff.serenity.up&active_enemies=2
+actions+=/call_action_list,name=serenity_st,if=buff.serenity.up&active_enemies=1
+actions+=/call_action_list,name=default_aoe,if=active_enemies>4
+actions+=/call_action_list,name=default_4t,if=active_enemies=4
+actions+=/call_action_list,name=default_3t,if=active_enemies=3
+actions+=/call_action_list,name=default_2t,if=active_enemies=2
+actions+=/call_action_list,name=default_st,if=active_enemies=1
+actions+=/call_action_list,name=fallthru
 ]]
-	Player.use_cds = Opt.cooldown and (Target.boss or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd) or InvokeXuenTheWhiteTiger:Up() or Player.major_cd_remains > 0
-	Player.hold_xuen = not Player.use_cds or not InvokeXuenTheWhiteTiger:Ready(Target.timeToDie) or (Serenity.known and Target.timeToDie < 120 and Target.timeToDie > Serenity:Cooldown() and not Serenity:Ready(10))
+	self.use_cds = Opt.cooldown and ((Target.boss or Target.player or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd)) or Player.major_cd_remains > 0 or InvokeXuenTheWhiteTiger:Up())
+	self.hold_xuen = not self.use_cds or not InvokeXuenTheWhiteTiger.known or InvokeXuenTheWhiteTiger:CooldownDuration() > Target.timeToDie
+	self.hold_tp_rsk = Skyreach.Exhaustion:Remains() >= 1 and RisingSunKick:Ready(1)
 	if FortifyingBrew:Usable() and Player.health.pct < 15 then
 		UseCooldown(FortifyingBrew)
 	end
 	local apl
-	if Serenity.known and Serenity:Up() then
-		apl = self:serenity()
-		if apl then return apl end
-	end
-	if not Player.opener_done then
-		if Player.chi.current >= 5 or InvokeXuenTheWhiteTiger:Up() then
-			Player.opener_done = true
+	if not self.opener_done then
+		if not Serenity.known or Player.chi.current >= 5 or InvokeXuenTheWhiteTiger:Up() then
+			self.opener_done = true
 		else
 			apl = self:opener()
 			if apl then return apl end
 		end
 	end
-	if FistOfTheWhiteTiger:Usable() and Player.chi.deficit >= 3 and (Player:EnergyTimeToMax() < 1 or (Player:EnergyTimeToMax() < 4 and FistsOfFury:Ready(1.5))) then
-		return FistOfTheWhiteTiger
+	self:trinkets()
+	if FaelineHarmony.known and FaelineStomp:Usable() and FaelineStomp:Combo() and FaeExposure:Remains() < 1 then
+		UseCooldown(FaelineStomp)
 	end
-	if ExpelHarm:Usable() and Player.chi.deficit >= 1 and (Player:EnergyTimeToMax() < 1 or (Serenity.known and Serenity:Ready(2)) or (Player:EnergyTimeToMax() < 4 and FistsOfFury:Ready(1.5))) then
-		return ExpelHarm
-	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 and (Player:EnergyTimeToMax() < 1 or (Serenity.known and Serenity:Ready(2)) or (Player:EnergyTimeToMax() < 4 and FistsOfFury:Ready(1.5))) then
+	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not Serenity.known or Serenity:Down()) and (not TeachingsOfTheMonastery.known or TeachingsOfTheMonastery:Stack() < 3) and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) and (not InvokeXuenTheWhiteTiger.known and not Serenity.known or ((not Skyreach.known and not Skytouch.known) or Player:TimeInCombat() > 5 or InvokeXuenTheWhiteTiger:Up())) then
 		return TigerPalm
+	end
+	if ChiBurst:Usable() and FaelineStomp.known and not FaelineHarmony.known and not FaelineStomp:Ready() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
+		UseCooldown(ChiBurst)
 	end
 	if Serenity.known then
 		self:cd_serenity()
+		if Serenity:Up() then
+			if Player:BloodlustActive() then
+				apl = self:serenity_lust()
+				if apl then return apl end
+			end
+			if Player.enemies >= 5 then
+				apl = self:serenity_aoe()
+				if apl then return apl end
+			elseif Player.enemies >= 4 then
+				apl = self:serenity_4t()
+				if apl then return apl end
+			elseif Player.enemies >= 3 then
+				apl = self:serenity_3t()
+				if apl then return apl end
+			elseif Player.enemies >= 2 then
+				apl = self:serenity_2t()
+				if apl then return apl end
+			else
+				apl = self:serenity_st()
+				if apl then return apl end
+			end
+		end
 	else
 		self:cd_sef()
 	end
-	if Player:Enemies() >= 3 then
-		return self:aoe()
+	if Player.enemies >= 5 then
+		apl = self:default_aoe()
+		if apl then return apl end
+	elseif Player.enemies >= 4 then
+		apl = self:default_4t()
+		if apl then return apl end
+	elseif Player.enemies >= 3 then
+		apl = self:default_3t()
+		if apl then return apl end
+	elseif Player.enemies >= 2 then
+		apl = self:default_2t()
+		if apl then return apl end
+	else
+		apl = self:default_st()
+		if apl then return apl end
 	end
-	return self:st()
+	return self:fallthru()
 end
 
-APL[SPEC.WINDWALKER].serenity = function(self)
+APL[SPEC.WINDWALKER].precombat_variables = function(self)
+	self.opener_done = false
+end
+
+APL[SPEC.WINDWALKER].bdb_setup = function(self)
 --[[
-actions.serenity=fists_of_fury,if=buff.serenity.remains<1
-actions.serenity+=/use_item,name=darkmoon_deck_voracity
-actions.serenity+=/spinning_crane_kick,if=combo_strike&(active_enemies>=3|active_enemies>1&!cooldown.rising_sun_kick.up)
-actions.serenity+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike
-actions.serenity+=/fists_of_fury,if=active_enemies>=3
-actions.serenity+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
-actions.serenity+=/fist_of_the_white_tiger,interrupt=1
-actions.serenity+=/spinning_crane_kick,if=combo_strike&debuff.bonedust_brew.up
-actions.serenity+=/fist_of_the_white_tiger,target_if=min:debuff.mark_of_the_crane.remains,if=chi<3
-actions.serenity+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike
-actions.serenity+=/spinning_crane_kick
+actions.bdb_setup=strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&active_enemies>3
+actions.bdb_setup+=/bonedust_brew,if=spinning_crane_kick.max&chi>=4
+actions.bdb_setup+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.skyreach_exhaustion.up*20),if=combo_strike&chi.max-chi>=2&buff.storm_earth_and_fire.up
+actions.bdb_setup+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&!talent.whirling_dragon_punch&!spinning_crane_kick.max
+actions.bdb_setup+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&chi>=5&talent.whirling_dragon_punch
+actions.bdb_setup+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&active_enemies>=2&talent.whirling_dragon_punch
 ]]
-	if FistsOfFury:Usable() and Serenity:Remains() < 1 then
-		return FistsOfFury
+
+end
+
+APL[SPEC.WINDWALKER].cd_sef = function(self)
+--[[
+actions.cd_sef=summon_white_tiger_statue,if=!cooldown.invoke_xuen_the_white_tiger.remains|active_enemies>4|cooldown.invoke_xuen_the_white_tiger.remains>50|fight_remains<=30
+actions.cd_sef+=/invoke_external_buff,name=power_infusion,if=pet.xuen_the_white_tiger.active
+actions.cd_sef+=/invoke_xuen_the_white_tiger,if=!variable.hold_xuen&target.time_to_die>25&talent.bonedust_brew&cooldown.bonedust_brew.remains<=5&(active_enemies<3&chi>=3|active_enemies>=3&chi>=2)|fight_remains<25
+actions.cd_sef+=/invoke_xuen_the_white_tiger,if=!variable.hold_xuen&target.time_to_die>25&!talent.bonedust_brew&(cooldown.rising_sun_kick.remains<2)&chi>=3
+actions.cd_sef+=/storm_earth_and_fire,if=talent.bonedust_brew&(fight_remains<30&cooldown.bonedust_brew.remains<4&chi>=4|buff.bonedust_brew.up|!spinning_crane_kick.max&active_enemies>=3&cooldown.bonedust_brew.remains<=2&chi>=2)&(pet.xuen_the_white_tiger.active|cooldown.invoke_xuen_the_white_tiger.remains>cooldown.storm_earth_and_fire.full_recharge_time)
+actions.cd_sef+=/storm_earth_and_fire,if=!talent.bonedust_brew&(pet.xuen_the_white_tiger.active|target.time_to_die>15&cooldown.storm_earth_and_fire.full_recharge_time<cooldown.invoke_xuen_the_white_tiger.remains)
+actions.cd_sef+=/bonedust_brew,if=(!buff.bonedust_brew.up&buff.storm_earth_and_fire.up&buff.storm_earth_and_fire.remains<11&spinning_crane_kick.max)|(!buff.bonedust_brew.up&fight_remains<30&fight_remains>10&spinning_crane_kick.max&chi>=4)|fight_remains<10|(!debuff.skyreach_exhaustion.up&active_enemies>=4&spinning_crane_kick.modifier>=2)|(pet.xuen_the_white_tiger.active&spinning_crane_kick.max&active_enemies>=4)
+actions.cd_sef+=/call_action_list,name=bdb_setup,if=!buff.bonedust_brew.up&talent.bonedust_brew&cooldown.bonedust_brew.remains<=2&(fight_remains>60&(cooldown.storm_earth_and_fire.charges>0|cooldown.storm_earth_and_fire.remains>10)&(pet.xuen_the_white_tiger.active|cooldown.invoke_xuen_the_white_tiger.remains>10|variable.hold_xuen)|((pet.xuen_the_white_tiger.active|cooldown.invoke_xuen_the_white_tiger.remains>13)&(cooldown.storm_earth_and_fire.charges>0|cooldown.storm_earth_and_fire.remains>13|buff.storm_earth_and_fire.up)))
+actions.cd_sef+=/storm_earth_and_fire,if=fight_remains<20|(cooldown.storm_earth_and_fire.charges=2&cooldown.invoke_xuen_the_white_tiger.remains>cooldown.storm_earth_and_fire.full_recharge_time)&cooldown.fists_of_fury.remains<=9&chi>=2&cooldown.whirling_dragon_punch.remains<=12
+actions.cd_sef+=/touch_of_death,target_if=max:target.health,if=fight_style.dungeonroute&!buff.serenity.up&(combo_strike&target.health<health)|(buff.hidden_masters_forbidden_touch.remains<2)|(buff.hidden_masters_forbidden_touch.remains>target.time_to_die)
+actions.cd_sef+=/touch_of_death,cycle_targets=1,if=fight_style.dungeonroute&combo_strike&(target.time_to_die>60|debuff.bonedust_brew_debuff.up|fight_remains<10)
+actions.cd_sef+=/touch_of_death,cycle_targets=1,if=!fight_style.dungeonroute&combo_strike
+actions.cd_sef+=/touch_of_karma,target_if=max:target.time_to_die,if=fight_remains>90|pet.xuen_the_white_tiger.active|variable.hold_xuen|fight_remains<16
+actions.cd_sef+=/blood_fury,if=cooldown.invoke_xuen_the_white_tiger.remains>30|variable.hold_xuen|fight_remains<20
+actions.cd_sef+=/berserking,if=cooldown.invoke_xuen_the_white_tiger.remains>30|variable.hold_xuen|fight_remains<15
+actions.cd_sef+=/lights_judgment
+actions.cd_sef+=/fireblood,if=cooldown.invoke_xuen_the_white_tiger.remains>30|variable.hold_xuen|fight_remains<10
+actions.cd_sef+=/ancestral_call,if=cooldown.invoke_xuen_the_white_tiger.remains>30|variable.hold_xuen|fight_remains<20
+actions.cd_sef+=/bag_of_tricks,if=buff.storm_earth_and_fire.down
+]]
+
+end
+
+APL[SPEC.WINDWALKER].cd_serenity = function(self)
+--[[
+actions.cd_serenity=summon_white_tiger_statue,if=!cooldown.invoke_xuen_the_white_tiger.remains|active_enemies>4|cooldown.invoke_xuen_the_white_tiger.remains>50|fight_remains<=30
+actions.cd_serenity+=/invoke_external_buff,name=power_infusion,if=pet.xuen_the_white_tiger.active
+actions.cd_serenity+=/invoke_xuen_the_white_tiger,if=!variable.hold_xuen&talent.bonedust_brew&cooldown.bonedust_brew.remains<=5&target.time_to_die>25|buff.bloodlust.up|fight_remains<25
+actions.cd_serenity+=/invoke_xuen_the_white_tiger,if=target.time_to_die>25&fight_remains>120|fight_remains<60&(debuff.skyreach_exhaustion.remains<2|debuff.skyreach_exhaustion.remains>55)&!cooldown.serenity.remains&active_enemies<3|buff.bloodlust.up|fight_remains<23
+actions.cd_serenity+=/bonedust_brew,if=!buff.bonedust_brew.up&(cooldown.serenity.up|cooldown.serenity.remains>15|fight_remains<30&fight_remains>10)|fight_remains<10
+actions.cd_serenity+=/serenity,if=buff.invokers_delight.up|variable.hold_xuen&(talent.drinking_horn_cover&fight_remains>110|!talent.drinking_horn_cover&fight_remains>105)|!talent.invoke_xuen_the_white_tiger|!talent.invoke_xuen_the_white_tiger|fight_remains<15
+actions.cd_serenity+=/touch_of_death,target_if=max:target.health,if=fight_style.dungeonroute&!buff.serenity.up&(combo_strike&target.health<health)|(buff.hidden_masters_forbidden_touch.remains<2)|(buff.hidden_masters_forbidden_touch.remains>target.time_to_die)
+actions.cd_serenity+=/touch_of_death,cycle_targets=1,if=fight_style.dungeonroute&combo_strike&(target.time_to_die>60|debuff.bonedust_brew_debuff.up|fight_remains<10)&!buff.serenity.up
+actions.cd_serenity+=/touch_of_death,cycle_targets=1,if=!fight_style.dungeonroute&combo_strike&!buff.serenity.up
+actions.cd_serenity+=/touch_of_karma,if=fight_remains>90|fight_remains<10
+actions.cd_serenity+=/blood_fury,if=buff.serenity.up|fight_remains<20
+actions.cd_serenity+=/berserking,if=!buff.serenity.up|fight_remains<20
+actions.cd_serenity+=/lights_judgment
+actions.cd_serenity+=/fireblood,if=buff.serenity.up|fight_remains<20
+actions.cd_serenity+=/ancestral_call,if=buff.serenity.up|fight_remains<20
+actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
+]]
+	if TouchOfKarma:Usable() and Player:UnderAttack() then
+		UseExtra(TouchOfKarma)
 	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (Player:Enemies() >= 3 or (Player:Enemies() > 1 and RisingSunKick:Ready())) then
-		return SpinningCraneKick
+	if self.use_cds and SummonWhiteTigerStatue:Usable() and (InvokeXuenTheWhiteTiger:Ready() or Player.enemies > 4 or not InvokeXuenTheWhiteTiger:Ready(50) or (Target.boss and Target.timeToDie <= 30)) then
+		return UseCooldown(SummonWhiteTigerStatue)
 	end
-	if RisingSunKick:Usable() and RisingSunKick:Combo() then
+	if self.use_cds and InvokeXuenTheWhiteTiger:Usable() and (
+		(not self.hold_xuen and BonedustBrew.known and BonedustBrew:Ready(5) and Target.timeToDie > 25) or
+		(Target.timeToDie < 60 and (Skyreach.Exhaustion:Remains() < 2 or Skyreach.Exhaustion:Remains() > 55) and Serenity:Ready() and Player.enemies < 3) or
+		Player:BloodlustActive() or
+		(Target.boss and Target.timeToDie < 25)
+	) then
+		return UseCooldown(InvokeXuenTheWhiteTiger)
+	end
+	if BonedustBrew:Usable() and (
+		(BonedustBrew:Down() and (Serenity:Ready() or not Serenity:Ready(15) or between(Target.timeToDie, 10, 30))) or
+		(Target.boss and Target.timeToDie < 10)
+	) then
+		return UseCooldown(BonedustBrew)
+	end
+	if self.use_cds and Serenity:Usable() and (
+		(InvokersDelight.known and InvokersDelight:Up()) or
+		(self.hold_xuen and ((DrinkingHornCover.known and Target.timeToDie > 110) or (not DrinkingHornCover.known and Target.timeToDie > 105))) or
+		not InvokeXuenTheWhiteTiger.known or
+		(Target.boss and Target.timeToDie < 15)
+	) then
+		return UseCooldown(Serenity)
+	end
+	if TouchOfDeath:Usable() and (
+		(TouchOfDeath:Combo() and Serenity:Down() and (Target.timeToDie < 10 or Target.timeToDie > 60)) or
+		(HiddenMastersForbiddenTouch.known and (HiddenMastersForbiddenTouch:Remains() < 2 or HiddenMastersForbiddenTouch:Remains() > Target.timeToDie))
+	) then
+		return UseCooldown(TouchOfDeath)
+	end
+end
+
+APL[SPEC.WINDWALKER].default_2t = function(self)
+--[[
+actions.default_2t=blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=3&talent.shadowboxing_treads
+actions.default_2t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&(cooldown.invoke_xuen_the_white_tiger.remains>20|fight_remains<5)
+actions.default_2t+=/rising_sun_kick,if=!cooldown.fists_of_fury.remains
+actions.default_2t+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains
+actions.default_2t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=set_bonus.tier30_2pc
+actions.default_2t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.kicks_of_flowing_momentum.up|buff.pressure_point.up
+actions.default_2t+=/expel_harm,if=chi=1&(!cooldown.rising_sun_kick.remains|!cooldown.strike_of_the_windlord.remains)|chi=2&!cooldown.fists_of_fury.remains
+actions.default_2t+=/chi_burst,if=buff.bloodlust.up&chi<5
+actions.default_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=2
+actions.default_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.remains&chi>2&prev.rising_sun_kick
+actions.default_2t+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.default_2t+=/chi_burst,if=chi<5&energy<50
+actions.default_2t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains
+actions.default_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.up&(talent.shadowboxing_treads|cooldown.rising_sun_kick.remains>1)
+actions.default_2t+=/whirling_dragon_punch
+actions.default_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=3
+actions.default_2t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=!talent.shadowboxing_treads&cooldown.fists_of_fury.remains>4&talent.xuens_battlegear
+actions.default_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&cooldown.rising_sun_kick.remains&cooldown.fists_of_fury.remains&(!buff.bonedust_brew.up|spinning_crane_kick.modifier<1.5)
+actions.default_2t+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.default_2t+=/spinning_crane_kick,if=buff.bonedust_brew.up&combo_strike&spinning_crane_kick.modifier>=2.7
+actions.default_2t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains
+actions.default_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike
+actions.default_2t+=/faeline_stomp,if=combo_strike
+actions.default_2t+=/spinning_crane_kick,target_if=min:debuff.mark_of_the_crane.remains,if=(combo_strike&chi>5&talent.storm_earth_and_fire|combo_strike&chi>4&talent.serenity)
+]]
+	if ShadowboxingTreads.known and TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if Thunderfirst.known and StrikeOfTheWindlord:Usable() and (not self.use_cds or not InvokeXuenTheWhiteTiger:Ready(20) or (Target.boss and Target.timeToDie < 5)) then
+		return StrikeOfTheWindlord
+	end
+	if RisingSunKick:Usable() and FistsOfFury:Ready(1) then
 		return RisingSunKick
 	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
+	if FistsOfFury:Usable() then
+		return FistsOfFury
+	end
+	if RisingSunKick:Usable() and (
+		Player.set_bonus.t30 >= 2 or
+		(KicksOfFlowingMomentum.known and KicksOfFlowingMomentum:Up()) or
+		(PressurePoint.known and PressurePoint:Up())
+	) then
+		return RisingSunKick
+	end
+	if ExpelHarm:Usable() and (
+		(Player.chi.current == 1 and (RisingSunKick:Ready(1) or StrikeOfTheWindlord:Ready(1))) or
+		(Player.chi.current == 2 and FistsOfFury:Ready(1))
+	) then
+		return ExpelHarm
+	end
+	if ChiBurst:Usable() and Player:BloodlustActive() and Player.chi.current < 5 then
+		return ChiBurst
+	end
+	if BlackoutKick:Usable() and (
+		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Stack() == 2) or
+		(PressurePoint.known and PressurePoint:Up() and RisingSunKick:Previous())
+	) then
+		return BlackoutKick
+	end
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
 		return SpinningCraneKick
 	end
-	if BonedustBrew.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and BonedustBrew:Up() then
+	if ChiBurst:Usable() and Player.chi.current < 5 and Player.energy.current < 50 then
+		return ChiBurst
+	end
+	if StrikeOfTheWindlord:Usable() then
+		return StrikeOfTheWindlord
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Up() and (ShadowboxingTreads.known or not RisingSunKick:Ready(1)) then
+		return BlackoutKick
+	end
+	if WhirlingDragonPunch:Usable() then
+		return WhirlingDragonPunch
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if XuensBattlegear.known and RisingSunKick:Usable() and not ShadowboxingTreads.known and not FistsOfFury:Ready(4) then
+		return RisingSunKick
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and not RisingSunKick:Ready() and not FistsOfFury:Ready() and ((not BonedustBrew.known or BonedustBrew:Down()) or SpinningCraneKick:Modifier() < 1.5) then
+		return BlackoutKick
+	end
+	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
+		return RushingJadeWind
+	end
+	if BonedustBrew.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and BonedustBrew:Up() and SpinningCraneKick:Modifier() >= 2.7 then
 		return SpinningCraneKick
 	end
-	if StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() then
-		UseCooldown(StrikeOfTheWindlord)
-	end
-	if FistOfTheWhiteTiger:Usable() and Player.chi.current < 3 then
-		return FistOfTheWhiteTiger
+	if RisingSunKick:Usable() then
+		return RisingSunKick
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() then
 		return BlackoutKick
 	end
-	if SpinningCraneKick:Usable() then
+	if FaelineStomp:Usable() and FaelineStomp:Combo() then
+		UseCooldown(FaelineStomp)
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player.chi.current > (Serenity.known and 4 or 5) then
 		return SpinningCraneKick
+	end
+end
+
+APL[SPEC.WINDWALKER].default_3t = function(self)
+--[[
+actions.default_3t=blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=3&talent.shadowboxing_treads
+actions.default_3t+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.default_3t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&(cooldown.invoke_xuen_the_white_tiger.remains>20|fight_remains<5)
+actions.default_3t+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains
+actions.default_3t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.bonedust_brew.up&buff.pressure_point.up&set_bonus.tier30_2pc
+actions.default_3t+=/spinning_crane_kick,if=buff.bonedust_brew.up&combo_strike
+actions.default_3t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=!buff.bonedust_brew.up&buff.pressure_point.up
+actions.default_3t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=set_bonus.tier30_2pc
+actions.default_3t+=/expel_harm,if=chi=1&(!cooldown.rising_sun_kick.remains|!cooldown.strike_of_the_windlord.remains)|chi=2&!cooldown.fists_of_fury.remains
+actions.default_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=2
+actions.default_3t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains
+actions.default_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.up&(talent.shadowboxing_treads|cooldown.rising_sun_kick.remains>1)
+actions.default_3t+=/whirling_dragon_punch
+actions.default_3t+=/chi_burst,if=buff.bloodlust.up&chi<5
+actions.default_3t+=/chi_burst,if=chi<5&energy<50
+actions.default_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=3
+actions.default_3t+=/spinning_crane_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&cooldown.fists_of_fury.remains>3&buff.chi_energy.stack>15
+actions.default_3t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=cooldown.fists_of_fury.remains>4&chi>3
+actions.default_3t+=/spinning_crane_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&cooldown.rising_sun_kick.remains&cooldown.fists_of_fury.remains&chi>4&((talent.storm_earth_and_fire&!talent.bonedust_brew)|(talent.serenity))
+actions.default_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&cooldown.fists_of_fury.remains
+actions.default_3t+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.default_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&talent.shadowboxing_treads&!spinning_crane_kick.max
+actions.default_3t+=/spinning_crane_kick,target_if=min:debuff.mark_of_the_crane.remains,if=(combo_strike&chi>5&talent.storm_earth_and_fire|combo_strike&chi>4&talent.serenity)
+]]
+	if ShadowboxingTreads.known and TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
+		return SpinningCraneKick
+	end
+	if Thunderfirst.known and StrikeOfTheWindlord:Usable() and (not self.use_cds or not InvokeXuenTheWhiteTiger:Ready(20) or (Target.boss and Target.timeToDie < 5)) then
+		return StrikeOfTheWindlord
+	end
+	if FistsOfFury:Usable() then
+		return FistsOfFury
+	end
+	if BonedustBrew.known and BonedustBrew:Up() then
+		if PressurePoint.known and RisingSunKick:Usable() and PressurePoint:Up() and Player.set_bonus.t30 >= 2 then
+			return RisingSunKick
+		end
+		if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() then
+			return SpinningCraneKick
+		end
+	end
+	if RisingSunKick:Usable() and (
+		((not BonedustBrew.known or BonedustBrew:Down()) and (PressurePoint.known and PressurePoint:Up()))
+		Player.set_bonus.t30 >= 2
+	) then
+		return RisingSunKick
+	end
+	if ExpelHarm:Usable() and (
+		(Player.chi.current == 1 and (RisingSunKick:Ready(1) or StrikeOfTheWindlord:Ready(1))) or
+		(Player.chi.current == 2 and FistsOfFury:Ready(1))
+	) then
+		return ExpelHarm
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() == 2 then
+		return BlackoutKick
+	end
+	if StrikeOfTheWindlord:Usable() then
+		return StrikeOfTheWindlord
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Up() and (ShadowboxingTreads.known or not RisingSunKick:Ready(1)) then
+		return BlackoutKick
+	end
+	if WhirlingDragonPunch:Usable() then
+		return WhirlingDragonPunch
+	end
+	if ChiBurst:Usable() and Player.chi.current < 5 and (Player.energy.current < 50 or Player:BloodlustActive()) then
+		return ChiBurst
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if ChiEnergy.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and not FistsOfFury:Ready(3) and ChiEnergy:Stack() > 15 then
+		return SpinningCraneKick
+	end
+	if RisingSunKick:Usable() and not FistsOfFury:Ready(4) and Player.chi.current > 3 then
+		return RisingSunKick
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and not RisingSunKick:Ready() and Player.chi.current > 4 and (Serenity.known or (StormEarthAndFire.known and not BonedustBrew.known)) then
+		return SpinningCraneKick
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() then
+		return BlackoutKick
+	end
+	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
+		return RushingJadeWind
+	end
+	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and not SpinningCraneKick:Max() then
+		return BlackoutKick
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player.chi.current > (Serenity.known and 4 or 5) then
+		return SpinningCraneKick
+	end
+end
+
+APL[SPEC.WINDWALKER].default_4t = function(self)
+--[[
+actions.default_4t=spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up&spinning_crane_kick.max
+actions.default_4t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist
+actions.default_4t+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains
+actions.default_4t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.bonedust_brew.up&buff.pressure_point.up&set_bonus.tier30_2pc
+actions.default_4t+=/spinning_crane_kick,if=buff.bonedust_brew.up&combo_strike&spinning_crane_kick.max
+actions.default_4t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=!buff.bonedust_brew.up&buff.pressure_point.up&cooldown.fists_of_fury.remains>5
+actions.default_4t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=3&talent.shadowboxing_treads
+actions.default_4t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=set_bonus.tier30_2pc
+actions.default_4t+=/expel_harm,if=chi=1&(!cooldown.rising_sun_kick.remains|!cooldown.strike_of_the_windlord.remains)|chi=2&!cooldown.fists_of_fury.remains
+actions.default_4t+=/spinning_crane_kick,if=combo_strike&cooldown.fists_of_fury.remains>3&buff.chi_energy.stack>10
+actions.default_4t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&set_bonus.tier30_2pc
+actions.default_4t+=/chi_burst,if=buff.bloodlust.up&chi<5
+actions.default_4t+=/chi_burst,if=chi<5&energy<50
+actions.default_4t+=/spinning_crane_kick,if=combo_strike&(cooldown.fists_of_fury.remains>3|chi>4)&spinning_crane_kick.max
+actions.default_4t+=/whirling_dragon_punch
+actions.default_4t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=3
+actions.default_4t+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.default_4t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains
+actions.default_4t+=/spinning_crane_kick,if=combo_strike&(cooldown.fists_of_fury.remains>3|chi>4)
+actions.default_4t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike
+]]
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
+		return SpinningCraneKick
+	end
+	if Thunderfirst.known and StrikeOfTheWindlord:Usable() then
+		return StrikeOfTheWindlord
+	end
+	if FistsOfFury:Usable() then
+		return FistsOfFury
+	end
+	if BonedustBrew.known and BonedustBrew:Up() then
+		if PressurePoint.known and RisingSunKick:Usable() and PressurePoint:Up() and Player.set_bonus.t30 >= 2 then
+			return RisingSunKick
+		end
+		if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and SpinningCraneKick:Max() then
+			return SpinningCraneKick
+		end
+	end
+	if RisingSunKick:Usable() and (not BonedustBrew.known or BonedustBrew:Down()) and (PressurePoint.known and PressurePoint:Up()) and not FistsOfFury:Ready(5) then
+		return RisingSunKick
+	end
+	if ShadowboxingTreads.known and TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if RisingSunKick:Usable() and Player.set_bonus.t30 >= 2 then
+		return RisingSunKick
+	end
+	if ExpelHarm:Usable() and (
+		(Player.chi.current == 1 and (RisingSunKick:Ready(1) or StrikeOfTheWindlord:Ready(1))) or
+		(Player.chi.current == 2 and FistsOfFury:Ready(1))
+	) then
+		return ExpelHarm
+	end
+	if ChiEnergy.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and not FistsOfFury:Ready(3) and ChiEnergy:Stack() > 10 then
+		return SpinningCraneKick
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and Player.set_bonus.t30 >= 2 then
+		return BlackoutKick
+	end
+	if ChiBurst:Usable() and Player.chi.current < 5 and (Player.energy.current < 50 or Player:BloodlustActive()) then
+		return ChiBurst
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (Player.chi.current > 4 or not FistsOfFury:Ready(3)) and SpinningCraneKick:Max() then
+		return SpinningCraneKick
+	end
+	if WhirlingDragonPunch:Usable() then
+		return WhirlingDragonPunch
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
+		return RushingJadeWind
+	end
+	if StrikeOfTheWindlord:Usable() then
+		return StrikeOfTheWindlord
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (Player.chi.current > 4 or not FistsOfFury:Ready(3)) then
+		return SpinningCraneKick
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() then
+		return BlackoutKick
+	end
+end
+
+APL[SPEC.WINDWALKER].default_aoe = function(self)
+--[[
+actions.default_aoe=spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up&spinning_crane_kick.max
+actions.default_aoe+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist
+actions.default_aoe+=/whirling_dragon_punch,if=active_enemies>8
+actions.default_aoe+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains
+actions.default_aoe+=/spinning_crane_kick,if=buff.bonedust_brew.up&combo_strike&spinning_crane_kick.max
+actions.default_aoe+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.bonedust_brew.up&buff.pressure_point.up&set_bonus.tier30_2pc
+actions.default_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=3&talent.shadowboxing_treads
+actions.default_aoe+=/whirling_dragon_punch
+actions.default_aoe+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up&set_bonus.tier30_2pc
+actions.default_aoe+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=set_bonus.tier30_2pc
+actions.default_aoe+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=talent.whirling_dragon_punch&cooldown.whirling_dragon_punch.remains<3&cooldown.fists_of_fury.remains>3&!buff.kicks_of_flowing_momentum.up
+actions.default_aoe+=/expel_harm,if=chi=1&(!cooldown.rising_sun_kick.remains|!cooldown.strike_of_the_windlord.remains)|chi=2&!cooldown.fists_of_fury.remains
+actions.default_aoe+=/spinning_crane_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&cooldown.fists_of_fury.remains<5&buff.chi_energy.stack>10
+actions.default_aoe+=/chi_burst,if=buff.bloodlust.up&chi<5
+actions.default_aoe+=/chi_burst,if=chi<5&energy<50
+actions.default_aoe+=/spinning_crane_kick,if=combo_strike&(cooldown.fists_of_fury.remains>3|chi>2)&spinning_crane_kick.max&buff.bloodlust.up
+actions.default_aoe+=/spinning_crane_kick,if=combo_strike&(cooldown.fists_of_fury.remains>3|chi>2)&spinning_crane_kick.max&buff.invokers_delight.up
+actions.default_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=talent.shadowboxing_treads&combo_strike&set_bonus.tier30_2pc&!buff.bonedust_brew.up&active_enemies<15&!talent.crane_vortex
+actions.default_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=talent.shadowboxing_treads&combo_strike&set_bonus.tier30_2pc&!buff.bonedust_brew.up&active_enemies<8
+actions.default_aoe+=/spinning_crane_kick,if=combo_strike&(cooldown.fists_of_fury.remains>3|chi>4)&spinning_crane_kick.max
+actions.default_aoe+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.default_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.teachings_of_the_monastery.stack=3
+actions.default_aoe+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains
+actions.default_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=talent.shadowboxing_treads&combo_strike&!spinning_crane_kick.max
+actions.default_aoe+=/chi_burst,if=chi.max-chi>=1&active_enemies=1&raid_event.adds.in>20|chi.max-chi>=2
+]]
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() and SpinningCraneKick:Max() then
+		return SpinningCraneKick
+	end
+	if Thunderfirst.known and StrikeOfTheWindlord:Usable() then
+		return StrikeOfTheWindlord
+	end
+	if WhirlingDragonPunch:Usable() and Player.enemies > 8 then
+		return WhirlingDragonPunch
+	end
+	if FistsOfFury:Usable() then
+		return FistsOfFury
+	end
+	if BonedustBrew.known and BonedustBrew:Up() then
+		if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and SpinningCraneKick:Max() then
+			return SpinningCraneKick
+		end
+		if PressurePoint.known and RisingSunKick:Usable() and PressurePoint:Up() and Player.set_bonus.t30 >= 2 then
+			return RisingSunKick
+		end
+	end
+	if ShadowboxingTreads.known and TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if WhirlingDragonPunch:Usable() then
+		return WhirlingDragonPunch
+	end
+	if RisingSunKick:Usable() and (
+		Player.set_bonus.t30 >= 2 or
+		(WhirlingDragonPunch.known and WhirlingDragonPunch:Ready(3) and not FistsOfFury:Ready(3) and (not KicksOfFlowingMomentum.known or KicksOfFlowingMomentum:Down()))
+	) then
+		return RisingSunKick
+	end
+	if ExpelHarm:Usable() and (
+		(Player.chi.current == 1 and (RisingSunKick:Ready(1) or StrikeOfTheWindlord:Ready(1))) or
+		(Player.chi.current == 2 and FistsOfFury:Ready(1))
+	) then
+		return ExpelHarm
+	end
+	if ChiEnergy.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and FistsOfFury:Ready(5) and ChiEnergy:Stack() > 10 then
+		return SpinningCraneKick
+	end
+	if ChiBurst:Usable() and Player.chi.current < 5 and (Player.energy.current < 50 or Player:BloodlustActive()) then
+		return ChiBurst
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (Player.chi.current > 2 or not FistsOfFury:Ready(3)) and (Player:BloodlustActive() or (InvokersDelight.known and InvokersDelight:Up())) then
+		return SpinningCraneKick
+	end
+	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and Player.set_bonus.t30 >= 2 and (not BonedustBrew.known or BonedustBrew:Down()) and (Player.enemies < 8 or (Player.enemies < 15 and not CraneVortex.known)) then
+		return BlackoutKick
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (Player.chi.current > 4 or not FistsOfFury:Ready(3)) and SpinningCraneKick:Max() then
+		return SpinningCraneKick
+	end
+	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
+		return RushingJadeWind
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if StrikeOfTheWindlord:Usable() then
+		return StrikeOfTheWindlord
+	end
+	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and not SpinningCraneKick:Max() then
+		return BlackoutKick
+	end
+	if ChiBurst:Usable() and Player.chi.deficit >= 2 then
+		return ChiBurst
+	end
+end
+
+APL[SPEC.WINDWALKER].default_st = function(self)
+--[[
+actions.default_st=rising_sun_kick,if=!cooldown.fists_of_fury.remains
+actions.default_st+=/fists_of_fury,if=!buff.pressure_point.up&debuff.skyreach_exhaustion.remains<55
+actions.default_st+=/faeline_stomp,if=debuff.skyreach_exhaustion.remains<1&debuff.fae_exposure_damage.remains<3
+actions.default_st+=/rising_sun_kick,,if=buff.pressure_point.up|debuff.skyreach_exhaustion.remains>55
+actions.default_st+=/blackout_kick,if=buff.pressure_point.remains&chi>2&prev.rising_sun_kick
+actions.default_st+=/strike_of_the_windlord,if=talent.thunderfist&(cooldown.invoke_xuen_the_white_tiger.remains>20|fight_remains<5)
+actions.default_st+=/rising_sun_kick,if=buff.kicks_of_flowing_momentum.up|buff.pressure_point.up|debuff.skyreach_exhaustion.remains>55
+actions.default_st+=/blackout_kick,if=buff.teachings_of_the_monastery.stack=3
+actions.default_st+=/fists_of_fury
+actions.default_st+=/rising_sun_kick
+actions.default_st+=/expel_harm,if=chi=1&(!cooldown.rising_sun_kick.remains|!cooldown.strike_of_the_windlord.remains)|chi=2&!cooldown.fists_of_fury.remains
+actions.default_st+=/chi_burst,if=buff.bloodlust.up&chi<5
+actions.default_st+=/blackout_kick,if=buff.teachings_of_the_monastery.stack=2&debuff.skyreach_exhaustion.remains>1
+actions.default_st+=/chi_burst,if=chi<5&energy<50
+actions.default_st+=/strike_of_the_windlord,if=debuff.skyreach_exhaustion.remains>30|fight_remains<5
+actions.default_st+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.default_st+=/blackout_kick,if=buff.teachings_of_the_monastery.up&cooldown.rising_sun_kick.remains>1
+actions.default_st+=/spinning_crane_kick,if=buff.bonedust_brew.up&combo_strike&spinning_crane_kick.modifier>=2.7
+actions.default_st+=/whirling_dragon_punch
+actions.default_st+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.default_st+=/blackout_kick,if=combo_strike
+]]
+	if RisingSunKick:Usable() and FistsOfFury:Ready(1) then
+		return RisingSunKick
+	end
+	if FistsOfFury:Usable() and (not PressurePoint.known or PressurePoint:Down()) and (not Skyreach.Exhaustion.known or Skyreach.Exhaustion:Remains() < 55) then
+		return FistsOfFury
+	end
+	if FaelineStomp:Usable() and (not Skyreach.Exhaustion.known or Skyreach.Exhaustion:Remains() < 1) and FaeExposure:Remains() < 3 then
+		UseCooldown(FaelineStomp)
+	end
+	if RisingSunKick:Usable() and (
+		(PressurePoint.known and PressurePoint:Up()) or
+		(Skyreach.Exhaustion.known and Skyreach.Exhaustion:Remains() > 55)
+	) then
+		return RisingSunKick
+	end
+	if PressurePoint.known and BlackoutKick:Usable() and PressurePoint:Up() and Player.chi.current > 2 and RisingSunKick:Previous() then
+		return BlackoutKick
+	end
+	if Thunderfirst.known and StrikeOfTheWindlord:Usable() and (not self.use_cds or not InvokeXuenTheWhiteTiger:Ready(20) or (Target.boss and Target.timeToDie < 5)) then
+		return StrikeOfTheWindlord
+	end
+	if RisingSunKick:Usable() and (
+		(KicksOfFlowingMomentum.known and KicksOfFlowingMomentum:Up()) or
+		(PressurePoint.known and PressurePoint:Up()) or
+		(Skyreach.Exhaustion.known and Skyreach.Exhaustion:Remains() > 55)
+	) then
+		return RisingSunKick
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+		return BlackoutKick
+	end
+	if FistsOfFury:Usable() then
+		return FistsOfFury
+	end
+	if RisingSunKick:Usable() then
+		return RisingSunKick
+	end
+	if ExpelHarm:Usable() and (
+		(Player.chi.current == 1 and (RisingSunKick:Ready(1) or StrikeOfTheWindlord:Ready(1))) or
+		(Player.chi.current == 2 and FistsOfFury:Ready(1))
+	) then
+		return ExpelHarm
+	end
+	if ChiBurst:Usable() and Player:BloodlustActive() and Player.chi.current < 5 then
+		return ChiBurst
+	end
+	if TeachingsOfTheMonastery.known and Skyreach.Exhaustion.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() == 2 and Skyreach.Exhaustion:Remains() > 1 then
+		return BlackoutKick
+	end
+	if ChiBurst:Usable() and Player.chi.current < 5 and Player.energy.current < 50 then
+		return ChiBurst
+	end
+	if StrikeOfTheWindlord:Usable() and (not Skyreach.Exhaustion.known or Skyreach.Exhaustion:Remains() > 30 or Target.timeToDie < 5) then
+		return StrikeOfTheWindlord
+	end
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
+		return SpinningCraneKick
+	end
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Up() and not RisingSunKick:Ready(1) then
+		return BlackoutKick
+	end
+	if BonedustBrew.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and BonedustBrew:Up() and SpinningCraneKick:Modifier() >= 2.7 then
+		return SpinningCraneKick
+	end
+	if WhirlingDragonPunch:Usable() then
+		return WhirlingDragonPunch
+	end
+	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
+		return RushingJadeWind
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() then
+		return BlackoutKick
+	end
+end
+
+APL[SPEC.WINDWALKER].fallthru = function(self)
+--[[
+actions.fallthru=crackling_jade_lightning,if=buff.the_emperors_capacitor.stack>19&energy.time_to_max>execute_time-1&cooldown.rising_sun_kick.remains>execute_time|buff.the_emperors_capacitor.stack>14&(cooldown.serenity.remains<5&talent.serenity|fight_remains<5)
+actions.fallthru+=/faeline_stomp,if=combo_strike
+actions.fallthru+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.skyreach_exhaustion.up*20),if=combo_strike&chi.max-chi>=(2+buff.power_strikes.up)
+actions.fallthru+=/expel_harm,if=chi.max-chi>=1&active_enemies>2
+actions.fallthru+=/chi_burst,if=chi.max-chi>=1&active_enemies=1&raid_event.adds.in>20|chi.max-chi>=2&active_enemies>=2
+actions.fallthru+=/chi_wave
+actions.fallthru+=/expel_harm,if=chi.max-chi>=1
+actions.fallthru+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&active_enemies>=5
+actions.fallthru+=/spinning_crane_kick,if=combo_strike&buff.chi_energy.stack>30-5*active_enemies&buff.storm_earth_and_fire.down&(cooldown.rising_sun_kick.remains>2&cooldown.fists_of_fury.remains>2|cooldown.rising_sun_kick.remains<3&cooldown.fists_of_fury.remains>3&chi>3|cooldown.rising_sun_kick.remains>3&cooldown.fists_of_fury.remains<3&chi>4|chi.max-chi<=1&energy.time_to_max<2)|buff.chi_energy.stack>10&fight_remains<7
+actions.fallthru+=/arcane_torrent,if=chi.max-chi>=1
+actions.fallthru+=/flying_serpent_kick,interrupt=1
+actions.fallthru+=/tiger_palm
+]]
+	if TheEmperorsCapacitor.known and CracklingJadeLightning:Usable() and (
+		(TheEmperorsCapacitor:Stack() > 19 and Player:EnergyTimeToMax() > (CracklingJadeLightning:CastTime() - 1) and not RisingSunKick:Ready(CracklingJadeLightning:CastTime())) or
+		(TheEmperorsCapacitor:Stack() > 14 and (Target.timeToDie < 5 or (Serenity.known and Serenity:Ready(5))))
+	) then
+		return CracklingJadeLightning
+	end
+	if FaelineStomp:Usable() and FaelineStomp:Combo() then
+		UseCooldown(FaelineStomp)
+	end
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) then
+		return TigerPalm
+	end
+	if ExpelHarm:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
+		return ExpelHarm
+	end
+	if ChiBurst:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
+		return ExpelHarm
+	end
+	if ChiWave:Usable() then
+		return ChiWave
+	end
+	if ExpelHarm:Usable() and Player.chi.deficit >= 1 then
+		return ExpelHarm
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and Player.enemies >= 5 then
+		return BlackoutKick
+	end
+	if ChiEnergy.known and SpinningCraneKick:Usable() and (
+		(SpinningCraneKick:Combo() and ChiEnergy:Stack() > (30 - (5 * Player.enemies)) and (not StormEarthAndFire.known or StormEarthAndFire:Down()) and (
+			(not RisingSunKick:Ready(2) and not FistsOfFury:Ready(2)) or
+			(Player.chi.current > 3 and RisingSunKick:Ready(3) and not FistsOfFury:Ready(3)) or
+			(Player.chi.current > 4 and not RisingSunKick:Ready(3) and FistsOfFury:Ready(3)) or
+			(Player.chi.deficit <= 1 and Player:EnergyTimeToMax() < 2)
+		)) or
+		(Player.enemies == 1 and Target.timeToDie < 7 and ChiEnergy:Stack() > 10)
+	) then
+		return SpinningCraneKick
+	end
+	if FlyingSerpentKick:Usable() then
+		UseCooldown(FlyingSerpentKick)
+	end
+	if TigerPalm:Usable() then
+		return TigerPalm
 	end
 end
 
 APL[SPEC.WINDWALKER].opener = function(self)
 --[[
-actions.opener=fist_of_the_white_tiger,target_if=min:debuff.mark_of_the_crane.remains,if=chi.max-chi>=3
+actions.opener=summon_white_tiger_statue
 actions.opener+=/expel_harm,if=talent.chi_burst.enabled&chi.max-chi>=3
-actions.opener+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=combo_strike&chi.max-chi>=2
+actions.opener+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.skyreach_exhaustion.up*20),if=combo_strike&chi.max-chi>=(2+buff.power_strikes.up)
+actions.opener+=/expel_harm,if=talent.chi_burst.enabled&chi=3
 actions.opener+=/chi_wave,if=chi.max-chi=2
-actions.opener+=/expel_harm,if=chi.max-chi>=1
-actions.opener+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=chi.max-chi>=2
+actions.opener+=/expel_harm
+actions.opener+=/chi_burst,if=chi>1&chi.max-chi>=2
 ]]
-	if FistOfTheWhiteTiger:Usable() and Player.chi.deficit >= 3 then
-		return FistOfTheWhiteTiger
+	if SummonWhiteTigerStatue:Usable() then
+		UseCooldown(SummonWhiteTigerStatue)
 	end
 	if ChiBurst.known and ExpelHarm:Usable() and Player.chi.deficit >= 3 then
 		return ExpelHarm
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 then
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) then
 		return TigerPalm
+	end
+	if ChiBurst.known and ExpelHarm:Usable() and Player.chi.current == 3 then
+		return ExpelHarm
 	end
 	if ChiWave:Usable() and Player.chi.deficit == 2 then
 		return ChiWave
 	end
-	if ExpelHarm:Usable() and Player.chi.deficit >= 1 then
+	if ExpelHarm:Usable() then
 		return ExpelHarm
 	end
-	if TigerPalm:Usable() and Player.chi.deficit >= 2 then
-		return TigerPalm
+	if ChiBurst:Usable() and Player.chi.current > 1 and Player.chi.deficit >= 2 then
+		return ChiBurst
 	end
 end
 
-APL[SPEC.WINDWALKER].cd_serenity = function(self)
+APL[SPEC.WINDWALKER].serenity_2t = function(self)
 --[[
-actions.cd_serenity=variable,name=serenity_burst,op=set,value=cooldown.serenity.remains<1|pet.xuen_the_white_tiger.active&cooldown.serenity.remains>30|fight_remains<20
-actions.cd_serenity+=/invoke_xuen_the_white_tiger,if=!variable.hold_xuen|fight_remains<25
-actions.cd_serenity+=/touch_of_death,if=fight_remains>180|pet.xuen_the_white_tiger.active|fight_remains<10
-actions.cd_serenity+=/touch_of_karma,if=fight_remains>90|pet.xuen_the_white_tiger.active|fight_remains<10
-actions.cd_serenity+=/faeline_stomp
-actions.cd_serenity+=/bonedust_brew
-actions.cd_serenity+=/serenity,if=cooldown.rising_sun_kick.remains<2|fight_remains<15
+actions.serenity_2t=faeline_stomp,if=debuff.fae_exposure_damage.remains<2&!debuff.skyreach_exhaustion.remains<2&!debuff.skyreach_exhaustion.remains
+actions.serenity_2t+=/tiger_palm,,target_if=min:debuff.mark_of_the_crane.remains,if=!debuff.skyreach_exhaustion.up*20&combo_strike
+actions.serenity_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&buff.teachings_of_the_monastery.stack=3&buff.teachings_of_the_monastery.remains<1
+actions.serenity_2t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up
+actions.serenity_2t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up&set_bonus.tier30_2pc
+actions.serenity_2t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=set_bonus.tier30_2pc
+actions.serenity_2t+=/faeline_stomp,if=debuff.fae_exposure_damage.remains<2
+actions.serenity_2t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&buff.call_to_dominance.up&debuff.skyreach_exhaustion.remains>buff.call_to_dominance.remains
+actions.serenity_2t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&debuff.skyreach_exhaustion.remains>55
+actions.serenity_2t+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains,if=buff.invokers_delight.up,interrupt=1
+actions.serenity_2t+=/fists_of_fury_cancel,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_2t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist
+actions.serenity_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&set_bonus.tier30_2pc
+actions.serenity_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&buff.teachings_of_the_monastery.stack=2
+actions.serenity_2t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=cooldown.fists_of_fury.remains>5&talent.shadowboxing_treads&buff.teachings_of_the_monastery.stack=1&combo_strike
+actions.serenity_2t+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.serenity_2t+=/spinning_crane_kick,if=combo_strike
+actions.serenity_2t+=/whirling_dragon_punch
+actions.serenity_2t+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remains,if=combo_strike
+actions.serenity_2t+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	--Player.serenity_burst = Serenity:Ready(1) or (InvokeXuenTheWhiteTiger:Up() and not Serenity:Ready(30)) or Target.timeToDie < 20
-	if Player.use_cds and InvokeXuenTheWhiteTiger:Usable() and (not Player.hold_xuen or Target.timeToDie < 25) then
-		UseCooldown(InvokeXuenTheWhiteTiger)
-	end
-	if TouchOfDeath:Usable() and TouchOfDeath:Combo() and (InvokeXuenTheWhiteTiger:Up() or Target.timeToDie < 10 or Target.timeToDie > 180) then
-		UseExtra(TouchOfDeath)
-	end
-	if TouchOfKarma:Usable() and Player:UnderAttack() and (InvokeXuenTheWhiteTiger:Up() or Target.timeToDie < 10 or Target.timeToDie > 90) then
-		UseExtra(TouchOfKarma)
-	end
-	if Player.use_cds or Player:Enemies() > 1 then
-		if FaelineStomp:Usable() and FaelineStomp:Combo() then
-			UseCooldown(FaelineStomp)
-		end
-		if BonedustBrew:Usable() then
-			UseCooldown(BonedustBrew)
-		end
-	end
-	if Player.use_cds then
-		if Serenity:Usable() and (RisingSunKick:Ready(2) or Target.timeToDie < 15) then
-			UseCooldown(Serenity)
-		end
-	end
+
 end
 
-APL[SPEC.WINDWALKER].cd_sef = function(self)
+APL[SPEC.WINDWALKER].serenity_3t = function(self)
 --[[
-actions.cd_sef=invoke_xuen_the_white_tiger,if=!variable.hold_xuen|fight_remains<25
-actions.cd_sef+=/touch_of_death,if=buff.storm_earth_and_fire.down&pet.xuen_the_white_tiger.active|fight_remains<10|fight_remains>180
-actions.cd_sef+=/faeline_stomp,if=combo_strike&(raid_event.adds.in>10|raid_event.adds.up)
-actions.cd_sef+=/bonedust_brew,if=raid_event.adds.in>50|raid_event.adds.up,line_cd=60
-actions.cd_sef+=/storm_earth_and_fire,if=cooldown.storm_earth_and_fire.charges=2|fight_remains<20|raid_event.adds.remains>15
-actions.cd_sef+=/storm_earth_and_fire,if=((raid_event.adds.in>cooldown.storm_earth_and_fire.full_recharge_time|!raid_event.adds.exists)&(cooldown.invoke_xuen_the_white_tiger.remains>cooldown.storm_earth_and_fire.full_recharge_time|variable.hold_xuen))&cooldown.fists_of_fury.remains<=9&chi>=2&cooldown.whirling_dragon_punch.remains<=12
-actions.cd_sef+=/touch_of_karma,if=fight_remains>159|pet.xuen_the_white_tiger.active|variable.hold_xuen
+actions.serenity_3t=faeline_stomp,if=debuff.fae_exposure_damage.remains<1
+actions.serenity_3t+=/tiger_palm,,target_if=min:debuff.mark_of_the_crane.remains,if=!debuff.skyreach_exhaustion.up*20&combo_strike
+actions.serenity_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&buff.teachings_of_the_monastery.stack=3&buff.teachings_of_the_monastery.remains<1
+actions.serenity_3t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up
+actions.serenity_3t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up&set_bonus.tier30_2pc
+actions.serenity_3t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=set_bonus.tier30_2pc
+actions.serenity_3t+=/faeline_stomp,if=debuff.fae_exposure_damage.remains<2
+actions.serenity_3t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&buff.call_to_dominance.up&debuff.skyreach_exhaustion.remains>buff.call_to_dominance.remains
+actions.serenity_3t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&debuff.skyreach_exhaustion.remains>55
+actions.serenity_3t+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains,if=buff.invokers_delight.up,interrupt=1
+actions.serenity_3t+=/fists_of_fury_cancel,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_3t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist
+actions.serenity_3t+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up&spinning_crane_kick.max
+actions.serenity_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&set_bonus.tier30_2pc
+actions.serenity_3t+=/spinning_crane_kick,if=combo_strike
+actions.serenity_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&buff.teachings_of_the_monastery.stack=2
+actions.serenity_3t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=talent.shadowboxing_treads&combo_strike
+actions.serenity_3t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_3t+=/spinning_crane_kick,if=combo_strike
+actions.serenity_3t+=/whirling_dragon_punch
+actions.serenity_3t+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.serenity_3t+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remains,if=combo_strike
+actions.serenity_3t+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	if Player.use_cds and InvokeXuenTheWhiteTiger:Usable() and (not Player.hold_xuen or Target.timeToDie < 25) then
-		UseCooldown(InvokeXuenTheWhiteTiger)
-	end
-	if TouchOfDeath:Usable() and TouchOfDeath:Combo() and ((StormEarthAndFire:Down() and InvokeXuenTheWhiteTiger:Up()) or Target.timeToDie < 10 or Target.timeToDie > 180) then
-		UseExtra(TouchOfDeath)
-	end
-	if Player.use_cds or Player:Enemies() > 1 then
-		if FaelineStomp:Usable() and FaelineStomp:Combo() then
-			UseCooldown(FaelineStomp)
-		end
-		if BonedustBrew:Usable() then
-			UseCooldown(BonedustBrew)
-		end
-	end
-	if Player.use_cds then
-		if StormEarthAndFire:Usable() and StormEarthAndFire:Down() then
-			if (Target.boss and Target.timeToDie < 20) or StormEarthAndFire:Charges() >= 2 then
-				UseCooldown(StormEarthAndFire)
-			end
-			if (Player.hold_xuen or not InvokeXuenTheWhiteTiger:Ready(StormEarthAndFire:FullRechargeTime())) and FistsOfFury:Ready(9) and Player.chi.current >= 2 and (not WhirlingDragonPunch.known or WhirlingDragonPunch:Ready(12)) then
-				UseCooldown(StormEarthAndFire)
-			end
-		end
-	end
-	if TouchOfKarma:Usable() and Player:UnderAttack() and (Target.timeToDie > 159 or InvokeXuenTheWhiteTiger:Up() or Player.hold_xuen) then
-		UseExtra(TouchOfKarma)
-	end
+
 end
 
-APL[SPEC.WINDWALKER].st = function(self)
+APL[SPEC.WINDWALKER].serenity_4t = function(self)
 --[[
-actions.st=whirling_dragon_punch,if=raid_event.adds.in>cooldown.whirling_dragon_punch.duration*0.8|raid_event.adds.up
-actions.st+=/energizing_elixir,if=chi.max-chi>=2&energy.time_to_max>3|chi.max-chi>=4&(energy.time_to_max>2|!prev_gcd.1.tiger_palm)
-actions.st+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up&(raid_event.adds.in>buff.dance_of_chiji.remains-2|raid_event.adds.up)
-actions.st+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains,if=cooldown.serenity.remains>1|!talent.serenity.enabled
-actions.st+=/fists_of_fury,if=(raid_event.adds.in>cooldown.fists_of_fury.duration*0.8|raid_event.adds.up)&(energy.time_to_max>execute_time-1|chi.max-chi<=1|buff.storm_earth_and_fire.remains<execute_time+1)|fight_remains<execute_time+1
-actions.st+=/crackling_jade_lightning,if=buff.the_emperors_capacitor.stack>19&energy.time_to_max>execute_time-1&cooldown.rising_sun_kick.remains>execute_time|buff.the_emperors_capacitor.stack>14&(cooldown.serenity.remains<5&talent.serenity.enabled|fight_remains<5)
-actions.st+=/rushing_jade_wind,if=buff.rushing_jade_wind.down&active_enemies>1
-actions.st+=/fist_of_the_white_tiger,target_if=min:debuff.mark_of_the_crane.remains,if=chi<3
-actions.st+=/expel_harm,if=chi.max-chi>=1
-actions.st+=/chi_burst,if=chi.max-chi>=1&active_enemies=1&raid_event.adds.in>20|chi.max-chi>=2&active_enemies>=2
-actions.st+=/chi_wave
-actions.st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=combo_strike&chi.max-chi>=2&buff.storm_earth_and_fire.down
-actions.st+=/spinning_crane_kick,if=combo_strike&buff.chi_energy.stack>30-5*active_enemies&buff.storm_earth_and_fire.down&(cooldown.rising_sun_kick.remains>2&cooldown.fists_of_fury.remains>2|cooldown.rising_sun_kick.remains<3&cooldown.fists_of_fury.remains>3&chi>3|cooldown.rising_sun_kick.remains>3&cooldown.fists_of_fury.remains<3&chi>4|chi.max-chi<=1&energy.time_to_max<2)|combo_strike&buff.chi_energy.stack>10&fight_remains<7
-actions.st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&(talent.serenity.enabled&cooldown.serenity.remains<3|cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>1|cooldown.rising_sun_kick.remains<3&cooldown.fists_of_fury.remains>3&chi>2|cooldown.rising_sun_kick.remains>3&cooldown.fists_of_fury.remains<3&chi>3|chi>5|buff.bok_proc.up)
-actions.st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=combo_strike&chi.max-chi>=2
-actions.st+=/flying_serpent_kick,interrupt=1,if=(prev_gcd.1.tiger_palm&chi.max-chi>=2)|(prev_gcd.1.blackout_kick&(chi>=1|buff.bok_proc.up))
-actions.st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&cooldown.fists_of_fury.remains<3&chi=2&prev_gcd.1.tiger_palm&energy.time_to_50<1
-actions.st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<2&(chi.max-chi<=1|prev_gcd.1.tiger_palm)
-actions.st+=/spinning_crane_kick,if=combo_strike&chi>=4&cooldown.rising_sun_kick.remains>2&cooldown.fists_of_fury.remains>2
+actions.serenity_4t=faeline_stomp,if=debuff.fae_exposure_damage.remains<1
+actions.serenity_4t+=/tiger_palm,,target_if=min:debuff.mark_of_the_crane.remains,if=!debuff.skyreach_exhaustion.up*20&combo_strike
+actions.serenity_4t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&buff.teachings_of_the_monastery.stack=3&buff.teachings_of_the_monastery.remains<1
+actions.serenity_4t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up&!talent.bonedust_brew
+actions.serenity_4t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up&set_bonus.tier30_2pc
+actions.serenity_4t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=set_bonus.tier30_2pc
+actions.serenity_4t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&buff.call_to_dominance.up&debuff.skyreach_exhaustion.remains>buff.call_to_dominance.remains
+actions.serenity_4t+=/faeline_stomp,if=debuff.fae_exposure_damage.remains<2
+actions.serenity_4t+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains,if=buff.invokers_delight.up,interrupt=1
+actions.serenity_4t+=/fists_of_fury_cancel,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_4t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist
+actions.serenity_4t+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.serenity_4t+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up
+actions.serenity_4t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&set_bonus.tier30_2pc
+actions.serenity_4t+=/spinning_crane_kick,if=combo_strike&spinning_crane_kick.max
+actions.serenity_4t+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=talent.shadowboxing_treads&combo_strike
+actions.serenity_4t+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_4t+=/spinning_crane_kick,if=combo_strike
+actions.serenity_4t+=/whirling_dragon_punch
+actions.serenity_4t+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.serenity_4t+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remains,if=combo_strike
+actions.serenity_4t+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	if WhirlingDragonPunch:Usable() then
-		return WhirlingDragonPunch
-	end
-	if EnergizingElixir:Usable() and ((Player.chi.deficit >= 2 and Player:EnergyTimeToMax() > 3) or (Player.chi.deficit >= 4 and (Player:EnergyTimeToMax() > 2 or not TigerPalm:Previous()))) then
-		UseCooldown(EnergizingElixir)
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
-		return SpinningCraneKick
-	end
-	if RisingSunKick:Usable() and (not Serenity.known or not Serenity:Ready(1)) then
-		return RisingSunKick
-	end
-	if FistsOfFury:Usable() and (Player:EnergyTimeToMax() > (4 * Player.haste_factor - 1) or Player.chi.deficit <= 1 or StormEarthAndFire:Remains() < (4 * Player.haste_factor + 1) or Target.timeToDie < (4 * Player.haste_factor + 1)) then
-		return FistsOfFury
-	end
-	if LastEmperorsCapacitor.known and CracklingJadeLightning:Usable() and ((LastEmperorsCapacitor:Stack() > 19 and Player:EnergyTimeToMax() > (4 * Player.haste_factor - 1) and not RisingSunKick:Ready(4 * Player.haste_factor)) or (LastEmperorsCapacitor:Stack() > 14 and ((Serenity.known and Serenity:Ready(5)) or Target.timeToDie < 5))) then
-		return CracklingJadeLightning
-	end
-	if RushingJadeWind:Usable() and RushingJadeWind:Down() and Player:Enemies() > 1 then
-		return RushingJadeWind
-	end
-	if FistOfTheWhiteTiger:Usable() and Player.chi.current < 3 then
-		return FistOfTheWhiteTiger
-	end
-	if ExpelHarm:Usable() and Player.chi.deficit >= 1 then
-		return ExpelHarm
-	end
-	if ChiBurst:Usable() and Player.chi.deficit >= min(2, Player:Enemies()) then
-		UseCooldown(ChiBurst)
-	end
-	if ChiWave:Usable() then
-		return ChiWave
-	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 and StormEarthAndFire:Down() then
-		return TigerPalm
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and ((Serenity.known and Serenity:Ready(3)) or (not RisingSunKick:Ready(1) and not FistsOfFury:Ready(1)) or (RisingSunKick:Ready(3) and not FistsOfFury:Ready(3) and Player.chi.current > 2) or (not RisingSunKick:Ready(3) and FistsOfFury:Ready(3) and Player.chi.current > 3) or Player.chi.current > 5 or BlackoutKick.free:Up()) then
-		return BlackoutKick
-	end
-	if StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() then
-		UseCooldown(StrikeOfTheWindlord)
-	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 then
-		return TigerPalm
-	end
-	if FlyingSerpentKick:Usable() and ((TigerPalm:Previous() and Player.chi.deficit >= 2) or (BlackoutKick:Previous() and BlackoutKick:Usable())) then
-		UseCooldown(FlyingSerpentKick)
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and ((FistsOfFury:Ready(3) and Player.chi.current == 2 and TigerPalm:Previous() and Player:EnergyTimeToMax(50) < 1) or (Player:EnergyTimeToMax() < 2 and (Player.chi.deficit <= 1 or TigerPalm:Previous()))) then
-		return BlackoutKick
-	end
-	if TigerPalm:Usable(0, true) and TigerPalm:Combo() and Player.chi.deficit >= 2 then
-		return Pool(TigerPalm)
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player.chi.current >= 4 and not (FistsOfFury:Ready(2) or RisingSunKick:Ready(2)) then
-		return SpinningCraneKick
-	end
+
 end
 
-APL[SPEC.WINDWALKER].aoe = function(self)
+APL[SPEC.WINDWALKER].serenity_aoe = function(self)
 --[[
-actions.aoe=whirling_dragon_punch
-actions.aoe+=/energizing_elixir,if=chi.max-chi>=2&energy.time_to_max>2|chi.max-chi>=4
-actions.aoe+=/spinning_crane_kick,if=combo_strike(&buff.dance_of_chiji.up|debuff.bonedust_brew.up)
-actions.aoe+=/fists_of_fury,if=energy.time_to_max>execute_time|chi.max-chi<=1
-actions.aoe+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains,if=(talent.whirling_dragon_punch.enabled&cooldown.rising_sun_kick.duration>cooldown.whirling_dragon_punch.remains+4)&(cooldown.fists_of_fury.remains>3|chi>=5)
-actions.aoe+=/rushing_jade_wind,if=buff.rushing_jade_wind.down
-actions.aoe+=/spinning_crane_kick,if=combo_strike&((cooldown.bonedust_brew.remains>2&(chi>3|cooldown.fists_of_fury.remains>6)&(chi>=5|cooldown.fists_of_fury.remains>2))|energy.time_to_max<=3)
-actions.aoe+=/expel_harm,if=chi.max-chi>=1
-actions.aoe+=/fist_of_the_white_tiger,target_if=min:debuff.mark_of_the_crane.remains,if=chi.max-chi>=3
-actions.aoe+=/chi_burst,if=chi.max-chi>=2
-actions.aoe+=/crackling_jade_lightning,if=buff.the_emperors_capacitor.stack>19&energy.time_to_max>execute_time-1&cooldown.fists_of_fury.remains>execute_time
-actions.aoe+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains+(debuff.recently_rushing_tiger_palm.up*20),if=chi.max-chi>=2&(!talent.hit_combo.enabled|combo_strike)
-actions.aoe+=/chi_wave,if=combo_strike
-actions.aoe+=/flying_serpent_kick,interrupt=1,if=(prev_gcd.1.tiger_palm&chi.max-chi>=2)|(prev_gcd.1.blackout_kick&(chi>=1|buff.bok_proc.up))|(prev_gcd.1.spinning_crane_kick&(chi>=2|buff.dance_of_chiji.up))
-actions.aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&(buff.bok_proc.up|talent.hit_combo.enabled&prev_gcd.1.tiger_palm&chi=2&cooldown.fists_of_fury.remains<3|chi.max-chi<=1&prev_gcd.1.spinning_crane_kick&energy.time_to_max<3)
-actions.aoe+=/spinning_crane_kick,if=combo_strike&chi>=3
+actions.serenity_aoe=faeline_stomp,if=debuff.fae_exposure_damage.remains<1
+actions.serenity_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&!spinning_crane_kick.max&talent.shadowboxing_treads
+actions.serenity_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&buff.teachings_of_the_monastery.stack=3&buff.teachings_of_the_monastery.remains<1
+actions.serenity_aoe+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.serenity_aoe+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=buff.pressure_point.up&set_bonus.tier30_2pc
+actions.serenity_aoe+=/rising_sun_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=set_bonus.tier30_2pc
+actions.serenity_aoe+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist&buff.call_to_dominance.up&debuff.skyreach_exhaustion.remains>buff.call_to_dominance.remains&active_enemies<10
+actions.serenity_aoe+=/faeline_stomp,if=debuff.fae_exposure_damage.remains<2
+actions.serenity_aoe+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains,if=buff.invokers_delight.up,interrupt=1
+actions.serenity_aoe+=/fists_of_fury_cancel,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_aoe+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist
+actions.serenity_aoe+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.serenity_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=active_enemies<6&combo_strike&set_bonus.tier30_2pc
+actions.serenity_aoe+=/spinning_crane_kick,if=combo_strike&spinning_crane_kick.max
+actions.serenity_aoe+=/tiger_palm,,target_if=min:debuff.mark_of_the_crane.remains,if=!debuff.skyreach_exhaustion.up*20&combo_strike&active_enemies=5
+actions.serenity_aoe+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.serenity_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=talent.shadowboxing_treads&active_enemies>=3&combo_strike
+actions.serenity_aoe+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_aoe+=/spinning_crane_kick,if=combo_strike
+actions.serenity_aoe+=/whirling_dragon_punch
+actions.serenity_aoe+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
+actions.serenity_aoe+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remains,if=combo_strike
+actions.serenity_aoe+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	if WhirlingDragonPunch:Usable() then
-		return WhirlingDragonPunch
-	end
-	if EnergizingElixir:Usable() and ((Player.chi.deficit >= 2 and Player:EnergyTimeToMax() > 2) or Player.chi.deficit >= 4) then
-		UseCooldown(EnergizingElixir)
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (DanceOfChiJi:Up() or BonedustBrew:Up()) then
-		return SpinningCraneKick
-	end
-	if StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() then
-		UseCooldown(StrikeOfTheWindlord)
-	end
-	if FistsOfFury:Usable() and (Player:EnergyTimeToMax() > (4 * Player.haste_factor) or Player.chi.deficit <= 1) then
-		return FistsOfFury
-	end
-	if WhirlingDragonPunch.known and RisingSunKick:Usable() and (10 * Player.haste_factor) > (WhirlingDragonPunch:Cooldown() + 4) and (not FistsOfFury:Ready(3) or Player.chi.current >= 5) then
-		return RisingSunKick
-	end
-	if RushingJadeWind:Usable() then
-		return RushingJadeWind
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and ((not BonedustBrew.known or BonedustBrew:Cooldown() > 2 and (Player.chi.current > 3 or not FistsOfFury:Ready(6)) and (Player.chi.current >= 5 or not FistsOfFury:Ready(2))) or Player:EnergyTimeToMax() < 3) then
-		return SpinningCraneKick
-	end
-	if ExpelHarm:Usable() and Player.chi.deficit >= 1 then
-		return ExpelHarm
-	end
-	if FistOfTheWhiteTiger:Usable() and Player.chi.deficit >= 3 then
-		return FistOfTheWhiteTiger
-	end
-	if ChiBurst:Usable() and Player.chi.deficit >= 2 then
-		UseCooldown(ChiBurst)
-	end
-	if LastEmperorsCapacitor.known and CracklingJadeLightning:Usable() and LastEmperorsCapacitor:Stack() > 19 and Player:EnergyTimeToMax() > (4 * Player.haste_factor - 1) and not FistsOfFury:Ready(4 * Player.haste_factor) then
-		return CracklingJadeLightning
-	end
-	if TigerPalm:Usable() and (TigerPalm:Combo() or not HitCombo.known) and Player.chi.deficit >= 2 then
-		return TigerPalm
-	end
-	if ChiWave:Usable() and ChiWave:Combo() then
-		return ChiWave
-	end
-	if FlyingSerpentKick:Usable() and ((TigerPalm:Previous() and Player.chi.deficit >= 2) or (BlackoutKick:Previous() and BlackoutKick:Usable()) or (SpinningCraneKick:Previous() and SpinningCraneKick:Usable())) then
-		UseCooldown(FlyingSerpentKick)
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and (BlackoutKick.free:Up() or (HitCombo.known and TigerPalm:Previous() and Player.chi.current == 2 and FistsOfFury:Ready(3)) or (Player.chi.deficit <= 1 and SpinningCraneKick:Previous() and Player:EnergyTimeToMax() < 3)) then
-		return BlackoutKick
-	end
-	if TigerPalm:Usable(0, true) and TigerPalm:Combo() and Player.chi.deficit >= 2 then
-		return Pool(TigerPalm)
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player.chi.current >= 3 then
-		return SpinningCraneKick
-	end
+
+end
+
+APL[SPEC.WINDWALKER].serenity_lust = function(self)
+--[[
+actions.serenity_lust=faeline_stomp,if=debuff.fae_exposure_damage.remains<1
+actions.serenity_lust+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains,if=buff.serenity.remains<1
+actions.serenity_lust+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&buff.teachings_of_the_monastery.stack=3&buff.teachings_of_the_monastery.remains<1
+actions.serenity_lust+=/rising_sun_kick,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_lust+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyreach.remains,if=talent.thunderfist
+actions.serenity_lust+=/fists_of_fury,target_if=max:debuff.keefers_skyreach.remains,if=buff.invokers_delight.up,interrupt=1
+actions.serenity_lust+=/fists_of_fury_cancel,target_if=max:debuff.keefers_skyreach.remains
+actions.serenity_lust+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=combo_strike&set_bonus.tier30_2pc
+actions.serenity_lust+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.serenity_lust+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remains,if=combo_strike
+actions.serenity_lust+=/whirling_dragon_punch
+actions.serenity_lust+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
+]]
+
+end
+
+APL[SPEC.WINDWALKER].serenity_st = function(self)
+--[[
+actions.serenity_st=faeline_stomp,if=debuff.fae_exposure_damage.remains<2&!debuff.skyreach_exhaustion.remains
+actions.serenity_st+=/tiger_palm,if=!debuff.skyreach_exhaustion.up*20&combo_strike
+actions.serenity_st+=/blackout_kick,if=combo_strike&buff.teachings_of_the_monastery.stack=3&buff.teachings_of_the_monastery.remains<1
+actions.serenity_st+=/rising_sun_kick
+actions.serenity_st+=/faeline_stomp,if=debuff.fae_exposure_damage.remains<2
+actions.serenity_st+=/strike_of_the_windlord,if=talent.thunderfist&buff.call_to_dominance.up&debuff.skyreach_exhaustion.remains>buff.call_to_dominance.remains
+actions.serenity_st+=/strike_of_the_windlord,if=talent.thunderfist&debuff.skyreach_exhaustion.remains>55
+actions.serenity_st+=/fists_of_fury,if=buff.invokers_delight.up,interrupt=1
+actions.serenity_st+=/fists_of_fury_cancel
+actions.serenity_st+=/strike_of_the_windlord,if=debuff.skyreach_exhaustion.remains>buff.call_to_dominance.remains
+actions.serenity_st+=/blackout_kick,if=combo_strike&set_bonus.tier30_2pc
+actions.serenity_st+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
+actions.serenity_st+=/blackout_kick,if=combo_strike
+actions.serenity_st+=/whirling_dragon_punch
+actions.serenity_st+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
+]]
+
+end
+
+APL[SPEC.WINDWALKER].trinkets = function(self)
+--[[
+actions.trinkets=use_item,name=beacon_to_the_beyond,use_off_gcd=1,if=!trinket.1.has_use_buff&!trinket.2.has_use_buff&!buff.serenity.up&!pet.xuen_the_white_tiger.active&(debuff.fae_exposure_damage.remains>2|!talent.faeline_harmony)|(trinket.1.has_use_buff|trinket.2.has_use_buff)&cooldown.invoke_xuen_the_white_tiger.remains>30&cooldown.serenity.remains&(debuff.fae_exposure_damage.remains>2|!talent.faeline_harmony)|fight_remains<10
+actions.trinkets+=/use_item,name=dragonfire_bomb_dispenser,if=!trinket.1.has_use_buff&!trinket.2.has_use_buff&(debuff.fae_exposure_damage.remains|!talent.faeline_harmony)|(trinket.1.has_use_buff|trinket.2.has_use_buff)&cooldown.invoke_xuen_the_white_tiger.remains>10&cooldown.serenity.remains&(debuff.fae_exposure_damage.remains|!talent.faeline_harmony)|fight_remains<10
+actions.trinkets+=/use_item,name=djaruun_pillar_of_the_elder_flame,if=cooldown.fists_of_fury.remains<2&cooldown.invoke_xuen_the_white_tiger.remains>10|fight_remains<12
+]]
+
 end
 
 APL.Interrupt = function(self)
@@ -3036,6 +3610,9 @@ function Events:PLAYER_REGEN_ENABLED()
 	if Opt.auto_aoe then
 		AutoAoe:Clear()
 	end
+	if APL[self.spec].precombat_variables then
+		APL[self.spec]:precombat_variables()
+	end
 end
 
 function Events:PLAYER_EQUIPMENT_CHANGED()
@@ -3080,7 +3657,6 @@ function Events:PLAYER_SPECIALIZATION_CHANGED(unitId)
 	msmdPreviousPanel.ability = nil
 	Player:SetTargetMode(1)
 	Events:PLAYER_EQUIPMENT_CHANGED()
-	Events:UPDATE_SHAPESHIFT_FORM()
 	Events:PLAYER_REGEN_ENABLED()
 	Events:UNIT_HEALTH('player')
 	UI.OnResourceFrameShow()
