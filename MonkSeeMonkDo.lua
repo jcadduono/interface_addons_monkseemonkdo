@@ -251,6 +251,7 @@ local Player = {
 	main_freecast = false,
 	major_cd_remains = 0,
 	sck_mod = 1,
+	sck_motc = 0,
 }
 
 -- current target information
@@ -312,7 +313,7 @@ msmdPanel.text.br:SetFont('Fonts\\FRIZQT__.TTF', 12, 'OUTLINE')
 msmdPanel.text.br:SetPoint('BOTTOMRIGHT', msmdPanel, 'BOTTOMRIGHT', -2.5, 3)
 msmdPanel.text.br:SetJustifyH('RIGHT')
 msmdPanel.text.center = msmdPanel.text:CreateFontString(nil, 'OVERLAY')
-msmdPanel.text.center:SetFont('Fonts\\FRIZQT__.TTF', 12, 'OUTLINE')
+msmdPanel.text.center:SetFont('Fonts\\FRIZQT__.TTF', 10, 'OUTLINE')
 msmdPanel.text.center:SetAllPoints(msmdPanel.text)
 msmdPanel.text.center:SetJustifyH('CENTER')
 msmdPanel.text.center:SetJustifyV('CENTER')
@@ -1694,6 +1695,7 @@ function Player:Update()
 
 	self.major_cd_remains = (StormEarthAndFire.known and StormEarthAndFire:Remains()) or (Serenity.known and Serenity:Remains()) or 0
 	self.sck_mod = SpinningCraneKick.known and SpinningCraneKick:Modifier() or 1
+	self.sck_motc = MarkOfTheCrane.known and SpinningCraneKick:Stack() or 0
 
 	self.main = APL[self.spec]:Main()
 
@@ -1844,7 +1846,7 @@ end
 
 function SpinningCraneKick:Max()
 	if MarkOfTheCrane.known then
-		return self:Stack() >= min(5, Player.enemies)
+		return Player.sck_motc >= min(5, Player.enemies)
 	end
 	return true
 end
@@ -1852,7 +1854,7 @@ end
 function SpinningCraneKick:Modifier()
 	local mod = 1
 	if MarkOfTheCrane.known then
-		mod = mod * (1 + (0.18 * self:Stack()))
+		mod = mod * (1 + (0.18 * Player.sck_motc))
 	end
 	if CraneVortex.known then
 		mod = mod * (1 + (0.10 * CraneVortex.rank))
@@ -3703,7 +3705,7 @@ end
 
 function UI:UpdateDisplay()
 	Timer.display = 0
-	local border, dim, dim_cd, border, text_center, text_tl, text_tr, text_cd, color_center
+	local border, dim, dim_cd, border, text_center, text_tl, text_tr, text_bl, text_cd, color_center
 	local channel = Player.channel
 
 	if Opt.dimmer then
@@ -3771,8 +3773,13 @@ function UI:UpdateDisplay()
 			border = 'serenity'
 		end
 	end
-	if MarkOfTheCrane.known and Player.main == SpinningCraneKick then
-		text_tl = format('%d%%', Player.sck_mod * 100)
+	if MarkOfTheCrane.known then
+		if Player.main == SpinningCraneKick then
+			text_tl = format('%d%%', Player.sck_mod * 100)
+		end
+		if Player.sck_motc > 0 then
+			text_bl = format('|cFF%s%d', SpinningCraneKick:Max() and '00FF00' or 'FF0000', Player.sck_motc)
+		end
 	elseif GiftOfTheOx.known then
 		text_tl = GiftOfTheOx.count
 	end
@@ -3795,7 +3802,7 @@ function UI:UpdateDisplay()
 	msmdPanel.text.center:SetText(text_center)
 	msmdPanel.text.tl:SetText(text_tl)
 	msmdPanel.text.tr:SetText(text_tr)
-	--msmdPanel.text.bl:SetText(format('%.1fs', Target.timeToDie))
+	msmdPanel.text.bl:SetText(text_bl)
 	msmdCooldownPanel.text:SetText(text_cd)
 	msmdCooldownPanel.dimmer:SetShown(dim_cd)
 end
