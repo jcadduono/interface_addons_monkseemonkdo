@@ -3705,7 +3705,7 @@ end
 
 function UI:UpdateDisplay()
 	Timer.display = 0
-	local border, dim, dim_cd, border, text_center, text_tl, text_tr, text_bl, text_cd, color_center
+	local border, dim, dim_cd, border, text_center, text_tl, text_tr, text_bl, text_cd
 	local channel = Player.channel
 
 	if Opt.dimmer then
@@ -3751,7 +3751,7 @@ function UI:UpdateDisplay()
 	end
 	if channel.ability and not channel.ability.ignore_channel and channel.tick_count > 0 then
 		dim = Opt.dimmer
-		if Player.channel.tick_count > 1 then
+		if channel.tick_count > 1 then
 			local ctime = GetTime()
 			channel.ticks = ((ctime - channel.start) / channel.tick_interval) - channel.ticks_extra
 			channel.ticks_remain = (channel.ends - ctime) / channel.tick_interval
@@ -3759,8 +3759,7 @@ function UI:UpdateDisplay()
 			if channel.ability == Player.main then
 				if channel.ticks_remain < 1 or channel.early_chainable then
 					dim = false
-					text_center = 'CHAIN'
-					color_center = 'green'
+					text_center = '|cFF00FF00CHAIN'
 				end
 			elseif channel.interruptible then
 				dim = false
@@ -3782,16 +3781,6 @@ function UI:UpdateDisplay()
 		end
 	elseif GiftOfTheOx.known then
 		text_tl = GiftOfTheOx.count
-	end
-	if color_center ~= msmdPanel.text.center.color then
-		msmdPanel.text.center.color = color_center
-		if color_center == 'green' then
-			msmdPanel.text.center:SetTextColor(0, 1, 0, 1)
-		elseif color_center == 'red' then
-			msmdPanel.text.center:SetTextColor(1, 0, 0, 1)
-		else
-			msmdPanel.text.center:SetTextColor(1, 1, 1, 1)
-		end
 	end
 	if border ~= msmdPanel.border.overlay then
 		msmdPanel.border.overlay = border
