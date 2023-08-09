@@ -1188,6 +1188,7 @@ PurifiedChi.buff_duration = 15
 local CraneVortex = Ability:Add(388848, false, true)
 CraneVortex.talent_node = 80667
 local DrinkingHornCover = Ability:Add(391370, false, true)
+local FatalFlyingGuillotine = Ability:Add(394923, false, true)
 local FistsOfFury = Ability:Add(113656, false, true, 117418)
 FistsOfFury.cooldown_duration = 24
 FistsOfFury.buff_duration = 4
@@ -2347,6 +2348,12 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 	if TouchOfKarma:Usable() and Player:UnderAttack() then
 		UseExtra(TouchOfKarma)
 	end
+	if FatalFlyingGuillotine.known and TouchOfDeath:Usable() and Player.enemies >= 3 and (
+		(TouchOfDeath:Combo() and Serenity:Down() and (Target.timeToDie < 10 or Target.timeToDie > 60)) or
+		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or Target.timeToDie < 2 or HiddenMastersForbiddenTouch:Remains() < 2))
+	) then
+		return UseCooldown(TouchOfDeath)
+	end
 	if self.use_cds and SummonWhiteTigerStatue:Usable() and (
 		Player.enemies > 4 or
 		(not InvokeXuenTheWhiteTiger.known or InvokeXuenTheWhiteTiger:Ready() or not InvokeXuenTheWhiteTiger:Ready(50)) or
@@ -2379,7 +2386,7 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 	end
 	if TouchOfDeath:Usable() and (
 		(TouchOfDeath:Combo() and Serenity:Down() and (Target.timeToDie < 10 or Target.timeToDie > 60)) or
-		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or HiddenMastersForbiddenTouch:Remains() < 2 or Target.timeToDie < 2))
+		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or Target.timeToDie < 2 or HiddenMastersForbiddenTouch:Remains() < 2))
 	) then
 		return UseCooldown(TouchOfDeath)
 	end
