@@ -1866,6 +1866,9 @@ function SpinningCraneKick:Modifier()
 	if FastFeet.known then
 		mod = mod * (1 + (0.05 * FastFeet.rank))
 	end
+	if DanceOfChiJi.known and DanceOfChiJi:Up() then
+		mod = mod * (1 + 2.00)
+	end
 	return mod
 end
 
@@ -2222,7 +2225,7 @@ actions+=/call_action_list,name=fallthru
 	end
 	local apl
 	if not self.opener_done then
-		if not Serenity.known or Player.chi.current >= 5 or InvokeXuenTheWhiteTiger:Up() then
+		if Serenity.known or Player.chi.current >= 5 or InvokeXuenTheWhiteTiger:Up() then
 			self.opener_done = true
 		else
 			apl = self:opener()
@@ -2711,7 +2714,7 @@ actions.default_aoe+=/strike_of_the_windlord,target_if=max:debuff.keefers_skyrea
 actions.default_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains-spinning_crane_kick.max*(target.time_to_die+debuff.keefers_skyreach.remains*20),if=talent.shadowboxing_treads&combo_strike&!spinning_crane_kick.max
 actions.default_aoe+=/chi_burst,if=chi.max-chi>=1&active_enemies=1&raid_event.adds.in>20|chi.max-chi>=2
 ]]
-	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() and SpinningCraneKick:Max() then
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() and (SpinningCraneKick:Max() or DanceOfChiJi:Remains() < 2) then
 		return SpinningCraneKick
 	end
 	if Thunderfist.known and StrikeOfTheWindlord:Usable() then
@@ -2911,7 +2914,7 @@ actions.fallthru+=/tiger_palm
 		return ExpelHarm
 	end
 	if ChiBurst:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
-		return ExpelHarm
+		return ChiBurst
 	end
 	if ChiWave:Usable() then
 		return ChiWave
