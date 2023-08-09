@@ -1222,11 +1222,10 @@ TouchOfKarma.buff_duration = 10
 TouchOfKarma.triggers_gcd = false
 local DanceOfChiJi = Ability:Add(325201, true, true, 325202)
 DanceOfChiJi.buff_duration = 15
-local ForbiddenTechnique = Ability:Add(393098, true, true)
+local ForbiddenTechnique = Ability:Add(393098, true, true, 393099)
+ForbiddenTechnique.buff_duration = 5
 local HitCombo = Ability:Add(196740, true, true, 196741)
 HitCombo.buff_duration = 10
-local HiddenMastersForbiddenTouch = Ability:Add(213114, true, true)
-HiddenMastersForbiddenTouch.buff_duration = 5
 local JadeIgnition = Ability:Add(392979, false, true)
 local PowerStrikes = Ability:Add(121817, true, true, 129914)
 local Serenity = Ability:Add(152173, true, true)
@@ -2158,6 +2157,12 @@ APL[SPEC.MISTWEAVER].Main = function(self)
 end
 
 APL[SPEC.WINDWALKER].Main = function(self)
+	self.use_cds = Opt.cooldown and (
+		(Target.boss or Target.player or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd)) or
+		Player.major_cd_remains > 0 or
+		(InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Remains() > 10) or
+		(SummonWhiteTigerStatue.known and SummonWhiteTigerStatue:Remains() > 10)
+	)
 --[[
 actions.precombat=flask
 actions.precombat+=/food
@@ -2169,7 +2174,7 @@ actions.precombat+=/chi_burst,if=!talent.faeline_stomp
 actions.precombat+=/chi_wave
 ]]
 	if Player:TimeInCombat() == 0 then
-		if SummonWhiteTigerStatue:Usable() then
+		if self.use_cds and SummonWhiteTigerStatue:Usable() then
 			UseCooldown(SummonWhiteTigerStatue)
 		end
 		if ExpelHarm:Usable() and Player.chi.deficit > 0 then
@@ -2214,12 +2219,6 @@ actions+=/call_action_list,name=default_2t,if=active_enemies=2
 actions+=/call_action_list,name=default_st,if=active_enemies=1
 actions+=/call_action_list,name=fallthru
 ]]
-	self.use_cds = Opt.cooldown and (
-		(Target.boss or Target.player or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd)) or
-		Player.major_cd_remains > 0 or
-		(InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Up()) or
-		(SummonWhiteTigerStatue.known and SummonWhiteTigerStatue:Up())
-	)
 	self.hold_xuen = not self.use_cds or not InvokeXuenTheWhiteTiger.known or InvokeXuenTheWhiteTiger:CooldownDuration() > Target.timeToDie
 	self.hold_tp_rsk = Skyreach.known and Skyreach:Ready(1) and RisingSunKick:Ready(1)
 	if FortifyingBrew:Usable() and Player.health.pct < 15 then
@@ -2238,7 +2237,7 @@ actions+=/call_action_list,name=fallthru
 	if FaelineHarmony.known and FaelineStomp:Usable() and FaelineStomp:Combo() and FaeExposure:Remains() < 1 then
 		UseCooldown(FaelineStomp)
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not Serenity.known or Serenity:Down()) and (not TeachingsOfTheMonastery.known or TeachingsOfTheMonastery:Stack() < 3) and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) and (not InvokeXuenTheWhiteTiger.known and not Serenity.known or (not Skyreach.known or Player:TimeInCombat() > 5 or InvokeXuenTheWhiteTiger:Up())) then
+	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not Serenity.known or Serenity:Down()) and (not TeachingsOfTheMonastery.known or TeachingsOfTheMonastery:Stack() < 3) and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) and ((not InvokeXuenTheWhiteTiger.known and not Serenity.known) or not Skyreach.known or self.opener_done) then
 		return TigerPalm
 	end
 	if ChiBurst:Usable() and FaelineStomp.known and not FaelineHarmony.known and not FaelineStomp:Ready() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
@@ -2355,7 +2354,7 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 	end
 	if FatalFlyingGuillotine.known and TouchOfDeath:Usable() and Player.enemies >= 3 and (
 		(TouchOfDeath:Combo() and Serenity:Down() and (Target.timeToDie < 10 or Target.timeToDie > 60)) or
-		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or Target.timeToDie < 2 or HiddenMastersForbiddenTouch:Remains() < 2))
+		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or Target.timeToDie < 2 or ForbiddenTechnique:Remains() < 2))
 	) then
 		return UseCooldown(TouchOfDeath)
 	end
@@ -2391,7 +2390,7 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 	end
 	if TouchOfDeath:Usable() and (
 		(TouchOfDeath:Combo() and Serenity:Down() and (Target.timeToDie < 10 or Target.timeToDie > 60)) or
-		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or Target.timeToDie < 2 or HiddenMastersForbiddenTouch:Remains() < 2))
+		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or Target.timeToDie < 2 or ForbiddenTechnique:Remains() < 2))
 	) then
 		return UseCooldown(TouchOfDeath)
 	end
@@ -2831,11 +2830,7 @@ actions.default_st+=/blackout_kick,if=combo_strike
 	if Thunderfist.known and StrikeOfTheWindlord:Usable() and (not self.use_cds or not InvokeXuenTheWhiteTiger:Ready(20) or (Target.boss and Target.timeToDie < 5)) then
 		return StrikeOfTheWindlord
 	end
-	if RisingSunKick:Usable() and (
-		(KicksOfFlowingMomentum.known and KicksOfFlowingMomentum:Up()) or
-		(XuensBattlegear.known and PressurePoint:Up()) or
-		(Skyreach.known and Skyreach:Up())
-	) then
+	if KicksOfFlowingMomentum.known and RisingSunKick:Usable() and KicksOfFlowingMomentum:Up() then
 		return RisingSunKick
 	end
 	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
@@ -2941,7 +2936,7 @@ actions.fallthru+=/tiger_palm
 	if FlyingSerpentKick:Usable() then
 		UseCooldown(FlyingSerpentKick)
 	end
-	if TigerPalm:Usable() then
+	if TigerPalm:Usable() and TigerPalm:Combo() then
 		return TigerPalm
 	end
 end
@@ -2956,7 +2951,7 @@ actions.opener+=/chi_wave,if=chi.max-chi=2
 actions.opener+=/expel_harm
 actions.opener+=/chi_burst,if=chi>1&chi.max-chi>=2
 ]]
-	if SummonWhiteTigerStatue:Usable() then
+	if self.use_cds and SummonWhiteTigerStatue:Usable() then
 		UseCooldown(SummonWhiteTigerStatue)
 	end
 	if ChiBurst.known and ExpelHarm:Usable() and Player.chi.deficit >= 3 then
