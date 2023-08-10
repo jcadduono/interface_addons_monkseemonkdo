@@ -2233,6 +2233,11 @@ actions+=/call_action_list,name=fallthru
 			if apl then return apl end
 		end
 	end
+	if ForbiddenTechnique.known and TouchOfDeath:Usable() and ForbiddenTechnique:Up() and (
+		(TouchOfDeath:Combo() or Target.timeToDie < 2 or ForbiddenTechnique:Remains() < 2)
+	) then
+		UseCooldown(TouchOfDeath)
+	end
 	self:trinkets()
 	if FaelineHarmony.known and FaelineStomp:Usable() and FaelineStomp:Combo() and FaeExposure:Remains() < 1 then
 		UseCooldown(FaelineStomp)
@@ -2356,10 +2361,7 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 	if TouchOfKarma:Usable() and Player:UnderAttack() then
 		UseExtra(TouchOfKarma)
 	end
-	if FatalFlyingGuillotine.known and TouchOfDeath:Usable() and Player.enemies >= 3 and (
-		(TouchOfDeath:Combo() and Serenity:Down() and (Target.timeToDie < 10 or Target.timeToDie > 60)) or
-		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or Target.timeToDie < 2 or ForbiddenTechnique:Remains() < 2))
-	) then
+	if FatalFlyingGuillotine.known and ForbiddenTechnique.known and TouchOfDeath:Usable() and TouchOfDeath:Combo() and Player.enemies >= 3 and (not Serenity.known or Serenity:Down() or Target.timeToDie < Serenity:Remains()) then
 		return UseCooldown(TouchOfDeath)
 	end
 	if self.use_cds and SummonWhiteTigerStatue:Usable() and (
@@ -2392,10 +2394,7 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 	) then
 		return UseCooldown(Serenity)
 	end
-	if TouchOfDeath:Usable() and (
-		(TouchOfDeath:Combo() and Serenity:Down() and (Target.timeToDie < 10 or Target.timeToDie > 60)) or
-		(ForbiddenTechnique.known and (TouchOfDeath:Combo() or Target.timeToDie < 2 or ForbiddenTechnique:Remains() < 2))
-	) then
+	if TouchOfDeath:Usable() and TouchOfDeath:Combo() and (ForbiddenTechnique.known or Target.timeToDie < 10 or Target.timeToDie > 60) and (not Serenity.known or Serenity:Down() or Target.timeToDie < Serenity:Remains()) then
 		return UseCooldown(TouchOfDeath)
 	end
 end
