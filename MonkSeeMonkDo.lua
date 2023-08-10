@@ -2220,7 +2220,7 @@ actions+=/call_action_list,name=default_st,if=active_enemies=1
 actions+=/call_action_list,name=fallthru
 ]]
 	self.hold_xuen = not self.use_cds or not InvokeXuenTheWhiteTiger.known or InvokeXuenTheWhiteTiger:CooldownDuration() > Target.timeToDie
-	self.hold_tp_rsk = Skyreach.known and Skyreach:Ready(1) and RisingSunKick:Ready(1)
+	self.hold_tp_rsk = not (Skyreach.Exhaustion:Remains() < 1) and RisingSunKick:Ready(1)
 	if FortifyingBrew:Usable() and Player.health.pct < 15 then
 		UseCooldown(FortifyingBrew)
 	end
@@ -2237,7 +2237,11 @@ actions+=/call_action_list,name=fallthru
 	if FaelineHarmony.known and FaelineStomp:Usable() and FaelineStomp:Combo() and FaeExposure:Remains() < 1 then
 		UseCooldown(FaelineStomp)
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not Serenity.known or Serenity:Down()) and (not TeachingsOfTheMonastery.known or TeachingsOfTheMonastery:Stack() < 3) and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) and ((not InvokeXuenTheWhiteTiger.known and not Serenity.known) or not Skyreach.known or self.opener_done) then
+	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not Serenity.known or Serenity:Down()) and (not TeachingsOfTheMonastery.known or TeachingsOfTheMonastery:Stack() < 3) and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) and (
+		not self.use_cds or
+		not (Skyreach.known and InvokeXuenTheWhiteTiger.known and Serenity.known) or
+		not Skyreach:Ready() or not InvokeXuenTheWhiteTiger:Ready() or not Serenity:Ready()
+	) then
 		return TigerPalm
 	end
 	if ChiBurst:Usable() and FaelineStomp.known and not FaelineHarmony.known and not FaelineStomp:Ready() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
@@ -2380,7 +2384,7 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 	) then
 		return UseCooldown(BonedustBrew)
 	end
-	if self.use_cds and Serenity:Usable() and (
+	if self.use_cds and Serenity:Usable() and (not Skyreach.known or not Skyreach:Ready()) and (
 		(InvokersDelight.known and InvokersDelight:Up()) or
 		(self.hold_xuen and ((DrinkingHornCover.known and Target.timeToDie > 110) or (not DrinkingHornCover.known and Target.timeToDie > 105))) or
 		not InvokeXuenTheWhiteTiger.known or
