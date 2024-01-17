@@ -1230,6 +1230,14 @@ local ForbiddenTechnique = Ability:Add(393098, true, true, 393099)
 ForbiddenTechnique.buff_duration = 5
 local HitCombo = Ability:Add(196740, true, true, 196741)
 HitCombo.buff_duration = 10
+local JadefireBrand = Ability:Add(395414, false, true)
+JadefireBrand.buff_duration = 10
+local JadefireHarmony = Ability:Add(391412, false, true)
+local JadefireStomp = Ability:Add(388193, true, true, 327264)
+JadefireStomp.cooldown_duration = 30
+JadefireStomp.mana_cost = 4
+JadefireStomp.triggers_combo = true
+JadefireStomp:AutoAoe()
 local JadeIgnition = Ability:Add(392979, false, true)
 local PowerStrikes = Ability:Add(121817, true, true, 129914)
 local Serenity = Ability:Add(152173, true, true)
@@ -1258,14 +1266,6 @@ TransferThePower.buff_duration = 30
 local BonedustBrew = Ability:Add(386276, false, true)
 BonedustBrew.cooldown_duration = 60
 BonedustBrew.buff_duration = 10
-local FaeExposure = Ability:Add(395414, false, true)
-FaeExposure.buff_duration = 10
-local FaelineHarmony = Ability:Add(391412, false, true)
-local FaelineStomp = Ability:Add(388193, true, true, 327264)
-FaelineStomp.cooldown_duration = 30
-FaelineStomp.mana_cost = 4
-FaelineStomp.triggers_combo = true
-FaelineStomp:AutoAoe()
 local LastEmperorsCapacitor = Ability:Add(392989, true, true, 393039)
 local XuensBattlegear = Ability:Add(392993, false, true)
 ------ Procs
@@ -1565,7 +1565,7 @@ function Player:UpdateKnown()
 	RushingJadeWind.Pulse.known = RushingJadeWind.known
 	SummonWhiteTigerStatue.Pulse.known = SummonWhiteTigerStatue.known
 	Skyreach.Exhaustion.known = Skyreach.known
-	FaeExposure.known = FaelineHarmony.known
+	JadefireBrand.known = JadefireHarmony.known
 	PressurePoint.known = XuensBattlegear.known
 	CallToDominance.known = Trinket.NeltharionsCallToDominance.equipped
 	DomineeringArrogance.known = CallToDominance.known
@@ -2096,8 +2096,8 @@ actions+=/rushing_jade_wind
 			return KegSmash
 		end
 	end
-	if FaelineStomp:Usable() and Player.enemies >= 2 then
-		UseCooldown(FaelineStomp)
+	if JadefireStomp:Usable() and Player.enemies >= 2 then
+		UseCooldown(JadefireStomp)
 	end
 	if CelestialBrew:Usable() and (not BlackoutCombo.known or BlackoutCombo:Down()) and ElusiveBrawler:Stack() < 2 then
 		UseExtra(CelestialBrew)
@@ -2117,8 +2117,8 @@ actions+=/rushing_jade_wind
 	if StormstoutsLastKeg.known and KegSmash:Usable() and KegSmash:FullRechargeTime() < 1.5 then
 		return KegSmash
 	end
-	if FaelineStomp:Usable() then
-		UseCooldown(FaelineStomp)
+	if JadefireStomp:Usable() then
+		UseCooldown(JadefireStomp)
 	end
 	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
 		return RushingJadeWind
@@ -2189,7 +2189,7 @@ actions.precombat+=/chi_wave
 		if ExpelHarm:Usable() and Player.chi.deficit > 0 then
 			return ExpelHarm
 		end
-		if ChiBurst:Usable() and not FaelineStomp.known then
+		if ChiBurst:Usable() and not JadefireStomp.known then
 			UseCooldown(ChiBurst)
 		end
 		if ChiWave:Usable() then
@@ -2254,8 +2254,8 @@ actions+=/call_action_list,name=fallthru
 		UseCooldown(TouchOfDeath)
 	end
 	self:trinkets()
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaelineStomp:Combo() and FaeExposure:Remains() < 1 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireStomp:Combo() and JadefireBrand:Remains() < 1 then
+		UseCooldown(JadefireStomp)
 	end
 	if BonedustBrew:Usable() and Player.enemies == 1 and Skyreach.Exhaustion:Down() and (InvokeXuenTheWhiteTiger:Up() or not InvokeXuenTheWhiteTiger:Ready()) then
 		UseCooldown(BonedustBrew)
@@ -2267,7 +2267,7 @@ actions+=/call_action_list,name=fallthru
 	) then
 		return TigerPalm
 	end
-	if ChiBurst:Usable() and FaelineStomp.known and not FaelineHarmony.known and not FaelineStomp:Ready() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
+	if ChiBurst:Usable() and JadefireStomp.known and not JadefireHarmony.known and not JadefireStomp:Ready() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
 		UseCooldown(ChiBurst)
 	end
 	if Serenity.known then
@@ -2543,8 +2543,8 @@ actions.default_2t+=/faeline_stomp,if=combo_strike
 	if BlackoutKick:Usable() and BlackoutKick:Combo() then
 		return BlackoutKick
 	end
-	if FaelineStomp:Usable() and FaelineStomp:Combo() then
-		UseCooldown(FaelineStomp)
+	if JadefireStomp:Usable() and JadefireStomp:Combo() then
+		UseCooldown(JadefireStomp)
 	end
 end
 
@@ -2911,11 +2911,11 @@ actions.default_st+=/blackout_kick,if=combo_strike
 	if RisingSunKick:Usable() and FistsOfFury:Ready(1) then
 		return RisingSunKick
 	end
-	if FistsOfFury:Usable() and (not XuensBattlegear.known or PressurePoint:Down()) and (not Skyreach.known or Skyreach:Down()) and (not FaelineStomp.known or FaeExposure:Remains() > 2 or not FaelineStomp:Ready()) then
+	if FistsOfFury:Usable() and (not XuensBattlegear.known or PressurePoint:Down()) and (not Skyreach.known or Skyreach:Down()) and (not JadefireStomp.known or JadefireBrand:Remains() > 2 or not JadefireStomp:Ready()) then
 		return FistsOfFury
 	end
-	if FaelineHarmony.known and FaelineStomp:Usable() and (not Skyreach.known or Skyreach:Ready(1)) and FaeExposure:Remains() < 3 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and (not Skyreach.known or Skyreach:Ready(1)) and JadefireBrand:Remains() < 3 then
+		UseCooldown(JadefireStomp)
 	end
 	if RisingSunKick:Usable() and (
 		(XuensBattlegear.known and PressurePoint:Up()) or
@@ -2999,8 +2999,8 @@ actions.fallthru+=/tiger_palm
 	) then
 		return CracklingJadeLightning
 	end
-	if FaelineStomp:Usable() and FaelineStomp:Combo() then
-		UseCooldown(FaelineStomp)
+	if JadefireStomp:Usable() and JadefireStomp:Combo() then
+		UseCooldown(JadefireStomp)
 	end
 	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) then
 		return TigerPalm
@@ -3055,8 +3055,8 @@ actions.opener+=/chi_burst,if=chi>1&chi.max-chi>=2
 	if ChiBurst.known and ExpelHarm:Usable() and Player.chi.deficit >= 3 then
 		return ExpelHarm
 	end
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 2 and Skyreach.Exhaustion:Down() then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 and Skyreach.Exhaustion:Down() then
+		UseCooldown(JadefireStomp)
 	end
 	if ChiBurst.known and ExpelHarm:Usable() and Player.chi.current == 3 then
 		return ExpelHarm
@@ -3098,8 +3098,8 @@ actions.serenity_2t+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remain
 actions.serenity_2t+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
 	if Skyreach.known then
-		if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 2 and Skyreach:Ready(1) then
-			UseCooldown(FaelineStomp)
+		if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 and Skyreach:Ready(1) then
+			UseCooldown(JadefireStomp)
 		end
 		if TigerPalm:Usable() and TigerPalm:Combo() and Skyreach:Ready() then
 			return TigerPalm
@@ -3188,8 +3188,8 @@ actions.serenity_3t+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
 actions.serenity_3t+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remains,if=combo_strike
 actions.serenity_3t+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 1 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 1 then
+		UseCooldown(JadefireStomp)
 	end
 	if Skyreach.known and TigerPalm:Usable() and TigerPalm:Combo() and Skyreach:Ready() then
 		return TigerPalm
@@ -3200,8 +3200,8 @@ actions.serenity_3t+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,
 	) then
 		return RisingSunKick
 	end
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 2 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 then
+		UseCooldown(JadefireStomp)
 	end
 	if Thunderfist.known and StrikeOfTheWindlord:Usable() and Skyreach.known and (
 		Skyreach:Up() or
@@ -3273,8 +3273,8 @@ actions.serenity_4t+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
 actions.serenity_4t+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remains,if=combo_strike
 actions.serenity_4t+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 1 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 1 then
+		UseCooldown(JadefireStomp)
 	end
 	if Skyreach.known and TigerPalm:Usable() and TigerPalm:Combo() and Skyreach:Ready() then
 		return TigerPalm
@@ -3290,8 +3290,8 @@ actions.serenity_4t+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,
 	) then
 		return StrikeOfTheWindlord
 	end
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 2 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 then
+		UseCooldown(JadefireStomp)
 	end
 	if InvokersDelight.known and FistsOfFury:Usable() and InvokersDelight:Up() then
 		Player.channel.interrupt_if = self.channel_interrupt[1]
@@ -3361,8 +3361,8 @@ actions.serenity_aoe+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
 actions.serenity_aoe+=/blackout_kick,target_if=max:debuff.keefers_skyreach.remains,if=combo_strike
 actions.serenity_aoe+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 1 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 1 then
+		UseCooldown(JadefireStomp)
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and (
 		(ShadowboxingTreads.known and not SpinningCraneKick:Max() and MarkOfTheCrane:Remains() < 3) or
@@ -3381,8 +3381,8 @@ actions.serenity_aoe+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains
 	) then
 		return StrikeOfTheWindlord
 	end
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 2 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 then
+		UseCooldown(JadefireStomp)
 	end
 	if InvokersDelight.known and FistsOfFury:Usable() and InvokersDelight:Up() then
 		Player.channel.interrupt_if = self.channel_interrupt[1]
@@ -3438,8 +3438,8 @@ actions.serenity_lust+=/blackout_kick,target_if=max:debuff.keefers_skyreach.rema
 actions.serenity_lust+=/whirling_dragon_punch
 actions.serenity_lust+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 1 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 1 then
+		UseCooldown(JadefireStomp)
 	end
 	if FistsOfFury:Usable() and Serenity:Remains() < 1 then
 		return FistsOfFury
@@ -3500,8 +3500,8 @@ actions.serenity_st+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up
 actions.serenity_st+=/whirling_dragon_punch
 actions.serenity_st+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teachings_of_the_monastery.stack<3
 ]]
-	if Skyreach.known and FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 2 and Skyreach:Ready(1) then
-		UseCooldown(FaelineStomp)
+	if Skyreach.known and JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 and Skyreach:Ready(1) then
+		UseCooldown(JadefireStomp)
 	end
 	if BlackoutReinforcement.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and Serenity:Remains() < 1.5 and BlackoutReinforcement:Down() then
 		return SpinningCraneKick
@@ -3518,8 +3518,8 @@ actions.serenity_st+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teach
 	if RisingSunKick:Usable() and RisingSunKick:Combo() then
 		return RisingSunKick
 	end
-	if FaelineHarmony.known and FaelineStomp:Usable() and FaeExposure:Remains() < 2 then
-		UseCooldown(FaelineStomp)
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 then
+		UseCooldown(JadefireStomp)
 	end
 	if Thunderfist.known and StrikeOfTheWindlord:Usable() and Skyreach.known and (
 		Skyreach:Up() or
