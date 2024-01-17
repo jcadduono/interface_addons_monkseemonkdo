@@ -633,6 +633,11 @@ function Ability:Remains(offGCD)
 	return 0
 end
 
+function Ability:Expiring(seconds)
+	local remains = self:Remains()
+	return remains > 0 and remains < (seconds or Player.gcd)
+end
+
 function Ability:Refreshable()
 	if self.buff_duration > 0 then
 		return self:Remains() < self:Duration() * 0.3
@@ -936,6 +941,13 @@ function Ability:CastLanded(dstGUID, event, missType)
 		self.range_est_start = nil
 	elseif self.max_range < Target.estimated_range then
 		Target.estimated_range = self.max_range
+	end
+	if Opt.auto_aoe and self.auto_aoe then
+		if event == 'SPELL_MISSED' and (missType == 'EVADE' or (missType == 'IMMUNE' and not self.ignore_immune)) then
+			AutoAoe:Remove(dstGUID)
+		elseif event == self.auto_aoe.trigger or (self.auto_aoe.trigger == 'SPELL_AURA_APPLIED' and event == 'SPELL_AURA_REFRESH') then
+			self:RecordTargetHit(dstGUID)
+		end
 	end
 	if Opt.previous and Opt.miss_effect and event == 'SPELL_MISSED' and msmdPreviousPanel.ability == self then
 		msmdPreviousPanel.border:SetTexture(ADDON_PATH .. 'misseffect.blp')
@@ -1757,6 +1769,7 @@ function Target:UpdateHealth(reset)
 	self.timeToDie = self.health.loss_per_sec > 0 and min(self.timeToDieMax, self.health.current / self.health.loss_per_sec) or self.timeToDieMax
 end
 
+
 function Target:Update()
 	if UI:ShouldHide() then
 		return UI:Disappear()
@@ -1789,21 +1802,21 @@ function Target:Update()
 	self.stunnable = true
 	self.classification = UnitClassification('target')
 	self.player = UnitIsPlayer('target')
-	self.level = UnitLevel('target')
 	self.hostile = UnitCanAttack('player', 'target') and not UnitIsDead('target')
+	self.level = UnitLevel('target')
+	if self.level == -1 then
+		self.level = Player.level + 3
+	end
 	if not self.player and self.classification ~= 'minus' and self.classification ~= 'normal' then
-		if self.level == -1 or (Player.instance == 'party' and self.level >= Player.level + 2) then
-			self.boss = true
-			self.stunnable = false
-		elseif Player.instance == 'raid' or (self.health.max > Player.health.max * 10) then
-			self.stunnable = false
-		end
+		self.boss = self.level >= (Player.level + 3)
+		self.stunnable = self.level < (Player.level + 2)
 	end
 	if self.hostile or Opt.always_on then
 		UI:UpdateCombat()
 		msmdPanel:Show()
 		return true
 	end
+	UI:Disappear()
 end
 
 function Target:TimeToPct(pct)
@@ -2235,8 +2248,8 @@ actions+=/summon_white_tiger_statue
 actions+=/call_action_list,name=fallthru
 ]]
 	self.hold_xuen = not self.use_cds or not InvokeXuenTheWhiteTiger.known or InvokeXuenTheWhiteTiger:CooldownDuration() > Target.timeToDie
-	self.hold_tp_rsk = not (Skyreach.Exhaustion:Remains() < 1) and RisingSunKick:Ready(1) and (Player.set_bonus.t30 >= 2 or Player.enemies < 5)
-	self.hold_tp_bdb = BonedustBrew.known and not (Skyreach.Exhaustion:Remains() < 1) and BonedustBrew:Ready(1) and Player.enemies == 1
+	self.hold_tp_rsk = not Skyreach:Ready(1) and RisingSunKick:Ready(1) and (ShadowflameNova.known or Player.enemies < 5)
+	self.hold_tp_bdb = BonedustBrew.known and not Skyreach:Ready(1) and BonedustBrew:Ready(1) and Player.enemies == 1
 	if FortifyingBrew:Usable() and Player.health.pct < 15 then
 		UseCooldown(FortifyingBrew)
 	end
@@ -2258,7 +2271,7 @@ actions+=/call_action_list,name=fallthru
 	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireStomp:Combo() and JadefireBrand:Remains() < 1 then
 		UseCooldown(JadefireStomp)
 	end
-	if BonedustBrew:Usable() and Player.enemies == 1 and Skyreach.Exhaustion:Down() and (InvokeXuenTheWhiteTiger:Up() or not InvokeXuenTheWhiteTiger:Ready()) then
+	if BonedustBrew:Usable() and Player.enemies == 1 and Skyreach:Ready() and (InvokeXuenTheWhiteTiger:Up() or not InvokeXuenTheWhiteTiger:Ready()) then
 		UseCooldown(BonedustBrew)
 	end
 	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not Serenity.known or Serenity:Down()) and (not TeachingsOfTheMonastery.known or TeachingsOfTheMonastery:Stack() < 3) and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) and (
@@ -2900,8 +2913,8 @@ actions.default_st+=/blackout_kick,if=combo_strike
 		(Target.boss and Target.timeToDie < 5) or
 		(Thunderfist.known and (
 			(DomineeringArrogance.known and Serenity.known and DomineeringArrogance:Up() and not InvokeXuenTheWhiteTiger:Ready(20)) or
-			(Skyreach.Exhaustion:Remains() > 10 and DomineeringArrogance:Down()) or
-			(not Serenity.known and Skyreach.Exhaustion:Remains() > 35)
+			(not Skyreach:Ready(10) and DomineeringArrogance:Down()) or
+			(not Serenity.known and not Skyreach:Ready(35))
 		))
 	) then
 		return StrikeOfTheWindlord
@@ -3056,7 +3069,7 @@ actions.opener+=/chi_burst,if=chi>1&chi.max-chi>=2
 	if ChiBurst.known and ExpelHarm:Usable() and Player.chi.deficit >= 3 then
 		return ExpelHarm
 	end
-	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 and Skyreach.Exhaustion:Down() then
+	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 and Skyreach:Ready(1) then
 		UseCooldown(JadefireStomp)
 	end
 	if ChiBurst.known and ExpelHarm:Usable() and Player.chi.current == 3 then
@@ -3225,7 +3238,7 @@ actions.serenity_3t+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teach
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and PressurePoint:Down() then
 		return BlackoutKick
 	end
-	if RisingSunKick:Usable() and (Player.set_bonus.t30 >= 2 or PressurePoint:Up()) then
+	if RisingSunKick:Usable() and (ShadowflameNova.known or PressurePoint:Up()) then
 		return RisingSunKick
 	end
 	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 then
@@ -3237,7 +3250,7 @@ actions.serenity_3t+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teach
 	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and SpinningCraneKick:Max() and DanceOfChiJi:Up() and BlackoutReinforcement:Down() then
 		return SpinningCraneKick
 	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and Player.set_bonus.t30 >= 2 then
+	if ShadowflameNova.known and BlackoutKick:Usable() and BlackoutKick:Combo() then
 		return BlackoutKick
 	end
 	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and BlackoutReinforcement:Down() then
@@ -3322,7 +3335,7 @@ actions.serenity_4t+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teach
 	if BlackoutReinforcement.known and CraneVortex.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and BlackoutReinforcement:Down() then
 		return SpinningCraneKick
 	end
-	if RisingSunKick:Usable() and Player.set_bonus.t30 >= 2 then
+	if ShadowflameNova.known and RisingSunKick:Usable() then
 		return RisingSunKick
 	end
 	if BlackoutReinforcement.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and BlackoutReinforcement:Down() then
@@ -3347,7 +3360,7 @@ actions.serenity_4t+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teach
 	if RisingSunKick:Usable() and PressurePoint:Up() then
 		return RisingSunKick
 	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and Player.set_bonus.t30 >= 2 then
+	if ShadowflameNova.known and BlackoutKick:Usable() and BlackoutKick:Combo() then
 		return BlackoutKick
 	end
 	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and SpinningCraneKick:Max() then
@@ -3445,10 +3458,10 @@ actions.serenity_aoe+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teac
 	if BlackoutReinforcement.known and BlackoutKick:Usable() and BlackoutKick:Combo() and BlackoutReinforcement:Up() then
 		return BlackoutKick
 	end
-	if RisingSunKick:Usable() and Player.set_bonus.t30 >= 2 then
+	if ShadowflameNova.known and RisingSunKick:Usable() then
 		return RisingSunKick
 	end
-	if Thunderfist.known and StrikeOfTheWindlord:Usable() and CallToDominance.known and Skyreach.known and Player.enemies < 10 and CallToDominance:Up() and Skyreach.Exhaustion:Remains() > CallToDominance:Remains() then
+	if Thunderfist.known and StrikeOfTheWindlord:Usable() and CallToDominance.known and Skyreach.known and Player.enemies < 10 and CallToDominance:Up() and Skyreach:Cooldown() > CallToDominance:Remains() then
 		return StrikeOfTheWindlord
 	end
 	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 then
@@ -3460,13 +3473,13 @@ actions.serenity_aoe+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.teac
 	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and DanceOfChiJi:Up() then
 		return SpinningCraneKick
 	end
-	if BlackoutKick:Usable() and Player.set_bonus.t30 >= 2 and BlackoutKick:Combo() and Player.enemies < 6 then
+	if ShadowflameNova.known and BlackoutKick:Usable() and BlackoutKick:Combo() and Player.enemies < 6 then
 		return BlackoutKick
 	end
 	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and SpinningCraneKick:Max() then
 		return SpinningCraneKick
 	end
-	if Skyreach.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.enemies == 5 and Skyreach.Exhaustion:Down() then
+	if Skyreach.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.enemies == 5 and Skyreach:Ready() then
 		return TigerPalm
 	end
 	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
@@ -3564,10 +3577,10 @@ actions.serenity_aoelust+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.
 			return BlackoutKick
 		end
 	end
-	if RisingSunKick:Usable() and Player.set_bonus.t30 >= 2 then
+	if ShadowflameNova.known and RisingSunKick:Usable() then
 		return RisingSunKick
 	end
-	if Thunderfist.known and StrikeOfTheWindlord:Usable() and CallToDominance.known and Skyreach.known and Player.enemies < 10 and CallToDominance:Up() and Skyreach.Exhaustion:Remains() > CallToDominance:Remains() then
+	if Thunderfist.known and StrikeOfTheWindlord:Usable() and CallToDominance.known and Skyreach.known and Player.enemies < 10 and CallToDominance:Up() and Skyreach:Cooldown() > CallToDominance:Remains() then
 		return StrikeOfTheWindlord
 	end
 	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 2 then
@@ -3579,13 +3592,13 @@ actions.serenity_aoelust+=/tiger_palm,if=talent.teachings_of_the_monastery&buff.
 	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and DanceOfChiJi:Up() then
 		return SpinningCraneKick
 	end
-	if BlackoutKick:Usable() and Player.set_bonus.t30 >= 2 and BlackoutKick:Combo() and Player.enemies < 6 then
+	if ShadowflameNova.known and BlackoutKick:Usable() and BlackoutKick:Combo() and Player.enemies < 6 then
 		return BlackoutKick
 	end
 	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and SpinningCraneKick:Max() then
 		return SpinningCraneKick
 	end
-	if Skyreach.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.enemies == 5 and Skyreach.Exhaustion:Down() then
+	if Skyreach.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.enemies == 5 and Skyreach:Ready() then
 		return TigerPalm
 	end
 	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
@@ -4251,6 +4264,7 @@ CombatEvent.TRIGGER = function(timeStamp, event, _, srcGUID, _, _, _, dstGUID, _
 	   e == 'SPELL_CAST_SUCCESS' or
 	   e == 'SPELL_CAST_FAILED' or
 	   e == 'SPELL_DAMAGE' or
+	   e == 'SPELL_ABSORBED' or
 	   e == 'SPELL_ENERGIZE' or
 	   e == 'SPELL_PERIODIC_DAMAGE' or
 	   e == 'SPELL_MISSED' or
@@ -4336,13 +4350,6 @@ CombatEvent.SPELL = function(event, srcGUID, dstGUID, spellId, spellName, spellS
 			ability.last_gained = Player.time
 		end
 		return -- ignore buffs beyond here
-	end
-	if Opt.auto_aoe then
-		if event == 'SPELL_MISSED' and (missType == 'EVADE' or (missType == 'IMMUNE' and not ability.ignore_immune)) then
-			AutoAoe:Remove(dstGUID)
-		elseif ability.auto_aoe and (event == ability.auto_aoe.trigger or ability.auto_aoe.trigger == 'SPELL_AURA_APPLIED' and event == 'SPELL_AURA_REFRESH') then
-			ability:RecordTargetHit(dstGUID)
-		end
 	end
 	if event == 'SPELL_DAMAGE' or event == 'SPELL_ABSORBED' or event == 'SPELL_MISSED' or event == 'SPELL_AURA_APPLIED' or event == 'SPELL_AURA_REFRESH' then
 		ability:CastLanded(dstGUID, event, missType)
