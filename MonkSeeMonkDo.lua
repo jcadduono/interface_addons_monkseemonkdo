@@ -2278,6 +2278,9 @@ actions+=/call_action_list,name=fallthru
 		not self.use_cds or
 		not (Skyreach.known and InvokeXuenTheWhiteTiger.known and Serenity.known) or
 		not Skyreach:Ready() or not InvokeXuenTheWhiteTiger:Ready() or not Serenity:Ready()
+	) and (
+		Player.enemies > 1 or
+		(not BonedustBrew.known or not BonedustBrew:Ready())
 	) then
 		return TigerPalm
 	end
@@ -2423,8 +2426,12 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 		return UseCooldown(InvokeXuenTheWhiteTiger)
 	end
 	if BonedustBrew:Usable() and (
-		(BonedustBrew:Down() and (Serenity:Ready() or not Serenity:Ready(15) or between(Target.timeToDie, 10, 30))) or
-		(Target.boss and Target.timeToDie < 10)
+		(InvokersDelight.known and InvokersDelight:Up()) or
+		(BonedustBrew:Down() and (
+			(not InvokeXuenTheWhiteTiger:Ready() and InvokeXuenTheWhiteTiger:Down()) or
+			(Serenity.known and not Serenity:Ready(15)) or
+			(Target.boss and Target.timeToDie < 40)
+		))
 	) then
 		return UseCooldown(BonedustBrew)
 	end
