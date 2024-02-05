@@ -2271,16 +2271,15 @@ actions+=/call_action_list,name=fallthru
 	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireStomp:Combo() and JadefireBrand:Remains() < 1 then
 		UseCooldown(JadefireStomp)
 	end
-	if BonedustBrew:Usable() and Player.enemies == 1 and Skyreach:Ready() and (InvokeXuenTheWhiteTiger:Up() or not InvokeXuenTheWhiteTiger:Ready()) then
+	if self.use_cds and BonedustBrew:Usable() and Player.enemies == 1 and Skyreach:Ready() and (InvokeXuenTheWhiteTiger:Up() or not InvokeXuenTheWhiteTiger:Ready()) then
 		UseCooldown(BonedustBrew)
 	end
 	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not Serenity.known or Serenity:Down()) and (not TeachingsOfTheMonastery.known or TeachingsOfTheMonastery:Stack() < 3) and Player.chi.deficit >= (2 + (PowerStrikes:Up() and 1 or 0)) and (
 		not self.use_cds or
 		not (Skyreach.known and InvokeXuenTheWhiteTiger.known and Serenity.known) or
-		not Skyreach:Ready() or not InvokeXuenTheWhiteTiger:Ready() or not Serenity:Ready()
-	) and (
-		Player.enemies > 1 or
-		(not BonedustBrew.known or not BonedustBrew:Ready())
+		not Skyreach:Ready() or
+		not Serenity:Ready() or
+		(not InvokeXuenTheWhiteTiger:Ready() and (not BonedustBrew.known or not BonedustBrew:Ready()))
 	) then
 		return TigerPalm
 	end
@@ -2425,7 +2424,7 @@ actions.cd_serenity+=/bag_of_tricks,if=buff.serenity.up|fight_remains<20
 	) then
 		return UseCooldown(InvokeXuenTheWhiteTiger)
 	end
-	if BonedustBrew:Usable() and (
+	if self.use_cds and BonedustBrew:Usable() and (
 		(InvokersDelight.known and InvokersDelight:Up()) or
 		(BonedustBrew:Down() and (
 			(not InvokeXuenTheWhiteTiger:Ready() and InvokeXuenTheWhiteTiger:Down()) or
