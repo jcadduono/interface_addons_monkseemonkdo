@@ -1,9 +1,23 @@
 local ADDON = 'MonkSeeMonkDo'
+local ADDON_PATH = 'Interface\\AddOns\\' .. ADDON .. '\\'
+
+BINDING_CATEGORY_MONKSEEMONKDO = ADDON
+BINDING_NAME_MONKSEEMONKDO_TARGETMORE = "Toggle Targets +"
+BINDING_NAME_MONKSEEMONKDO_TARGETLESS = "Toggle Targets -"
+BINDING_NAME_MONKSEEMONKDO_TARGET1 = "Set Targets to 1"
+BINDING_NAME_MONKSEEMONKDO_TARGET2 = "Set Targets to 2"
+BINDING_NAME_MONKSEEMONKDO_TARGET3 = "Set Targets to 3"
+BINDING_NAME_MONKSEEMONKDO_TARGET4 = "Set Targets to 4"
+BINDING_NAME_MONKSEEMONKDO_TARGET5 = "Set Targets to 5+"
+
+local function log(...)
+	print(ADDON, '-', ...)
+end
+
 if select(2, UnitClass('player')) ~= 'MONK' then
-	DisableAddOn(ADDON)
+	log('[|cFFFF0000Error|r]', 'Not loading because you are not the correct class! Consider disabling', ADDON, 'for this character.')
 	return
 end
-local ADDON_PATH = 'Interface\\AddOns\\' .. ADDON .. '\\'
 
 -- reference heavily accessed global functions from local scope for performance
 local min = math.min
@@ -49,7 +63,6 @@ MonkSeeMonkDo = {}
 local Opt -- use this as a local table reference to MonkSeeMonkDo
 
 SLASH_MonkSeeMonkDo1, SLASH_MonkSeeMonkDo2, SLASH_MonkSeeMonkDo3 = '/msmd', '/monk', '/monksee'
-BINDING_HEADER_MONKSEEMONKDO = ADDON
 
 local function InitOpts()
 	local function SetDefaults(t, ref)
@@ -192,9 +205,10 @@ local Player = {
 		pct = 100,
 	},
 	mana = {
+		base = 0,
 		current = 0,
-		deficit = 0,
 		max = 100,
+		pct = 100,
 		regen = 0,
 	},
 	energy = {
@@ -205,8 +219,8 @@ local Player = {
 	},
 	chi = {
 		current = 0,
-		deficit = 0,
 		max = 5,
+		deficit = 5,
 	},
 	stagger = {
 		current = 0,
@@ -241,6 +255,7 @@ local Player = {
 		t29 = 0, -- Wrappings of the Waking Fist
 		t30 = 0, -- Fangs of the Vermillion Forge
 		t31 = 0, -- Mystic Heron's Discipline
+		t32 = 0, -- Wrappings of the Waking Fist (Awakened)
 	},
 	previous_gcd = {},-- list of previous GCD abilities
 	item_use_blacklist = { -- list of item IDs with on-use effects we should mark unusable
@@ -255,10 +270,29 @@ local Player = {
 	sck_motc = 0,
 }
 
+-- base mana pool max for each level
+Player.BaseMana = {
+	260,	270,	285,	300,	310,	--  5
+	330,	345,	360,	380,	400,	-- 10
+	430,	465,	505,	550,	595,	-- 15
+	645,	700,	760,	825,	890,	-- 20
+	965,	1050,	1135,	1230,	1335,	-- 25
+	1445,	1570,	1700,	1845,	2000,	-- 30
+	2165,	2345,	2545,	2755,	2990,	-- 35
+	3240,	3510,	3805,	4125,	4470,	-- 40
+	4845,	5250,	5690,	6170,	6685,	-- 45
+	7245,	7855,	8510,	9225,	10000,	-- 50
+	11745,	13795,	16205,	19035,	22360,	-- 55
+	26265,	30850,	36235,	42565,	50000,	-- 60
+	58730,	68985,	81030,	95180,	111800,	-- 65
+	131325,	154255,	181190,	212830,	250000,	-- 70
+}
+
+
 -- current target information
 local Target = {
 	boss = false,
-	guid = 0,
+	dummy = false,
 	health = {
 		current = 0,
 		loss_per_sec = 0,
@@ -270,134 +304,17 @@ local Target = {
 	estimated_range = 30,
 }
 
-local msmdPanel = CreateFrame('Frame', 'msmdPanel', UIParent)
-msmdPanel:SetPoint('CENTER', 0, -169)
-msmdPanel:SetFrameStrata('BACKGROUND')
-msmdPanel:SetSize(64, 64)
-msmdPanel:SetMovable(true)
-msmdPanel:SetUserPlaced(true)
-msmdPanel:RegisterForDrag('LeftButton')
-msmdPanel:SetScript('OnDragStart', msmdPanel.StartMoving)
-msmdPanel:SetScript('OnDragStop', msmdPanel.StopMovingOrSizing)
-msmdPanel:Hide()
-msmdPanel.icon = msmdPanel:CreateTexture(nil, 'BACKGROUND')
-msmdPanel.icon:SetAllPoints(msmdPanel)
-msmdPanel.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
-msmdPanel.border = msmdPanel:CreateTexture(nil, 'ARTWORK')
-msmdPanel.border:SetAllPoints(msmdPanel)
-msmdPanel.border:SetTexture(ADDON_PATH .. 'border.blp')
-msmdPanel.border:Hide()
-msmdPanel.dimmer = msmdPanel:CreateTexture(nil, 'BORDER')
-msmdPanel.dimmer:SetAllPoints(msmdPanel)
-msmdPanel.dimmer:SetColorTexture(0, 0, 0, 0.6)
-msmdPanel.dimmer:Hide()
-msmdPanel.swipe = CreateFrame('Cooldown', nil, msmdPanel, 'CooldownFrameTemplate')
-msmdPanel.swipe:SetAllPoints(msmdPanel)
-msmdPanel.swipe:SetDrawBling(false)
-msmdPanel.swipe:SetDrawEdge(false)
-msmdPanel.text = CreateFrame('Frame', nil, msmdPanel)
-msmdPanel.text:SetAllPoints(msmdPanel)
-msmdPanel.text.tl = msmdPanel.text:CreateFontString(nil, 'OVERLAY')
-msmdPanel.text.tl:SetFont('Fonts\\FRIZQT__.TTF', 12, 'OUTLINE')
-msmdPanel.text.tl:SetPoint('TOPLEFT', msmdPanel, 'TOPLEFT', 2.5, -3)
-msmdPanel.text.tl:SetJustifyH('LEFT')
-msmdPanel.text.tr = msmdPanel.text:CreateFontString(nil, 'OVERLAY')
-msmdPanel.text.tr:SetFont('Fonts\\FRIZQT__.TTF', 12, 'OUTLINE')
-msmdPanel.text.tr:SetPoint('TOPRIGHT', msmdPanel, 'TOPRIGHT', -2.5, -3)
-msmdPanel.text.tr:SetJustifyH('RIGHT')
-msmdPanel.text.bl = msmdPanel.text:CreateFontString(nil, 'OVERLAY')
-msmdPanel.text.bl:SetFont('Fonts\\FRIZQT__.TTF', 12, 'OUTLINE')
-msmdPanel.text.bl:SetPoint('BOTTOMLEFT', msmdPanel, 'BOTTOMLEFT', 2.5, 3)
-msmdPanel.text.bl:SetJustifyH('LEFT')
-msmdPanel.text.br = msmdPanel.text:CreateFontString(nil, 'OVERLAY')
-msmdPanel.text.br:SetFont('Fonts\\FRIZQT__.TTF', 12, 'OUTLINE')
-msmdPanel.text.br:SetPoint('BOTTOMRIGHT', msmdPanel, 'BOTTOMRIGHT', -2.5, 3)
-msmdPanel.text.br:SetJustifyH('RIGHT')
-msmdPanel.text.center = msmdPanel.text:CreateFontString(nil, 'OVERLAY')
-msmdPanel.text.center:SetFont('Fonts\\FRIZQT__.TTF', 10, 'OUTLINE')
-msmdPanel.text.center:SetAllPoints(msmdPanel.text)
-msmdPanel.text.center:SetJustifyH('CENTER')
-msmdPanel.text.center:SetJustifyV('CENTER')
-msmdPanel.button = CreateFrame('Button', nil, msmdPanel)
-msmdPanel.button:SetAllPoints(msmdPanel)
-msmdPanel.button:RegisterForClicks('LeftButtonDown', 'RightButtonDown', 'MiddleButtonDown')
-local msmdPreviousPanel = CreateFrame('Frame', 'msmdPreviousPanel', UIParent)
-msmdPreviousPanel:SetFrameStrata('BACKGROUND')
-msmdPreviousPanel:SetSize(64, 64)
-msmdPreviousPanel:SetMovable(true)
-msmdPreviousPanel:SetUserPlaced(true)
-msmdPreviousPanel:RegisterForDrag('LeftButton')
-msmdPreviousPanel:SetScript('OnDragStart', msmdPreviousPanel.StartMoving)
-msmdPreviousPanel:SetScript('OnDragStop', msmdPreviousPanel.StopMovingOrSizing)
-msmdPreviousPanel:Hide()
-msmdPreviousPanel.icon = msmdPreviousPanel:CreateTexture(nil, 'BACKGROUND')
-msmdPreviousPanel.icon:SetAllPoints(msmdPreviousPanel)
-msmdPreviousPanel.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
-msmdPreviousPanel.border = msmdPreviousPanel:CreateTexture(nil, 'ARTWORK')
-msmdPreviousPanel.border:SetAllPoints(msmdPreviousPanel)
-msmdPreviousPanel.border:SetTexture(ADDON_PATH .. 'border.blp')
-local msmdCooldownPanel = CreateFrame('Frame', 'msmdCooldownPanel', UIParent)
-msmdCooldownPanel:SetFrameStrata('BACKGROUND')
-msmdCooldownPanel:SetSize(64, 64)
-msmdCooldownPanel:SetMovable(true)
-msmdCooldownPanel:SetUserPlaced(true)
-msmdCooldownPanel:RegisterForDrag('LeftButton')
-msmdCooldownPanel:SetScript('OnDragStart', msmdCooldownPanel.StartMoving)
-msmdCooldownPanel:SetScript('OnDragStop', msmdCooldownPanel.StopMovingOrSizing)
-msmdCooldownPanel:Hide()
-msmdCooldownPanel.icon = msmdCooldownPanel:CreateTexture(nil, 'BACKGROUND')
-msmdCooldownPanel.icon:SetAllPoints(msmdCooldownPanel)
-msmdCooldownPanel.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
-msmdCooldownPanel.border = msmdCooldownPanel:CreateTexture(nil, 'ARTWORK')
-msmdCooldownPanel.border:SetAllPoints(msmdCooldownPanel)
-msmdCooldownPanel.border:SetTexture(ADDON_PATH .. 'border.blp')
-msmdCooldownPanel.dimmer = msmdCooldownPanel:CreateTexture(nil, 'BORDER')
-msmdCooldownPanel.dimmer:SetAllPoints(msmdCooldownPanel)
-msmdCooldownPanel.dimmer:SetColorTexture(0, 0, 0, 0.6)
-msmdCooldownPanel.dimmer:Hide()
-msmdCooldownPanel.swipe = CreateFrame('Cooldown', nil, msmdCooldownPanel, 'CooldownFrameTemplate')
-msmdCooldownPanel.swipe:SetAllPoints(msmdCooldownPanel)
-msmdCooldownPanel.swipe:SetDrawBling(false)
-msmdCooldownPanel.swipe:SetDrawEdge(false)
-msmdCooldownPanel.text = msmdCooldownPanel:CreateFontString(nil, 'OVERLAY')
-msmdCooldownPanel.text:SetFont('Fonts\\FRIZQT__.TTF', 12, 'OUTLINE')
-msmdCooldownPanel.text:SetAllPoints(msmdCooldownPanel)
-msmdCooldownPanel.text:SetJustifyH('CENTER')
-msmdCooldownPanel.text:SetJustifyV('CENTER')
-local msmdInterruptPanel = CreateFrame('Frame', 'msmdInterruptPanel', UIParent)
-msmdInterruptPanel:SetFrameStrata('BACKGROUND')
-msmdInterruptPanel:SetSize(64, 64)
-msmdInterruptPanel:SetMovable(true)
-msmdInterruptPanel:SetUserPlaced(true)
-msmdInterruptPanel:RegisterForDrag('LeftButton')
-msmdInterruptPanel:SetScript('OnDragStart', msmdInterruptPanel.StartMoving)
-msmdInterruptPanel:SetScript('OnDragStop', msmdInterruptPanel.StopMovingOrSizing)
-msmdInterruptPanel:Hide()
-msmdInterruptPanel.icon = msmdInterruptPanel:CreateTexture(nil, 'BACKGROUND')
-msmdInterruptPanel.icon:SetAllPoints(msmdInterruptPanel)
-msmdInterruptPanel.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
-msmdInterruptPanel.border = msmdInterruptPanel:CreateTexture(nil, 'ARTWORK')
-msmdInterruptPanel.border:SetAllPoints(msmdInterruptPanel)
-msmdInterruptPanel.border:SetTexture(ADDON_PATH .. 'border.blp')
-msmdInterruptPanel.swipe = CreateFrame('Cooldown', nil, msmdInterruptPanel, 'CooldownFrameTemplate')
-msmdInterruptPanel.swipe:SetAllPoints(msmdInterruptPanel)
-msmdInterruptPanel.swipe:SetDrawBling(false)
-msmdInterruptPanel.swipe:SetDrawEdge(false)
-local msmdExtraPanel = CreateFrame('Frame', 'msmdExtraPanel', UIParent)
-msmdExtraPanel:SetFrameStrata('BACKGROUND')
-msmdExtraPanel:SetSize(64, 64)
-msmdExtraPanel:SetMovable(true)
-msmdExtraPanel:SetUserPlaced(true)
-msmdExtraPanel:RegisterForDrag('LeftButton')
-msmdExtraPanel:SetScript('OnDragStart', msmdExtraPanel.StartMoving)
-msmdExtraPanel:SetScript('OnDragStop', msmdExtraPanel.StopMovingOrSizing)
-msmdExtraPanel:Hide()
-msmdExtraPanel.icon = msmdExtraPanel:CreateTexture(nil, 'BACKGROUND')
-msmdExtraPanel.icon:SetAllPoints(msmdExtraPanel)
-msmdExtraPanel.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
-msmdExtraPanel.border = msmdExtraPanel:CreateTexture(nil, 'ARTWORK')
-msmdExtraPanel.border:SetAllPoints(msmdExtraPanel)
-msmdExtraPanel.border:SetTexture(ADDON_PATH .. 'border.blp')
+-- target dummy unit IDs (count these units as bosses)
+Target.Dummies = {
+	[189617] = true,
+	[189632] = true,
+	[194643] = true,
+	[194644] = true,
+	[194648] = true,
+	[194649] = true,
+	[197833] = true,
+	[198594] = true,
+}
 
 -- Start AoE
 
@@ -614,7 +531,7 @@ function Ability:Usable(seconds, pool)
 	return self:Ready(seconds)
 end
 
-function Ability:Remains(offGCD)
+function Ability:Remains()
 	if self:Casting() or self:Traveling() > 0 then
 		return self:Duration()
 	end
@@ -627,7 +544,7 @@ function Ability:Remains(offGCD)
 			if expires == 0 then
 				return 600 -- infinite duration
 			end
-			return max(0, expires - Player.ctime - (offGCD and 0 or Player.execute_remains))
+			return max(0, expires - Player.ctime - (self.off_gcd and 0 or Player.execute_remains))
 		end
 	end
 	return 0
@@ -704,6 +621,48 @@ function Ability:Ticking()
 	return count
 end
 
+function Ability:HighestRemains()
+	local highest
+	if self.traveling then
+		for _, cast in next, self.traveling do
+			if Player.time - cast.start < self.max_range / self.velocity then
+				highest = self:Duration()
+			end
+		end
+	end
+	if self.aura_targets then
+		local remains
+		for _, aura in next, self.aura_targets do
+			remains = max(0, aura.expires - Player.time - Player.execute_remains)
+			if remains > 0 and (not highest or remains > highest) then
+				highest = remains
+			end
+		end
+	end
+	return highest or 0
+end
+
+function Ability:LowestRemains()
+	local lowest
+	if self.traveling then
+		for _, cast in next, self.traveling do
+			if Player.time - cast.start < self.max_range / self.velocity then
+				lowest = self:Duration()
+			end
+		end
+	end
+	if self.aura_targets then
+		local remains
+		for _, aura in next, self.aura_targets do
+			remains = max(0, aura.expires - Player.time - Player.execute_remains)
+			if remains > 0 and (not lowest or remains < lowest) then
+				lowest = remains
+			end
+		end
+	end
+	return lowest or 0
+end
+
 function Ability:TickTime()
 	return self.hasted_ticks and (Player.haste_factor * self.tick_interval) or self.tick_interval
 end
@@ -753,7 +712,7 @@ function Ability:Stack()
 end
 
 function Ability:ManaCost()
-	return self.mana_cost > 0 and (self.mana_cost / 100 * Player.mana.max) or 0
+	return self.mana_cost > 0 and (self.mana_cost / 100 * Player.mana.base) or 0
 end
 
 function Ability:EnergyCost()
@@ -894,6 +853,9 @@ end
 
 function Ability:CastSuccess(dstGUID)
 	self.last_used = Player.time
+	if self.ignore_cast then
+		return
+	end
 	Player.last_ability = self
 	if self.triggers_gcd then
 		Player.previous_gcd[10] = nil
@@ -988,7 +950,7 @@ function Ability:ApplyAura(guid)
 	return aura
 end
 
-function Ability:RefreshAura(guid)
+function Ability:RefreshAura(guid, extend)
 	if AutoAoe.blacklist[guid] then
 		return
 	end
@@ -997,14 +959,14 @@ function Ability:RefreshAura(guid)
 		return self:ApplyAura(guid)
 	end
 	local duration = self:Duration()
-	aura.expires = max(aura.expires, Player.time + min(duration * (self.no_pandemic and 1.0 or 1.3), (aura.expires - Player.time) + duration))
+	aura.expires = max(aura.expires, Player.time + min(duration * (self.no_pandemic and 1.0 or 1.3), (aura.expires - Player.time) + (extend or duration)))
 	return aura
 end
 
-function Ability:RefreshAuraAll()
+function Ability:RefreshAuraAll(extend)
 	local duration = self:Duration()
 	for guid, aura in next, self.aura_targets do
-		aura.expires = max(aura.expires, Player.time + min(duration * (self.no_pandemic and 1.0 or 1.3), (aura.expires - Player.time) + duration))
+		aura.expires = max(aura.expires, Player.time + min(duration * (self.no_pandemic and 1.0 or 1.3), (aura.expires - Player.time) + (extend or duration)))
 	end
 end
 
@@ -1348,13 +1310,16 @@ function InventoryItem:Count()
 end
 
 function InventoryItem:Cooldown()
-	local startTime, duration
+	local start, duration
 	if self.equip_slot then
-		startTime, duration = GetInventoryItemCooldown('player', self.equip_slot)
+		start, duration = GetInventoryItemCooldown('player', self.equip_slot)
 	else
-		startTime, duration = GetItemCooldown(self.itemId)
+		start, duration = GetItemCooldown(self.itemId)
 	end
-	return startTime == 0 and 0 or duration - (Player.ctime - startTime)
+	if start == 0 then
+		return 0
+	end
+	return max(0, duration - (Player.ctime - start) - (self.off_gcd and 0 or Player.execute_remains))
 end
 
 function InventoryItem:Ready(seconds)
@@ -1376,7 +1341,8 @@ function InventoryItem:Usable(seconds)
 end
 
 -- Inventory Items
-
+local Healthstone = InventoryItem:Add(5512)
+Healthstone.max_charges = 3
 -- Equipment
 local Trinket1 = InventoryItem:Add(0)
 local Trinket2 = InventoryItem:Add(0)
@@ -1412,6 +1378,14 @@ end
 -- End Abilities Functions
 
 -- Start Player Functions
+
+function Player:ManaTimeToMax()
+	local deficit = self.mana.max - self.mana.current
+	if deficit <= 0 then
+		return 0
+	end
+	return deficit / self.mana.regen
+end
 
 function Player:EnergyTimeToMax(energy)
 	local deficit = (energy or self.energy.max) - self.energy.current
@@ -1514,9 +1488,6 @@ function Player:UpdateTime(timeStamp)
 end
 
 function Player:UpdateKnown()
-	self.mana.max = UnitPowerMax('player', 0)
-	self.chi.max = UnitPowerMax('player', 12)
-
 	local node
 	local configId = C_ClassTalents.GetActiveConfigID()
 	for _, ability in next, Abilities.all do
@@ -1563,8 +1534,8 @@ function Player:UpdateKnown()
 		ExpelHarm.cooldown_duration = 15
 		SpinningCraneKick.energy_cost = 0
 		TigerPalm.energy_cost = 50
-		KicksOfFlowingMomentum.known = self.set_bonus.t29 >= 2
-		FistsOfFlowingMomentum.known = self.set_bonus.t29 >= 4
+		KicksOfFlowingMomentum.known = self.set_bonus.t29 >= 2 or self.set_bonus.t32 >= 2
+		FistsOfFlowingMomentum.known = self.set_bonus.t29 >= 4 or self.set_bonus.t32 >= 4
 		ShadowflameNova.known = self.set_bonus.t30 >= 2
 		ShadowflameVulnerability.known = self.set_bonus.t30 >= 4
 		BlackoutReinforcement.known = self.set_bonus.t31 >= 2
@@ -1609,11 +1580,15 @@ function Player:UpdateChannelInfo()
 		return
 	end
 	local ability = Abilities.bySpellId[spellId]
-	if ability and ability == channel.ability then
-		channel.chained = true
+	if ability then
+		if ability == channel.ability then
+			channel.chained = true
+		end
+		channel.interrupt_if = ability.interrupt_if
 	else
-		channel.ability = ability
+		channel.interrupt_if = nil
 	end
+	channel.ability = ability
 	channel.ticks = 0
 	channel.start = start / 1000
 	channel.ends = ends / 1000
@@ -1737,7 +1712,6 @@ function Player:Init()
 	msmdPreviousPanel.ability = nil
 	self.guid = UnitGUID('player')
 	self.name = UnitName('player')
-	self.level = UnitLevel('player')
 	_, self.instance = IsInInstance()
 	Events:GROUP_ROSTER_UPDATE()
 	Events:PLAYER_SPECIALIZATION_CHANGED('player')
@@ -1766,9 +1740,12 @@ function Target:UpdateHealth(reset)
 	self.timeToDieMax = self.health.current / Player.health.max * 10
 	self.health.pct = self.health.max > 0 and (self.health.current / self.health.max * 100) or 100
 	self.health.loss_per_sec = (self.health.history[1] - self.health.current) / 5
-	self.timeToDie = self.health.loss_per_sec > 0 and min(self.timeToDieMax, self.health.current / self.health.loss_per_sec) or self.timeToDieMax
+	self.timeToDie = (
+		(self.dummy and 600) or
+		(self.health.loss_per_sec > 0 and min(self.timeToDieMax, self.health.current / self.health.loss_per_sec)) or
+		self.timeToDieMax
+	)
 end
-
 
 function Target:Update()
 	if UI:ShouldHide() then
@@ -1777,7 +1754,9 @@ function Target:Update()
 	local guid = UnitGUID('target')
 	if not guid then
 		self.guid = nil
+		self.uid = nil
 		self.boss = false
+		self.dummy = false
 		self.stunnable = true
 		self.classification = 'normal'
 		self.player = false
@@ -1796,9 +1775,11 @@ function Target:Update()
 	end
 	if guid ~= self.guid then
 		self.guid = guid
+		self.uid = tonumber(guid:match('^%w+-%d+-%d+-%d+-%d+-(%d+)') or 0)
 		self:UpdateHealth(true)
 	end
 	self.boss = false
+	self.dummy = false
 	self.stunnable = true
 	self.classification = UnitClassification('target')
 	self.player = UnitIsPlayer('target')
@@ -1810,6 +1791,10 @@ function Target:Update()
 	if not self.player and self.classification ~= 'minus' and self.classification ~= 'normal' then
 		self.boss = self.level >= (Player.level + 3)
 		self.stunnable = self.level < (Player.level + 2)
+	end
+	if self.Dummies[self.uid] then
+		self.boss = true
+		self.dummy = true
 	end
 	if self.hostile or Opt.always_on then
 		UI:UpdateCombat()
@@ -3928,7 +3913,7 @@ function UI:CreateOverlayGlows()
 			end
 		end
 	end
-	UI:UpdateGlowColorAndScale()
+	self:UpdateGlowColorAndScale()
 end
 
 function UI:UpdateGlows()
@@ -3964,6 +3949,18 @@ end
 
 function UI:UpdateDraggable()
 	local draggable = not (Opt.locked or Opt.snap or Opt.aoe)
+	msmdPanel:SetMovable(not Opt.snap)
+	msmdPreviousPanel:SetMovable(not Opt.snap)
+	msmdCooldownPanel:SetMovable(not Opt.snap)
+	msmdInterruptPanel:SetMovable(not Opt.snap)
+	msmdExtraPanel:SetMovable(not Opt.snap)
+	if not Opt.snap then
+		msmdPanel:SetUserPlaced(true)
+		msmdPreviousPanel:SetUserPlaced(true)
+		msmdCooldownPanel:SetUserPlaced(true)
+		msmdInterruptPanel:SetUserPlaced(true)
+		msmdExtraPanel:SetUserPlaced(true)
+	end
 	msmdPanel:EnableMouse(draggable or Opt.aoe)
 	msmdPanel.button:SetShown(Opt.aoe)
 	msmdPreviousPanel:EnableMouse(draggable)
@@ -4082,9 +4079,15 @@ function UI:Disappear()
 	UI:UpdateGlows()
 end
 
+function UI:Reset()
+	msmdPanel:ClearAllPoints()
+	msmdPanel:SetPoint('CENTER', 0, -169)
+	self:SnapAllPanels()
+end
+
 function UI:UpdateDisplay()
 	Timer.display = 0
-	local border, dim, dim_cd, border, text_center, text_tl, text_tr, text_bl, text_cd
+	local border, dim, dim_cd, text_cd, text_center, text_tl, text_tr, text_bl
 	local channel = Player.channel
 
 	if Opt.dimmer then
@@ -4245,12 +4248,12 @@ function Events:ADDON_LOADED(name)
 		UI:UpdateAlpha()
 		UI:UpdateScale()
 		if firstRun then
-			print('It looks like this is your first time running ' .. ADDON .. ', why don\'t you take some time to familiarize yourself with the commands?')
-			print('Type |cFFFFD000' .. SLASH_MonkSeeMonkDo1 .. '|r for a list of commands.')
+			log('It looks like this is your first time running ' .. ADDON .. ', why don\'t you take some time to familiarize yourself with the commands?')
+			log('Type |cFFFFD000' .. SLASH_MonkSeeMonkDo1 .. '|r for a list of commands.')
 			UI:SnapAllPanels()
 		end
 		if UnitLevel('player') < 10 then
-			print('[|cFFFFD000Warning|r] ' .. ADDON .. ' is not designed for players under level 10, and almost certainly will not operate properly!')
+			log('[|cFFFFD000Warning|r]', ADDON, 'is not designed for players under level 10, and almost certainly will not operate properly!')
 		end
 	end
 end
@@ -4325,7 +4328,7 @@ CombatEvent.SPELL = function(event, srcGUID, dstGUID, spellId, spellName, spellS
 
 	local ability = spellId and Abilities.bySpellId[spellId]
 	if not ability then
-		--print(format('EVENT %s TRACK CHECK FOR UNKNOWN %s ID %d', event, type(spellName) == 'string' and spellName or 'Unknown', spellId or 0))
+		--log(format('EVENT %s TRACK CHECK FOR UNKNOWN %s ID %d', event, type(spellName) == 'string' and spellName or 'Unknown', spellId or 0))
 		return
 	end
 
@@ -4384,9 +4387,18 @@ end
 
 function Events:UNIT_HEALTH(unitId)
 	if unitId == 'player' then
-		Player.health.current = UnitHealth('player')
-		Player.health.max = UnitHealthMax('player')
+		Player.health.current = UnitHealth(unitId)
+		Player.health.max = UnitHealthMax(unitId)
 		Player.health.pct = Player.health.current / Player.health.max * 100
+	end
+end
+
+function Events:UNIT_MAXPOWER(unitId)
+	if unitId == 'player' then
+		Player.level = UnitLevel(unitId)
+		Player.mana.base = Player.BaseMana[Player.level]
+		Player.mana.max = UnitPowerMax(unitId, 0)
+		Player.chi.max = UnitPowerMax(unitId, 12)
 	end
 end
 
@@ -4490,6 +4502,7 @@ function Events:PLAYER_EQUIPMENT_CHANGED()
 	Player.set_bonus.t29 = (Player:Equipped(200360) and 1 or 0) + (Player:Equipped(200362) and 1 or 0) + (Player:Equipped(200363) and 1 or 0) + (Player:Equipped(200364) and 1 or 0) + (Player:Equipped(200365) and 1 or 0)
 	Player.set_bonus.t30 = (Player:Equipped(202504) and 1 or 0) + (Player:Equipped(202505) and 1 or 0) + (Player:Equipped(202506) and 1 or 0) + (Player:Equipped(202507) and 1 or 0) + (Player:Equipped(202509) and 1 or 0)
 	Player.set_bonus.t31 = (Player:Equipped(207243) and 1 or 0) + (Player:Equipped(207244) and 1 or 0) + (Player:Equipped(207245) and 1 or 0) + (Player:Equipped(207246) and 1 or 0) + (Player:Equipped(207248) and 1 or 0)
+	Player.set_bonus.t32 = (Player:Equipped(217186) and 1 or 0) + (Player:Equipped(217187) and 1 or 0) + (Player:Equipped(217188) and 1 or 0) + (Player:Equipped(217189) and 1 or 0) + (Player:Equipped(217190) and 1 or 0)
 
 	Player:UpdateKnown()
 end
@@ -4504,6 +4517,7 @@ function Events:PLAYER_SPECIALIZATION_CHANGED(unitId)
 	Events:PLAYER_EQUIPMENT_CHANGED()
 	Events:PLAYER_REGEN_ENABLED()
 	Events:UNIT_HEALTH('player')
+	Events:UNIT_MAXPOWER('player')
 	UI.OnResourceFrameShow()
 	Target:Update()
 	Player:Update()
@@ -4605,7 +4619,7 @@ local function Status(desc, opt, ...)
 	else
 		opt_view = opt and '|cFF00C000On|r' or '|cFFC00000Off|r'
 	end
-	print(ADDON, '-', desc .. ':', opt_view, ...)
+	log(desc .. ':', opt_view, ...)
 end
 
 SlashCmdList[ADDON] = function(msg, editbox)
@@ -4631,7 +4645,7 @@ SlashCmdList[ADDON] = function(msg, editbox)
 			else
 				Opt.snap = false
 				Opt.locked = false
-				msmdPanel:ClearAllPoints()
+				UI:Reset()
 			end
 			UI:UpdateDraggable()
 			UI.OnResourceFrameShow()
@@ -4871,9 +4885,7 @@ SlashCmdList[ADDON] = function(msg, editbox)
 		return Status('Show defensives/emergency heals in extra UI', Opt.defensives)
 	end
 	if msg[1] == 'reset' then
-		msmdPanel:ClearAllPoints()
-		msmdPanel:SetPoint('CENTER', 0, -169)
-		UI:SnapAllPanels()
+		UI:Reset()
 		return Status('Position has been reset to', 'default')
 	end
 	print(ADDON, '(version: |cFFFFD000' .. GetAddOnMetadata(ADDON, 'Version') .. '|r) - Commands:')

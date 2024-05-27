@@ -1,23 +1,23 @@
 <Bindings>
-	<Binding name="Toggle Targets +" header="BINDING_HEADER_MONKSEEMONKDO" category="ADDONS">
+	<Binding name="MONKSEEMONKDO_TARGETMORE" category="BINDING_CATEGORY_MONKSEEMONKDO">
 		MonkSeeMonkDo_ToggleTargetMode()
 	</Binding>
-	<Binding name="Toggle Targets -" category="ADDONS">
+	<Binding name="MONKSEEMONKDO_TARGETLESS" category="BINDING_CATEGORY_MONKSEEMONKDO">
 		MonkSeeMonkDo_ToggleTargetModeReverse()
 	</Binding>
-	<Binding name="Set Targets to 1" category="ADDONS">
+	<Binding name="MONKSEEMONKDO_TARGET1" category="BINDING_CATEGORY_MONKSEEMONKDO">
 		MonkSeeMonkDo_SetTargetMode(1)
 	</Binding>
-	<Binding name="Set Targets to 2" category="ADDONS">
+	<Binding name="MONKSEEMONKDO_TARGET2" category="BINDING_CATEGORY_MONKSEEMONKDO">
 		MonkSeeMonkDo_SetTargetMode(2)
 	</Binding>
-	<Binding name="Set Targets to 3" category="ADDONS">
+	<Binding name="MONKSEEMONKDO_TARGET3" category="BINDING_CATEGORY_MONKSEEMONKDO">
 		MonkSeeMonkDo_SetTargetMode(3)
 	</Binding>
-	<Binding name="Set Targets to 4" category="ADDONS">
+	<Binding name="MONKSEEMONKDO_TARGET4" category="BINDING_CATEGORY_MONKSEEMONKDO">
 		MonkSeeMonkDo_SetTargetMode(4)
 	</Binding>
-	<Binding name="Set Targets to 5+" category="ADDONS">
+	<Binding name="MONKSEEMONKDO_TARGET5" category="BINDING_CATEGORY_MONKSEEMONKDO">
 		MonkSeeMonkDo_SetTargetMode(5)
 	</Binding>
 </Bindings>

@@ -1,7 +1,8 @@
-## Interface: 100205
+## Interface: 100207
 ## Title: MonkSeeMonkDo
 ## Notes: MonkSeeMonkDo is an addon for monks that simplifies gameplay and maximizes DPS by doing all the decision making for you
 ## Author: jcadduono @ curseforge.com or Spy#1955 @ BattleTag
 ## SavedVariablesPerCharacter: MonkSeeMonkDo
-## Version: 10.2.5-1
+## Version: 10.2.7-0
+MonkSeeMonkDo.xml
 MonkSeeMonkDo.lua
