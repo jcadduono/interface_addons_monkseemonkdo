@@ -2483,7 +2483,7 @@ actions.cd_sef+=/bag_of_tricks,if=buff.storm_earth_and_fire.down
 	if self.use_cds and InvokeXuenTheWhiteTiger:Usable() then
 		return UseCooldown(InvokeXuenTheWhiteTiger)
 	end
-	if self.use_cds and StormEarthAndFire:Usable() and (
+	if self.use_cds and StormEarthAndFire:Usable() and StormEarthAndFire:Down() and (
 		Pet.Xuen:Up() or
 		(Target.timeToDie > 15 and StormEarthAndFire:FullRechargeTime() < InvokeXuenTheWhiteTiger:Cooldown()) or
 		(Target.boss and Target.timeToDie < 20) or
