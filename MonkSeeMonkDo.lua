@@ -146,7 +146,7 @@ end
 local UI = {
 	anchor = {},
 	buttons = {},
-	remains_list = {},
+	action_slots = {},
 }
 
 -- combat event related functions container
@@ -539,6 +539,7 @@ function Ability:Add(spellId, buff, player, spellId2)
 		last_used = 0,
 		aura_target = buff and 'player' or 'target',
 		aura_filter = (buff and 'HELPFUL' or 'HARMFUL') .. (player and '|PLAYER' or ''),
+		keybinds = {},
 	}
 	setmetatable(ability, self)
 	Abilities.all[#Abilities.all + 1] = ability
@@ -1486,6 +1487,7 @@ function InventoryItem:Add(itemId)
 		icon = icon,
 		can_use = false,
 		off_gcd = true,
+		keybinds = {},
 	}
 	setmetatable(item, self)
 	InventoryItems.all[#InventoryItems.all + 1] = item
@@ -1922,6 +1924,7 @@ function Player:Init()
 	local _
 	if not self.initialized then
 		UI:ScanActionButtons()
+		UI:ScanActionSlots()
 		UI:DisableOverlayGlows()
 		UI:CreateOverlayGlows()
 		UI:HookResourceFrame()
@@ -3274,40 +3277,69 @@ function UI:GetButtonKeybind(button)
 	end
 end
 
-function UI:GetButtonAction(button)
-	local action = (button.CalculateAction and button:CalculateAction()) or button:GetAttribute('action') or 0
-	if action > 0 then
-		local actionType, id, subType = GetActionInfo(action)
-		if id and id > 0 then
-			if (actionType == 'item' or (actionType == 'macro' and subType == 'item')) then
-				return 'item', id
-			elseif (actionType == 'spell' or (actionType == 'macro' and subType == 'spell')) then
-				return 'spell', id
-			end
+function UI:GetActionFromID(actionId)
+	local actionType, id, subType = GetActionInfo(actionId)
+	if id and id > 0 then
+		if (actionType == 'item' or (actionType == 'macro' and subType == 'item')) then
+			return InventoryItems.byItemId[id]
+		elseif (actionType == 'spell' or (actionType == 'macro' and subType == 'spell')) then
+			return Abilities.bySpellId[id]
 		end
 	end
 end
 
-function UI:UpdateBindings()
-	for i, item in next, InventoryItems.all do
-		item.keybind = nil
+function UI:UpdateBindingSlot(actionId)
+	local slot = self.action_slots[actionId]
+	if not slot then
+		return
 	end
-	for a, ability in next, Abilities.all do
-		ability.keybind = nil
+	local action = self:GetActionFromID(actionId)
+	if action ~= slot.action then
+		if slot.action then
+			slot.action.keybinds[actionId] = nil
+		end
+		slot.action = action
+	end
+	if not action then
+		return
+	end
+	for _, button in next, slot.buttons do
+		action.keybinds[actionId] = self:GetButtonKeybind(button)
+		if action.keybinds[actionId] then
+			return
+		end
+	end
+	action.keybinds[actionId] = nil
+end
+
+function UI:UpdateBindings()
+	for _, item in next, InventoryItems.all do
+		wipe(item.keybinds)
+	end
+	for _, ability in next, Abilities.all do
+		wipe(ability.keybinds)
 	end
 	if not Opt.keybinds then
 		return
 	end
-	local bind, action, id
-	for b, button in next, self.buttons do
-		bind = self:GetButtonKeybind(button)
-		if bind then
-			local action, id = self:GetButtonAction(button)
-			if action == 'item' and InventoryItems.byItemId[id] then
-				InventoryItems.byItemId[id].keybind = bind
-			elseif action =='spell' and Abilities.bySpellId[id] then
-				Abilities.bySpellId[id].keybind = bind
+	for actionId in next, self.action_slots do
+		self:UpdateBindingSlot(actionId)
+	end
+end
+
+function UI:ScanActionSlots()
+	wipe(self.action_slots)
+	local actionId, slot
+	for _, button in next, self.buttons do
+		actionId = (button.CalculateAction and button:CalculateAction()) or button:GetAttribute('action') or 0
+		if actionId > 0 then
+			slot = self.action_slots[actionId] or {
+				buttons = {},
+			}
+			if #slot == 0 then
+				self.action_slots[actionId] = slot
 			end
+			slot.buttons[#slot.buttons + 1] = button
 		end
 	end
 end
@@ -3475,8 +3507,11 @@ function UI:UpdateDisplay()
 		if Player.main_freecast then
 			border = 'freecast'
 		end
-		if Opt.keybinds and Player.main.keybind then
-			text_tr = Player.main.keybind
+		if Opt.keybinds then
+			for _, bind in next, Player.main.keybinds do
+				text_tr = bind
+				break
+			end
 		end
 	end
 	if Player.cd then
@@ -3486,8 +3521,11 @@ function UI:UpdateDisplay()
 				text_cd_center = format('%.1f', react)
 			end
 		end
-		if Opt.keybinds and Player.cd.keybind then
-			text_cd_tr = Player.cd.keybind
+		if Opt.keybinds then
+			for _, bind in next, Player.cd.keybinds do
+				text_cd_tr = bind
+				break
+			end
 		end
 	end
 	if Player.pool_energy then
@@ -3728,7 +3766,7 @@ CombatEvent.SPELL = function(event, srcGUID, dstGUID, spellId, spellName, spellS
 					elseif (event == 'SPELL_DAMAGE' or event == 'SPELL_ABSORBED' or event == 'SPELL_MISSED' or event == 'SPELL_AURA_APPLIED' or event == 'SPELL_AURA_REFRESH') and pet.CastLanded then
 						pet:CastLanded(unit, spellId, dstGUID, event, missType)
 					end
-					--log(format('PET %d EVENT %s SPELL %s ID %d', pet.unitId, event, type(spellName) == 'string' and spellName or 'Unknown', spellId or 0))
+					--log(format('%.3f PET %d EVENT %s SPELL %s ID %d', Player.time, pet.unitId, event, type(spellName) == 'string' and spellName or 'Unknown', spellId or 0))
 				end
 			end
 		end
@@ -3935,6 +3973,7 @@ function Events:PLAYER_SPECIALIZATION_CHANGED(unitId)
 	Events:PLAYER_REGEN_ENABLED()
 	Events:UNIT_HEALTH('player')
 	Events:UNIT_MAXPOWER('player')
+	Events:UPDATE_BINDINGS()
 	UI.OnResourceFrameShow()
 	Target:Update()
 	Player:Update()
@@ -3964,9 +4003,9 @@ function Events:PLAYER_PVP_TALENT_UPDATE()
 	Player:UpdateKnown()
 end
 
-function Events:ACTIONBAR_SLOT_CHANGED()
+function Events:ACTIONBAR_SLOT_CHANGED(slot)
 	UI:UpdateGlows()
-	UI:UpdateBindings()
+	UI:UpdateBindingSlot(slot)
 end
 
 function Events:UPDATE_BINDINGS()
