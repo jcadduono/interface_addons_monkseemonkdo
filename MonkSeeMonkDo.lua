@@ -1326,7 +1326,7 @@ BlackoutReinforcement.buff_duration = 600
 
 -- PvP talents
 
--- Trinket Effects
+-- Trinket effects
 
 -- Class cooldowns
 local PowerInfusion = Ability:Add(10060, true)
@@ -3127,12 +3127,13 @@ function UI:UpdateGlowColorAndScale()
 end
 
 function UI:DisableOverlayGlows()
-	if LibStub and LibStub.GetLibrary and not Opt.glow.blizzard then
-		local lib = LibStub:GetLibrary('LibButtonGlow-1.0', true)
-		if lib then
-			lib.ShowOverlayGlow = function(self)
-				return
-			end
+	if Opt.glow.blizzard or not LibStub then
+		return
+	end
+	local lib = LibStub:GetLibrary('LibButtonGlow-1.0', true)
+	if lib then
+		lib.ShowOverlayGlow = function(...)
+			return lib.HideOverlayGlow(...)
 		end
 	end
 end
@@ -3281,7 +3282,7 @@ end
 
 function UI:GetActionFromID(actionId)
 	local actionType, id, subType = GetActionInfo(actionId)
-	if id and id > 0 then
+	if id and type(id) == 'number' and id > 0 then
 		if (actionType == 'item' or (actionType == 'macro' and subType == 'item')) then
 			return InventoryItems.byItemId[id]
 		elseif (actionType == 'spell' or (actionType == 'macro' and subType == 'spell')) then
@@ -3290,7 +3291,7 @@ function UI:GetActionFromID(actionId)
 	end
 end
 
-function UI:UpdateBindingSlot(actionId)
+function UI:UpdateActionSlot(actionId)
 	local slot = self.action_slots[actionId]
 	if not slot then
 		return
@@ -3321,27 +3322,28 @@ function UI:UpdateBindings()
 	for _, ability in next, Abilities.all do
 		wipe(ability.keybinds)
 	end
-	if not Opt.keybinds then
-		return
-	end
 	for actionId in next, self.action_slots do
-		self:UpdateBindingSlot(actionId)
+		self:UpdateActionSlot(actionId)
 	end
 end
 
 function UI:ScanActionSlots()
 	wipe(self.action_slots)
-	local actionId, slot
+	local actionId, buttons
 	for _, button in next, self.buttons do
-		actionId = (button.CalculateAction and button:CalculateAction()) or button:GetAttribute('action') or 0
+		actionId = (
+			(button._state_type == 'action' and button._state_action) or
+			(button.CalculateAction and button:CalculateAction()) or
+			(button:GetAttribute('action'))
+		) or 0
 		if actionId > 0 then
-			slot = self.action_slots[actionId] or {
-				buttons = {},
-			}
-			if #slot == 0 then
-				self.action_slots[actionId] = slot
+			if not self.action_slots[actionId] then
+				self.action_slots[actionId] = {
+					buttons = {},
+				}
 			end
-			slot.buttons[#slot.buttons + 1] = button
+			buttons = self.action_slots[actionId].buttons
+			buttons[#buttons + 1] = button
 		end
 	end
 end
@@ -4006,13 +4008,26 @@ function Events:PLAYER_PVP_TALENT_UPDATE()
 end
 
 function Events:ACTIONBAR_SLOT_CHANGED(slot)
+	if not slot or slot < 1 then
+		UI:ScanActionSlots()
+		UI:UpdateBindings()
+	else
+		UI:UpdateActionSlot(slot)
+	end
 	UI:UpdateGlows()
-	UI:UpdateBindingSlot(slot)
 end
+
+function Events:ACTIONBAR_PAGE_CHANGED()
+	C_Timer.After(0, function()
+		Events:ACTIONBAR_SLOT_CHANGED(0)
+	end)
+end
+Events.UPDATE_BONUS_ACTIONBAR = Events.ACTIONBAR_PAGE_CHANGED
 
 function Events:UPDATE_BINDINGS()
 	UI:UpdateBindings()
 end
+Events.GAME_PAD_ACTIVE_CHANGED = Events.UPDATE_BINDINGS
 
 function Events:GROUP_ROSTER_UPDATE()
 	Player.group_size = clamp(GetNumGroupMembers(), 1, 40)
@@ -4287,7 +4302,7 @@ SlashCmdList[ADDON] = function(msg, editbox)
 		end
 		return Status('Only use cooldowns on bosses', Opt.boss_only)
 	end
-	if msg[1] == 'hidespec' or startsWith(msg[1], 'spec') then
+	if startsWith(msg[1], 'hide') or startsWith(msg[1], 'spec') then
 		if msg[2] then
 			if startsWith(msg[2], 'b') then
 				Opt.hide.brewmaster = not Opt.hide.brewmaster
