@@ -23,6 +23,8 @@ end
 local min = math.min
 local max = math.max
 local floor = math.floor
+local GetActionInfo = _G.GetActionInfo
+local GetBindingKey = _G.GetBindingKey
 local GetPowerRegenForPowerType = _G.GetPowerRegenForPowerType
 local GetSpellCharges = C_Spell.GetSpellCharges
 local GetSpellCooldown = C_Spell.GetSpellCooldown
@@ -124,6 +126,7 @@ local function InitOpts()
 		always_on = false,
 		cooldown = true,
 		spell_swipe = true,
+		keybinds = true,
 		dimmer = true,
 		miss_effect = true,
 		boss_only = false,
@@ -142,7 +145,8 @@ end
 -- UI related functions container
 local UI = {
 	anchor = {},
-	glows = {},
+	buttons = {},
+	remains_list = {},
 }
 
 -- combat event related functions container
@@ -210,6 +214,7 @@ local APL = {
 
 -- current player information
 local Player = {
+	initialized = false,
 	time = 0,
 	time_diff = 0,
 	ctime = 0,
@@ -240,7 +245,6 @@ local Player = {
 		current = 0,
 		max = 100,
 		deficit = 100,
-		pct = 0,
 		regen = 0,
 	},
 	chi = {
@@ -1466,8 +1470,13 @@ Pet.WhiteTigerStatue = SummonedPet:Add(196581, 10, SummonWhiteTigerStatue)
 
 -- Start Inventory Items
 
-local InventoryItem, inventoryItems, Trinket = {}, {}, {}
+local InventoryItem, Trinket = {}, {}
 InventoryItem.__index = InventoryItem
+
+local InventoryItems = {
+	all = {},
+	byItemId = {},
+}
 
 function InventoryItem:Add(itemId)
 	local name, _, _, _, _, _, _, _, _, icon = GetItemInfo(itemId)
@@ -1479,7 +1488,8 @@ function InventoryItem:Add(itemId)
 		off_gcd = true,
 	}
 	setmetatable(item, self)
-	inventoryItems[#inventoryItems + 1] = item
+	InventoryItems.all[#InventoryItems.all + 1] = item
+	InventoryItems.byItemId[itemId] = item
 	return item
 end
 
@@ -1861,7 +1871,6 @@ function Player:Update()
 	else
 		self.gcd = 1.0
 		self.energy.regen = GetPowerRegenForPowerType(3)
-		self.energy.max = UnitPowerMax('player', 3)
 		self.energy.current = UnitPower('player', 3) + (self.energy.regen * self.execute_remains)
 		self.energy.current = clamp(self.energy.current, 0, self.energy.max)
 		self.energy.deficit = self.energy.max - self.energy.current
@@ -1911,14 +1920,16 @@ end
 
 function Player:Init()
 	local _
-	if #UI.glows == 0 then
+	if not self.initialized then
+		UI:ScanActionButtons()
 		UI:DisableOverlayGlows()
 		UI:CreateOverlayGlows()
 		UI:HookResourceFrame()
+		self.guid = UnitGUID('player')
+		self.name = UnitName('player')
+		self.initialized = true
 	end
 	msmdPreviousPanel.ability = nil
-	self.guid = UnitGUID('player')
-	self.name = UnitName('player')
 	_, self.instance = IsInInstance()
 	Events:GROUP_ROSTER_UPDATE()
 	Events:PLAYER_SPECIALIZATION_CHANGED('player')
@@ -1944,7 +1955,9 @@ function Target:UpdateHealth(reset)
 		table.remove(self.health.history, 1)
 		self.health.history[25] = self.health.current
 	end
-	self.timeToDieMax = self.health.current / Player.health.max * (Player.spec == SPEC.WINDWALKER and 15 or 25)
+	self.timeToDieMax = self.health.current / Player.health.max * (
+		15 + (Player.spec == SPEC.MISTWEAVER and 10 or 0) + (Player.spec == SPEC.BREWMASTER and 5 or 0)
+	)
 	self.health.pct = self.health.max > 0 and (self.health.current / self.health.max * 100) or 100
 	self.health.loss_per_sec = (self.health.history[1] - self.health.current) / 5
 	self.timeToDie = (
@@ -2078,18 +2091,18 @@ function ChiBurst:ChiCost()
 	return Ability.ChiCost(self) - min(2, Player.enemies)
 end
 
-function WhirlingDragonPunch:Usable()
+function WhirlingDragonPunch:Usable(...)
 	if FistsOfFury:Ready() or RisingSunKick:Ready() then
 		return false
 	end
-	return Ability.Usable(self)
+	return Ability.Usable(self, ...)
 end
 
-function TouchOfDeath:Usable()
+function TouchOfDeath:Usable(...)
 	if Target.health.pct >= 15 and (Target.player or Target.health.current > Player.health.current) then
 		return false
 	end
-	return Ability.Usable(self)
+	return Ability.Usable(self, ...)
 end
 
 function GiftOfTheOx:Charges()
@@ -2144,11 +2157,11 @@ function Stagger:Heavy()
 	return self:TickPct() > 5
 end
 
-function LegSweep:Usable()
+function LegSweep:Usable(...)
 	if not Target.stunnable then
 		return false
 	end
-	return Ability.Usable(self)
+	return Ability.Usable(self, ...)
 end
 
 function InvokeXuenTheWhiteTiger:Remains()
@@ -3099,8 +3112,8 @@ hooksecurefunc('ActionButton_ShowOverlayGlow', UI.DenyOverlayGlow) -- Disable Bl
 function UI:UpdateGlowColorAndScale()
 	local w, h, glow
 	local r, g, b = Opt.glow.color.r, Opt.glow.color.g, Opt.glow.color.b
-	for i = 1, #self.glows do
-		glow = self.glows[i]
+	for i, button in next, self.buttons do
+		glow = button['glow' .. ADDON]
 		w, h = glow.button:GetSize()
 		glow:SetSize(w * 1.4, h * 1.4)
 		glow:SetPoint('TOPLEFT', glow.button, 'TOPLEFT', -w * 0.2 * Opt.scale.glow, h * 0.2 * Opt.scale.glow)
@@ -3121,60 +3134,73 @@ function UI:DisableOverlayGlows()
 	end
 end
 
-function UI:CreateOverlayGlows()
-	local GenerateGlow = function(button)
-		if button then
-			local glow = CreateFrame('Frame', nil, button, 'ActionBarButtonSpellActivationAlert')
-			glow:Hide()
-			glow.ProcStartAnim:Play() -- will bug out if ProcLoop plays first
-			glow.button = button
-			self.glows[#self.glows + 1] = glow
-		end
-	end
-	for i = 1, 12 do
-		GenerateGlow(_G['ActionButton' .. i])
-		GenerateGlow(_G['MultiBarLeftButton' .. i])
-		GenerateGlow(_G['MultiBarRightButton' .. i])
-		GenerateGlow(_G['MultiBarBottomLeftButton' .. i])
-		GenerateGlow(_G['MultiBarBottomRightButton' .. i])
-	end
-	for i = 1, 10 do
-		GenerateGlow(_G['PetActionButton' .. i])
-	end
+function UI:ScanActionButtons()
+	wipe(self.buttons)
 	if Bartender4 then
 		for i = 1, 120 do
-			GenerateGlow(_G['BT4Button' .. i])
+			self.buttons[#self.buttons + 1] = _G['BT4Button' .. i]
 		end
-	end
-	if Dominos then
-		for i = 1, 60 do
-			GenerateGlow(_G['DominosActionButton' .. i])
+		for i = 1, 10 do
+			self.buttons[#self.buttons + 1] = _G['BT4PetButton' .. i]
 		end
+		return
 	end
 	if ElvUI then
 		for b = 1, 6 do
 			for i = 1, 12 do
-				GenerateGlow(_G['ElvUI_Bar' .. b .. 'Button' .. i])
+				self.buttons[#self.buttons + 1] = _G['ElvUI_Bar' .. b .. 'Button' .. i]
 			end
 		end
+		return
 	end
 	if LUI then
 		for b = 1, 6 do
 			for i = 1, 12 do
-				GenerateGlow(_G['LUIBarBottom' .. b .. 'Button' .. i])
-				GenerateGlow(_G['LUIBarLeft' .. b .. 'Button' .. i])
-				GenerateGlow(_G['LUIBarRight' .. b .. 'Button' .. i])
+				self.buttons[#self.buttons + 1] = _G['LUIBarBottom' .. b .. 'Button' .. i]
+				self.buttons[#self.buttons + 1] = _G['LUIBarLeft' .. b .. 'Button' .. i]
+				self.buttons[#self.buttons + 1] = _G['LUIBarRight' .. b .. 'Button' .. i]
 			end
 		end
+		return
+	end
+	if Dominos then
+		for i = 1, 60 do
+			self.buttons[#self.buttons + 1] = _G['DominosActionButton' .. i]
+		end
+		-- fallthrough because Dominos re-uses Blizzard action buttons
+	end
+	for i = 1, 12 do
+		self.buttons[#self.buttons + 1] = _G['ActionButton' .. i]
+		self.buttons[#self.buttons + 1] = _G['MultiBarLeftButton' .. i]
+		self.buttons[#self.buttons + 1] = _G['MultiBarRightButton' .. i]
+		self.buttons[#self.buttons + 1] = _G['MultiBarBottomLeftButton' .. i]
+		self.buttons[#self.buttons + 1] = _G['MultiBarBottomRightButton' .. i]
+		self.buttons[#self.buttons + 1] = _G['MultiBar5Button' .. i]
+		self.buttons[#self.buttons + 1] = _G['MultiBar6Button' .. i]
+		self.buttons[#self.buttons + 1] = _G['MultiBar7Button' .. i]
+	end
+	for i = 1, 10 do
+		self.buttons[#self.buttons + 1] = _G['PetActionButton' .. i]
+	end
+end
+
+function UI:CreateOverlayGlows()
+	local glow
+	for i, button in next, self.buttons do
+		glow = button['glow' .. ADDON] or CreateFrame('Frame', nil, button, 'ActionBarButtonSpellActivationAlert')
+		glow:Hide()
+		glow.ProcStartAnim:Play() -- will bug out if ProcLoop plays first
+		glow.button = button
+		button['glow' .. ADDON] = glow
 	end
 	self:UpdateGlowColorAndScale()
 end
 
 function UI:UpdateGlows()
 	local glow, icon
-	for i = 1, #self.glows do
-		glow = self.glows[i]
-		icon = glow.button.icon:GetTexture()
+	for i, button in next, self.buttons do
+		glow = button['glow' .. ADDON]
+		icon = button.icon:GetTexture()
 		if icon and glow.button.icon:IsVisible() and (
 			(Opt.glow.main and Player.main and icon == Player.main.icon) or
 			(Opt.glow.cooldown and Player.cd and icon == Player.cd.icon) or
@@ -3197,6 +3223,91 @@ function UI:UpdateGlows()
 				glow.ProcLoop:Stop()
 			end
 			glow:Hide()
+		end
+	end
+end
+
+UI.KeybindPatterns = {
+	['ALT%-'] = 'a-',
+	['CTRL%-'] = 'c-',
+	['SHIFT%-'] = 's-',
+	['META%-'] = 'm-',
+	['NUMPAD'] = 'NP',
+	['PLUS'] = '%+',
+	['MINUS'] = '%-',
+	['MULTIPLY'] = '%*',
+	['DIVIDE'] = '%/',
+	['BACKSPACE'] = 'BS',
+	['BUTTON'] = 'MB',
+	['CLEAR'] = 'Clr',
+	['DELETE'] = 'Del',
+	['END'] = 'End',
+	['HOME'] = 'Home',
+	['INSERT'] = 'Ins',
+	['MOUSEWHEELDOWN'] = 'MwD',
+	['MOUSEWHEELUP'] = 'MwU',
+	['PAGEDOWN'] = 'PgDn',
+	['PAGEUP'] = 'PgUp',
+	['CAPSLOCK'] = 'Caps',
+	['NUMLOCK'] = 'NumL',
+	['SCROLLLOCK'] = 'ScrL',
+	['SPACEBAR'] = 'Space',
+	['SPACE'] = 'Space',
+	['TAB'] = 'Tab',
+	['DOWNARROW'] = 'Down',
+	['LEFTARROW'] = 'Left',
+	['RIGHTARROW'] = 'Right',
+	['UPARROW'] = 'Up',
+}
+
+function UI:GetButtonKeybind(button)
+	local bind = button.bindingAction or (button.config and button.config.keyBoundTarget)
+	if bind then
+		local key = GetBindingKey(bind)
+		if key then
+			key = key:gsub(' ', ''):upper()
+			for pattern, short in next, self.KeybindPatterns do
+				key = key:gsub(pattern, short)
+			end
+			return key
+		end
+	end
+end
+
+function UI:GetButtonAction(button)
+	local action = (button.CalculateAction and button:CalculateAction()) or button:GetAttribute('action') or 0
+	if action > 0 then
+		local actionType, id, subType = GetActionInfo(action)
+		if id and id > 0 then
+			if (actionType == 'item' or (actionType == 'macro' and subType == 'item')) then
+				return 'item', id
+			elseif (actionType == 'spell' or (actionType == 'macro' and subType == 'spell')) then
+				return 'spell', id
+			end
+		end
+	end
+end
+
+function UI:UpdateBindings()
+	for i, item in next, InventoryItems.all do
+		item.keybind = nil
+	end
+	for a, ability in next, Abilities.all do
+		ability.keybind = nil
+	end
+	if not Opt.keybinds then
+		return
+	end
+	local bind, action, id
+	for b, button in next, self.buttons do
+		bind = self:GetButtonKeybind(button)
+		if bind then
+			local action, id = self:GetButtonAction(button)
+			if action == 'item' and InventoryItems.byItemId[id] then
+				InventoryItems.byItemId[id].keybind = bind
+			elseif action =='spell' and Abilities.bySpellId[id] then
+				Abilities.bySpellId[id].keybind = bind
+			end
 		end
 	end
 end
@@ -3233,8 +3344,10 @@ end
 
 function UI:UpdateScale()
 	msmdPanel:SetSize(64 * Opt.scale.main, 64 * Opt.scale.main)
+	msmdPanel.text:SetScale(Opt.scale.main)
 	msmdPreviousPanel:SetSize(64 * Opt.scale.previous, 64 * Opt.scale.previous)
 	msmdCooldownPanel:SetSize(64 * Opt.scale.cooldown, 64 * Opt.scale.cooldown)
+	msmdCooldownPanel.text:SetScale(Opt.scale.cooldown)
 	msmdInterruptPanel:SetSize(64 * Opt.scale.interrupt, 64 * Opt.scale.interrupt)
 	msmdExtraPanel:SetSize(64 * Opt.scale.extra, 64 * Opt.scale.extra)
 end
@@ -3341,7 +3454,7 @@ end
 
 function UI:UpdateDisplay()
 	Timer.display = 0
-	local border, dim, dim_cd, text_cd, text_center, text_tl, text_tr, text_bl
+	local border, dim, dim_cd, text_cd, text_center, text_tl, text_tr, text_bl, text_cd_center, text_cd_tr
 	local channel = Player.channel
 
 	if Opt.dimmer then
@@ -3362,13 +3475,19 @@ function UI:UpdateDisplay()
 		if Player.main_freecast then
 			border = 'freecast'
 		end
+		if Opt.keybinds and Player.main.keybind then
+			text_tr = Player.main.keybind
+		end
 	end
 	if Player.cd then
 		if Player.cd.requires_react then
 			local react = Player.cd:React()
 			if react > 0 then
-				text_cd = format('%.1f', react)
+				text_cd_center = format('%.1f', react)
 			end
+		end
+		if Opt.keybinds and Player.cd.keybind then
+			text_cd_tr = Player.cd.keybind
 		end
 	end
 	if Player.pool_energy then
@@ -3396,14 +3515,14 @@ function UI:UpdateDisplay()
 		end
 	end
 	if Player.major_cd_remains > 0 then
-		text_tr = format('%.1fs', Player.major_cd_remains)
+		text_bl = format('%.1fs', Player.major_cd_remains)
 	end
 	if MarkOfTheCrane.known then
 		if Player.main == SpinningCraneKick then
-			text_tl = format('%d%%', Player.sck_mod * 100)
+			text_center = format('%d%%', Player.sck_mod * 100)
 		end
 		if Player.sck_motc > 0 then
-			text_bl = format('|cFF%s%d', SpinningCraneKick:Max() and '00FF00' or 'FF0000', Player.sck_motc)
+			text_tl = format('|cFF%s%d', SpinningCraneKick:Max() and '00FF00' or 'FF0000', Player.sck_motc)
 		end
 	elseif GiftOfTheOx.known then
 		text_tl = GiftOfTheOx.count
@@ -3418,8 +3537,9 @@ function UI:UpdateDisplay()
 	msmdPanel.text.tl:SetText(text_tl)
 	msmdPanel.text.tr:SetText(text_tr)
 	msmdPanel.text.bl:SetText(text_bl)
-	msmdCooldownPanel.text:SetText(text_cd)
 	msmdCooldownPanel.dimmer:SetShown(dim_cd)
+	msmdCooldownPanel.text.center:SetText(text_cd_center)
+	msmdCooldownPanel.text.tr:SetText(text_cd_tr)
 end
 
 function UI:UpdateCombat()
@@ -3695,6 +3815,7 @@ function Events:UNIT_MAXPOWER(unitId)
 		Player.level = UnitLevel(unitId)
 		Player.mana.base = Player.BaseMana[Player.level]
 		Player.mana.max = UnitPowerMax(unitId, 0)
+		Player.energy.max = UnitPowerMax(unitId, 3)
 		Player.chi.max = UnitPowerMax(unitId, 12)
 	end
 end
@@ -3780,25 +3901,26 @@ function Events:PLAYER_EQUIPMENT_CHANGED()
 			Trinket2.itemId = 0
 		end
 	end
-	for i = 1, #inventoryItems do
-		inventoryItems[i].name, _, _, _, _, _, _, _, equipType, inventoryItems[i].icon = GetItemInfo(inventoryItems[i].itemId or 0)
-		inventoryItems[i].can_use = inventoryItems[i].name and true or false
+	for _, i in next, InventoryItems.all do
+		i.name, _, _, _, _, _, _, _, equipType, i.icon = GetItemInfo(i.itemId or 0)
+		i.can_use = i.name and true or false
 		if equipType and equipType ~= '' then
 			hasCooldown = 0
-			_, inventoryItems[i].equip_slot = Player:Equipped(inventoryItems[i].itemId)
-			if inventoryItems[i].equip_slot then
-				_, _, hasCooldown = GetInventoryItemCooldown('player', inventoryItems[i].equip_slot)
+			_, i.equip_slot = Player:Equipped(i.itemId)
+			if i.equip_slot then
+				_, _, hasCooldown = GetInventoryItemCooldown('player', i.equip_slot)
 			end
-			inventoryItems[i].can_use = hasCooldown == 1
+			i.can_use = hasCooldown == 1
 		end
-		if Player.item_use_blacklist[inventoryItems[i].itemId] then
-			inventoryItems[i].can_use = false
+		if Player.item_use_blacklist[i.itemId] then
+			i.can_use = false
 		end
 	end
 
 	Player.set_bonus.t31 = (Player:Equipped(207243) and 1 or 0) + (Player:Equipped(207244) and 1 or 0) + (Player:Equipped(207245) and 1 or 0) + (Player:Equipped(207246) and 1 or 0) + (Player:Equipped(207248) and 1 or 0)
 	Player.set_bonus.t33 = (Player:Equipped(212045) and 1 or 0) + (Player:Equipped(212046) and 1 or 0) + (Player:Equipped(212047) and 1 or 0) + (Player:Equipped(212048) and 1 or 0) + (Player:Equipped(212050) and 1 or 0)
 
+	Player:ResetSwing(true, true)
 	Player:UpdateKnown()
 end
 
@@ -3844,6 +3966,11 @@ end
 
 function Events:ACTIONBAR_SLOT_CHANGED()
 	UI:UpdateGlows()
+	UI:UpdateBindings()
+end
+
+function Events:UPDATE_BINDINGS()
+	UI:UpdateBindings()
 end
 
 function Events:GROUP_ROSTER_UPDATE()
@@ -4087,6 +4214,12 @@ SlashCmdList[ADDON] = function(msg, editbox)
 		end
 		return Status('Spell casting swipe animation', Opt.spell_swipe)
 	end
+	if startsWith(msg[1], 'key') or startsWith(msg[1], 'bind') then
+		if msg[2] then
+			Opt.keybinds = msg[2] == 'on'
+		end
+		return Status('Show keybinding text on main ability icon (topright)', Opt.keybinds)
+	end
 	if startsWith(msg[1], 'dim') then
 		if msg[2] then
 			Opt.dimmer = msg[2] == 'on'
@@ -4198,6 +4331,7 @@ SlashCmdList[ADDON] = function(msg, editbox)
 		'always |cFF00C000on|r/|cFFC00000off|r - show the ' .. ADDON .. ' UI without a target',
 		'cd |cFF00C000on|r/|cFFC00000off|r - use ' .. ADDON .. ' for cooldown management',
 		'swipe |cFF00C000on|r/|cFFC00000off|r - show spell casting swipe animation on main ability icon',
+		'keybind |cFF00C000on|r/|cFFC00000off|r - show keybinding text on main ability icon (topright)',
 		'dim |cFF00C000on|r/|cFFC00000off|r - dim main ability icon when you don\'t have enough resources to use it',
 		'miss |cFF00C000on|r/|cFFC00000off|r - red border around previous ability when it fails to hit',
 		'aoe |cFF00C000on|r/|cFFC00000off|r - allow clicking main ability icon to toggle amount of targets (disables moving)',
