@@ -3200,32 +3200,34 @@ function UI:CreateOverlayGlows()
 end
 
 function UI:UpdateGlows()
-	local glow, icon
-	for i, button in next, self.buttons do
-		glow = button['glow' .. ADDON]
-		icon = button.icon:GetTexture()
-		if icon and glow.button.icon:IsVisible() and (
-			(Opt.glow.main and Player.main and icon == Player.main.icon) or
-			(Opt.glow.cooldown and Player.cd and icon == Player.cd.icon) or
-			(Opt.glow.interrupt and Player.interrupt and icon == Player.interrupt.icon) or
-			(Opt.glow.extra and Player.extra and icon == Player.extra.icon)
+	local glow, action
+	for _, slot in next, self.action_slots do
+		action = slot.action
+		for _, button in next, slot.buttons do
+			glow = button['glow' .. ADDON]
+			if action and button:IsVisible() and (
+				(Opt.glow.main and action == Player.main) or
+				(Opt.glow.cooldown and action == Player.cd) or
+				(Opt.glow.interrupt and action == Player.interrupt) or
+				(Opt.glow.extra and action == Player.extra)
 			) then
-			if not glow:IsVisible() then
-				glow:Show()
-				if Opt.glow.animation then
-					glow.ProcStartAnim:Play()
-				else
-					glow.ProcLoop:Play()
+				if not glow:IsVisible() then
+					glow:Show()
+					if Opt.glow.animation then
+						glow.ProcStartAnim:Play()
+					else
+						glow.ProcLoop:Play()
+					end
 				end
+			elseif glow:IsVisible() then
+				if glow.ProcStartAnim:IsPlaying() then
+					glow.ProcStartAnim:Stop()
+				end
+				if glow.ProcLoop:IsPlaying() then
+					glow.ProcLoop:Stop()
+				end
+				glow:Hide()
 			end
-		elseif glow:IsVisible() then
-			if glow.ProcStartAnim:IsPlaying() then
-				glow.ProcStartAnim:Stop()
-			end
-			if glow.ProcLoop:IsPlaying() then
-				glow.ProcLoop:Stop()
-			end
-			glow:Hide()
 		end
 	end
 end
