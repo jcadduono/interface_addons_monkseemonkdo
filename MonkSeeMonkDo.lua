@@ -1172,6 +1172,7 @@ local ShadowboxingTreads = Ability:Add({387638, 392982}, false, true, 228649)
 ShadowboxingTreads:AutoAoe()
 local TeachingsOfTheMonastery = Ability:Add(116645, true, true, 202090)
 TeachingsOfTheMonastery.buff_duration = 20
+TeachingsOfTheMonastery.max_stack = 4
 ------ Procs
 
 ---- Brewmaster
@@ -2432,7 +2433,7 @@ actions+=/call_action_list,name=fallthru
 	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireStomp:Combo() and JadefireBrand:Remains() < 1 then
 		UseCooldown(JadefireStomp)
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not TeachingsOfTheMonastery.known or TeachingsOfTheMonastery:Stack() < 3) and Player.chi.deficit >= (2 + (CombatWisdom:Up() and 1 or 0)) then
+	if TigerPalm:Usable() and TigerPalm:Combo() and not self.hold_tp_rsk and (not TeachingsOfTheMonastery.known or not TeachingsOfTheMonastery:Capped()) and Player.chi.deficit >= (2 + (CombatWisdom:Up() and 1 or 0)) then
 		return TigerPalm
 	end
 	if ChiBurst:Usable() and JadefireStomp.known and not JadefireHarmony.known and not JadefireStomp:Ready() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
@@ -2532,7 +2533,7 @@ actions.default_2t+=/rising_sun_kick
 actions.default_2t+=/blackout_kick,if=combo_strike
 actions.default_2t+=/jadefire_stomp,if=combo_strike
 ]]
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and TeachingsOfTheMonastery:Stack() < 3 then
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and not TeachingsOfTheMonastery:Capped() then
 		return TigerPalm
 	end
 	if ExpelHarm:Usable() and (
@@ -2541,7 +2542,7 @@ actions.default_2t+=/jadefire_stomp,if=combo_strike
 	) then
 		return ExpelHarm
 	end
-	if ShadowboxingTreads.known and TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+	if ShadowboxingTreads.known and TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped() then
 		return BlackoutKick
 	end
 	if Thunderfist.known and StrikeOfTheWindlord:Usable() and (
@@ -2576,7 +2577,7 @@ actions.default_2t+=/jadefire_stomp,if=combo_strike
 		return ChiBurst
 	end
 	if BlackoutKick:Usable() and (
-		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Stack() == 2) or
+		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Capped(1)) or
 		(XuensBattlegear.known and PressurePoint:Up() and RisingSunKick:Previous())
 	) then
 		return BlackoutKick
@@ -2593,7 +2594,7 @@ actions.default_2t+=/jadefire_stomp,if=combo_strike
 	if WhirlingDragonPunch:Usable() then
 		return WhirlingDragonPunch
 	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped() then
 		return BlackoutKick
 	end
 	if XuensBattlegear.known and RisingSunKick:Usable() and not ShadowboxingTreads.known and not FistsOfFury:Ready(4) then
@@ -2643,7 +2644,7 @@ actions.default_3t+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
 actions.default_3t+=/blackout_kick,if=combo_strike&talent.shadowboxing_treads&!spinning_crane_kick.max
 actions.default_3t+=/spinning_crane_kick,if=target.time_to_die>duration&(combo_strike&chi>5&talent.storm_earth_and_fire)
 ]]
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and TeachingsOfTheMonastery:Stack() < 3 then
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and not TeachingsOfTheMonastery:Capped() then
 		return TigerPalm
 	end
 	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and DanceOfChiJi:Up() and BlackoutReinforcement:Down() then
@@ -2659,7 +2660,7 @@ actions.default_3t+=/spinning_crane_kick,if=target.time_to_die>duration&(combo_s
 	end
 	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and (
 		(BlackoutReinforcement.known and BlackoutReinforcement:Up()) or
-		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Stack() >= 3)
+		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Capped())
 	) then
 		return BlackoutKick
 	end
@@ -2677,7 +2678,7 @@ actions.default_3t+=/spinning_crane_kick,if=target.time_to_die>duration&(combo_s
 	) then
 		return ExpelHarm
 	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() == 2 then
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped(1) then
 		return BlackoutKick
 	end
 	if StrikeOfTheWindlord:Usable() then
@@ -2692,7 +2693,7 @@ actions.default_3t+=/spinning_crane_kick,if=target.time_to_die>duration&(combo_s
 	if ChiBurst:Usable() and Player.chi.current < 5 and (Player.energy.current < 60 or Player:BloodlustActive()) then
 		return ChiBurst
 	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped() then
 		return BlackoutKick
 	end
 	if JadeIgnition.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and not FistsOfFury:Ready(3) and ChiEnergy:Stack() > 15 then
@@ -2741,7 +2742,7 @@ actions.default_4t+=/strike_of_the_windlord
 actions.default_4t+=/spinning_crane_kick,if=target.time_to_die>duration&combo_strike&(cooldown.fists_of_fury.remains>3|chi>4)
 actions.default_4t+=/blackout_kick,if=combo_strike
 ]]
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and TeachingsOfTheMonastery:Stack() < 3 then
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and not TeachingsOfTheMonastery:Capped() then
 		return TigerPalm
 	end
 	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and DanceOfChiJi:Up() and SpinningCraneKick:Max() and BlackoutReinforcement:Down() then
@@ -2765,7 +2766,7 @@ actions.default_4t+=/blackout_kick,if=combo_strike
 	if RushingJadeWind:Usable() and RushingJadeWind:Down() then
 		return RushingJadeWind
 	end
-	if ShadowboxingTreads.known and TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+	if ShadowboxingTreads.known and TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped() then
 		return BlackoutKick
 	end
 	if ExpelHarm:Usable() and (
@@ -2783,7 +2784,7 @@ actions.default_4t+=/blackout_kick,if=combo_strike
 	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and (Player.chi.current > 4 or not FistsOfFury:Ready(3)) and SpinningCraneKick:Max() then
 		return SpinningCraneKick
 	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped() then
 		return BlackoutKick
 	end
 	if StrikeOfTheWindlord:Usable() then
@@ -2838,7 +2839,7 @@ actions.default_aoe+=/chi_burst,if=chi.max-chi>=1&active_enemies=1&raid_event.ad
 	end
 	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and (
 		(BlackoutReinforcement.known and BlackoutReinforcement:Up()) or
-		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Stack() >= 3)
+		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Capped())
 	) then
 		return BlackoutKick
 	end
@@ -2871,7 +2872,7 @@ actions.default_aoe+=/chi_burst,if=chi.max-chi>=1&active_enemies=1&raid_event.ad
 	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and (Player.chi.current > 4 or not FistsOfFury:Ready(3)) and SpinningCraneKick:Max() then
 		return SpinningCraneKick
 	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() >= 3 then
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped() then
 		return BlackoutKick
 	end
 	if StrikeOfTheWindlord:Usable() then
@@ -2912,7 +2913,7 @@ actions.default_st+=/whirling_dragon_punch
 actions.default_st+=/rushing_jade_wind,if=!buff.rushing_jade_wind.up
 actions.default_st+=/blackout_kick,if=combo_strike
 ]]
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and TeachingsOfTheMonastery:Stack() < 3 then
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and not TeachingsOfTheMonastery:Capped() then
 		return TigerPalm
 	end
 	if ExpelHarm:Usable() and (
@@ -2941,7 +2942,7 @@ actions.default_st+=/blackout_kick,if=combo_strike
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and (
 		(XuensBattlegear.known and PressurePoint:Up() and Player.chi.current > 2 and RisingSunKick:Previous()) or
-		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Stack() >= 3) or
+		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Capped()) or
 		(BlackoutReinforcement.known and DanceOfChiJi.known and BlackoutReinforcement:Up() and not RisingSunKick:Ready() and DanceOfChiJi:Up())
 	) then
 		return BlackoutKick
@@ -2961,7 +2962,7 @@ actions.default_st+=/blackout_kick,if=combo_strike
 	if ChiBurst:Usable() and Player:BloodlustActive() and Player.chi.current < 5 then
 		return ChiBurst
 	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Stack() == 2 then
+	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped(1) then
 		return BlackoutKick
 	end
 	if ChiBurst:Usable() and Player.chi.current < 5 and Player.energy.current < 60 then
