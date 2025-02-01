@@ -1285,6 +1285,8 @@ JadefireStomp.mana_cost = 4
 JadefireStomp.triggers_combo = true
 JadefireStomp:AutoAoe()
 local JadeIgnition = Ability:Add(392979, false, true)
+local OrderedElements = Ability:Add(451463, true, true, 451462)
+OrderedElements.buff_duration = 7
 local WhirlingDragonPunch = Ability:Add(152175, false, true, 158221)
 WhirlingDragonPunch.buff_duration = 1
 WhirlingDragonPunch.cooldown_duration = 24
@@ -2045,6 +2047,14 @@ end
 -- End Target Functions
 
 -- Start Ability Modifications
+
+function Ability:ChiCost()
+	local cost = self.chi_cost
+	if OrderedElements.known and OrderedElements:Up() then
+		cost = cost - 1
+	end
+	return max(0, cost)
+end
 
 function Ability:Combo()
 	return self.triggers_combo and ComboStrikes.last_ability ~= self
