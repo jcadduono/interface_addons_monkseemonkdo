@@ -1239,7 +1239,6 @@ PurifiedChi.buff_duration = 15
 local CombatWisdom = Ability:Add(121817, true, true, 129914)
 local CraneVortex = Ability:Add(388848, false, true)
 local DrinkingHornCover = Ability:Add(391370, false, true)
-local FatalFlyingGuillotine = Ability:Add(394923, false, true)
 local FistsOfFury = Ability:Add(113656, false, true, 117418)
 FistsOfFury.cooldown_duration = 24
 FistsOfFury.buff_duration = 4
@@ -1272,10 +1271,10 @@ TouchOfKarma.buff_duration = 10
 TouchOfKarma.triggers_gcd = false
 local DanceOfChiJi = Ability:Add(325201, true, true, 325202)
 DanceOfChiJi.buff_duration = 15
-local ForbiddenTechnique = Ability:Add(393098, true, true, 393099)
-ForbiddenTechnique.buff_duration = 5
+DanceOfChiJi.max_stack = 2
 local HitCombo = Ability:Add(196740, true, true, 196741)
 HitCombo.buff_duration = 10
+HitCombo.max_stack = 5
 local JadefireBrand = Ability:Add(395414, false, true)
 JadefireBrand.buff_duration = 10
 local JadefireHarmony = Ability:Add(391412, false, true)
@@ -1299,16 +1298,20 @@ StrikeOfTheWindlord.triggers_combo = true
 StrikeOfTheWindlord:AutoAoe(true)
 local Thunderfist = Ability:Add(392985, true, true, 393565)
 Thunderfist.buff_duration = 30
+Thunderfist.max_stack = 10
 local TransferThePower = Ability:Add(195300, true, true, 195321)
 TransferThePower.buff_duration = 30
+TransferThePower.max_stack = 10
 local LastEmperorsCapacitor = Ability:Add(392989, true, true, 393039)
 local XuensBattlegear = Ability:Add(392993, false, true)
 ------ Procs
 BlackoutKick.Proc = Ability:Add(116768, true, true)
 BlackoutKick.Proc.buff_duration = 15
+BlackoutKick.Proc.max_stack = 2
 local ComboStrikes = Ability:Add(115636, true, true) -- Mastery
 local ChiEnergy = Ability:Add(393057, true, true) -- Jade Ignition
 ChiEnergy.buff_duration = 45
+ChiEnergy.max_stack = 30
 local ChiExplosion = Ability:Add(393056, false, true) -- Jade Ignition
 ChiExplosion:AutoAoe(true)
 local PressurePoint = Ability:Add(393053, true, true) -- Xuen's Battlegear
@@ -2424,11 +2427,6 @@ actions+=/call_action_list,name=fallthru
 			if apl then return apl end
 		end
 	end
-	if ForbiddenTechnique.known and TouchOfDeath:Usable() and ForbiddenTechnique:Up() and (
-		(TouchOfDeath:Combo() or Target.timeToDie < 2 or ForbiddenTechnique:Remains() < 2)
-	) then
-		UseCooldown(TouchOfDeath)
-	end
 	self:trinkets()
 	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireStomp:Combo() and JadefireBrand:Remains() < 1 then
 		UseCooldown(JadefireStomp)
@@ -2470,7 +2468,7 @@ actions.cd_sef+=/invoke_xuen_the_white_tiger,if=target.time_to_die>25&fight_rema
 actions.cd_sef+=/invoke_xuen_the_white_tiger,if=fight_remains<60&active_enemies<3
 actions.cd_sef+=/storm_earth_and_fire,if=pet.xuen_the_white_tiger.active|target.time_to_die>15&cooldown.storm_earth_and_fire.full_recharge_time<cooldown.invoke_xuen_the_white_tiger.remains
 actions.cd_sef+=/storm_earth_and_fire,if=fight_remains<20|(cooldown.storm_earth_and_fire.charges=2&cooldown.invoke_xuen_the_white_tiger.remains>cooldown.storm_earth_and_fire.full_recharge_time)&cooldown.fists_of_fury.remains<=9&chi>=2&cooldown.whirling_dragon_punch.remains<=12
-actions.cd_sef+=/touch_of_death,if=fight_style.dungeonroute&(combo_strike&target.health<health)|(buff.hidden_masters_forbidden_touch.remains<2)|(buff.hidden_masters_forbidden_touch.remains>target.time_to_die)
+actions.cd_sef+=/touch_of_death,if=fight_style.dungeonroute&(combo_strike&target.health<health)
 actions.cd_sef+=/touch_of_death,cycle_targets=1,if=fight_style.dungeonroute&combo_strike&(target.time_to_die>60|fight_remains<10)
 actions.cd_sef+=/touch_of_death,cycle_targets=1,if=!fight_style.dungeonroute&combo_strike
 actions.cd_sef+=/touch_of_karma,if=fight_remains>90|pet.xuen_the_white_tiger.active|variable.hold_xuen|fight_remains<16
@@ -2495,10 +2493,7 @@ actions.cd_sef+=/bag_of_tricks,if=buff.storm_earth_and_fire.down
 	) then
 		return UseCooldown(StormEarthAndFire)
 	end
-	if FatalFlyingGuillotine.known and ForbiddenTechnique.known and TouchOfDeath:Usable() and TouchOfDeath:Combo() and Player.enemies >= 3 then
-		return UseCooldown(TouchOfDeath)
-	end
-	if TouchOfDeath:Usable() and TouchOfDeath:Combo() and (ForbiddenTechnique.known or Target.timeToDie < 10 or Target.timeToDie > 60) then
+	if TouchOfDeath:Usable() and TouchOfDeath:Combo() then
 		return UseCooldown(TouchOfDeath)
 	end
 end
@@ -3031,7 +3026,7 @@ actions.fallthru+=/tiger_palm
 		return BlackoutKick
 	end
 	if JadeIgnition.known and SpinningCraneKick:Usable() and (
-		(SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and ChiEnergy:Stack() > (30 - (5 * Player.enemies)) and (not StormEarthAndFire.known or StormEarthAndFire:Down()) and (
+		(SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and ChiEnergy:Capped(5 * Player.enemies) and (not StormEarthAndFire.known or StormEarthAndFire:Down()) and (
 			(not RisingSunKick:Ready(2) and not FistsOfFury:Ready(2)) or
 			(Player.chi.current > 3 and RisingSunKick:Ready(3) and not FistsOfFury:Ready(3)) or
 			(Player.chi.current > 4 and not RisingSunKick:Ready(3) and FistsOfFury:Ready(3)) or
