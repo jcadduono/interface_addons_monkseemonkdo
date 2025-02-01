@@ -1131,6 +1131,7 @@ Paralysis.buff_duration = 60
 Paralysis.energy_cost = 20
 local Resuscitate = Ability:Add(115178, false, false)
 Resuscitate.mana_cost = 0.8
+local RevolvingWhirl = Ability:Add(451524, false, true)
 local RingOfPeace = Ability:Add(116844, false, true)
 RingOfPeace.buff_duration = 5
 RingOfPeace.cooldown_duration = 45
@@ -2556,6 +2557,9 @@ actions.default_2t+=/jadefire_stomp,if=combo_strike
 			return BlackoutKick
 		end
 	end
+	if RevolvingWhirl.known and WhirlingDragonPunch:Usable() and DanceOfChiJi:Down() then
+		return WhirlingDragonPunch
+	end
 	if FistsOfFury:Usable() then
 		return FistsOfFury
 	end
@@ -2659,6 +2663,9 @@ actions.default_3t+=/spinning_crane_kick,if=target.time_to_die>duration&(combo_s
 	) then
 		return BlackoutKick
 	end
+	if RevolvingWhirl.known and WhirlingDragonPunch:Usable() and DanceOfChiJi:Down() then
+		return WhirlingDragonPunch
+	end
 	if FistsOfFury:Usable() then
 		return FistsOfFury
 	end
@@ -2746,6 +2753,9 @@ actions.default_4t+=/blackout_kick,if=combo_strike
 	if Thunderfist.known and StrikeOfTheWindlord:Usable() then
 		return StrikeOfTheWindlord
 	end
+	if RevolvingWhirl.known and WhirlingDragonPunch:Usable() and DanceOfChiJi:Down() then
+		return WhirlingDragonPunch
+	end
 	if FistsOfFury:Usable() then
 		return FistsOfFury
 	end
@@ -2827,6 +2837,9 @@ actions.default_aoe+=/chi_burst,if=chi.max-chi>=1&active_enemies=1&raid_event.ad
 		return StrikeOfTheWindlord
 	end
 	if WhirlingDragonPunch:Usable() and Player.enemies > 8 then
+		return WhirlingDragonPunch
+	end
+	if RevolvingWhirl.known and WhirlingDragonPunch:Usable() and DanceOfChiJi:Down() then
 		return WhirlingDragonPunch
 	end
 	if FistsOfFury:Usable() then
@@ -2922,6 +2935,9 @@ actions.default_st+=/blackout_kick,if=combo_strike
 	end
 	if BlackoutReinforcement.known and DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and DanceOfChiJi:Up() and BlackoutReinforcement:Down() then
 		return SpinningCraneKick
+	end
+	if RevolvingWhirl.known and WhirlingDragonPunch:Usable() and DanceOfChiJi:Down() then
+		return WhirlingDragonPunch
 	end
 	if RisingSunKick:Usable() and FistsOfFury:Ready(1) then
 		return RisingSunKick
