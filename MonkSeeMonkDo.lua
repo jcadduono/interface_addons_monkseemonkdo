@@ -557,11 +557,14 @@ function Ability:Match(spell)
 end
 
 function Ability:Ready(seconds)
-	return self:Cooldown() <= (seconds or 0) and (not self.requires_react or self:React() > (seconds or 0))
+	return self:Cooldown() <= (seconds or 0)
 end
 
 function Ability:Usable(seconds, pool)
 	if not self.known then
+		return false
+	end
+	if self.Available and not self:Available(seconds) then
 		return false
 	end
 	if Player.spec == SPEC.MISTWEAVER then
@@ -577,6 +580,9 @@ function Ability:Usable(seconds, pool)
 		end
 	end
 	if self.requires_charge and self:Charges() == 0 then
+		return false
+	end
+	if self.requires_react and self:React() <= (seconds or 0) then
 		return false
 	end
 	return self:Ready(seconds)
@@ -1136,6 +1142,7 @@ RingOfPeace.buff_duration = 5
 RingOfPeace.cooldown_duration = 45
 local RisingSunKick = Ability:Add(107428, false, true, 185099)
 RisingSunKick.mana_cost = 2.5
+RisingSunKick.cooldown_duration = 10
 RisingSunKick.chi_cost = 2
 RisingSunKick.hasted_cooldown = true
 RisingSunKick.triggers_combo = true
@@ -1240,6 +1247,7 @@ PurifiedChi.buff_duration = 15
 ------ Talents
 local Acclamation = Ability:Add(451432, false, true, 451433)
 Acclamation.buff_duration = 12
+local BrawlersIntensity = Ability:Add(451485, false, true)
 local CombatWisdom = Ability:Add(121817, true, true, 129914)
 local CourageousImpulse = Ability:Add(451495, true, true)
 local CraneVortex = Ability:Add(388848, false, true)
@@ -1335,6 +1343,8 @@ WhirlingDragonPunch.buff_duration = 1
 WhirlingDragonPunch.cooldown_duration = 24
 WhirlingDragonPunch.hasted_cooldown = true
 WhirlingDragonPunch.triggers_combo = true
+WhirlingDragonPunch.requires_react = true
+WhirlingDragonPunch.activation_expiry = 0
 WhirlingDragonPunch:AutoAoe(true)
 local XuensBattlegear = Ability:Add(392993, false, true)
 ------ Procs
@@ -2190,18 +2200,40 @@ function ChiBurst:ChiCost()
 	return Ability.ChiCost(self) - min(2, Player.enemies)
 end
 
-function WhirlingDragonPunch:Usable(...)
-	if FistsOfFury:Ready() or RisingSunKick:Ready() then
-		return false
+function WhirlingDragonPunch:Activate(ability)
+	local other = ability == FistsOfFury and RisingSunKick or FistsOfFury
+	local cd_1 = ability:CooldownDuration()
+	local cd_2 = GetSpellCooldown(other.spellId)
+	cd_2 = cd_2.duration > 1 and cd_2.duration - (Player.ctime - cd_2.startTime) or 0
+	if cd_2 > 0 then
+		self.activation_expiry = Player.time + 0.5 + min(cd_1, cd_2)
 	end
-	return Ability.Usable(self, ...)
 end
 
-function TouchOfDeath:Usable(...)
-	if Target.health.pct >= 15 and (Target.player or Target.health.current > Player.health.current) then
-		return false
+function WhirlingDragonPunch:React()
+	return IsSpellUsable(self.spellId) and max(0, self.activation_expiry - Player.time - Player.execute_remains) or 0
+end
+
+function FistsOfFury:CastSuccess(...)
+	Ability.CastSuccess(self, ...)
+	WhirlingDragonPunch:Activate(self)
+end
+
+function RisingSunKick:CooldownDuration()
+	local duration = self.cooldown_duration
+	if BrawlersIntensity.known then
+		duration = duration - 1.0
 	end
-	return Ability.Usable(self, ...)
+	return max(0, duration * Player.haste_factor)
+end
+
+function RisingSunKick:CastSuccess(...)
+	Ability.CastSuccess(self, ...)
+	WhirlingDragonPunch:Activate(self)
+end
+
+function TouchOfDeath:Available()
+	return Target.health.pct < 15 or (not Target.player and Target.health.current < Player.health.current)
 end
 
 function GiftOfTheOx:Charges()
@@ -2256,11 +2288,8 @@ function Stagger:Heavy()
 	return self:TickPct() > 5
 end
 
-function LegSweep:Usable(...)
-	if not Target.stunnable then
-		return false
-	end
-	return Ability.Usable(self, ...)
+function LegSweep:Available()
+	return Target.stunnable
 end
 
 function InvokeXuenTheWhiteTiger:Remains()
