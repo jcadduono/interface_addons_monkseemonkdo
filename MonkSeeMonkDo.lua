@@ -1266,10 +1266,10 @@ FistsOfFury.hasted_duration = true
 FistsOfFury.hasted_ticks = true
 FistsOfFury.triggers_combo = true
 FistsOfFury:AutoAoe(true)
-local FlyingSerpentKick = Ability:Add(101545, false, false, 123586)
+local FlyingSerpentKick = Ability:Add(101545, false, true, 123586)
+FlyingSerpentKick.buff_duration = 4
 FlyingSerpentKick.cooldown_duration = 25
-FlyingSerpentKick.triggers_combo = true
-FlyingSerpentKick:AutoAoe()
+FlyingSerpentKick:AutoAoe(false, 'apply')
 local FuryOfXuen = Ability:Add(396166, true, true, 396167)
 FuryOfXuen.buff_duration = 30
 FuryOfXuen.max_stack = 100
@@ -1314,6 +1314,7 @@ RushingJadeWindWindwalker.buff_duration = 6
 RushingJadeWindWindwalker.tick_interval = 0.75
 RushingJadeWindWindwalker.hasted_duration = true
 RushingJadeWindWindwalker.hasted_ticks = true
+local SequencedStrikes = Ability:Add(451515, false, true)
 local SingularlyFocusedJade = Ability:Add(451573, false, true)
 local StormEarthAndFire = Ability:Add(137639, true, true)
 StormEarthAndFire.cooldown_duration = 90
@@ -1408,7 +1409,7 @@ local RushingJadeWind = RushingJadeWindBrewmaster
 
 -- Class cooldowns
 local PowerInfusion = Ability:Add(10060, true)
-PowerInfusion.buff_duration = 20
+PowerInfusion.buff_duration = 15
 -- End Abilities
 
 -- Start Summoned Pets
@@ -2535,6 +2536,7 @@ actions+=/call_action_list,name=default_st,if=active_enemies<2
 actions+=/lights_judgment,if=buff.storm_earth_and_fire.down
 actions+=/bag_of_tricks,if=buff.storm_earth_and_fire.down
 ]]
+	self.haste_buffed = Player.group_size > 1 and Player:BloodlustActive() and PowerInfusion:Up()
 	if FortifyingBrew:Usable() and Player.health.pct < 15 then
 		UseCooldown(FortifyingBrew)
 	end
@@ -2586,19 +2588,42 @@ actions.cooldowns+=/ancestral_call,if=cooldown.invoke_xuen_the_white_tiger.remai
 	if TouchOfKarma:Usable() and Player:UnderAttack() then
 		UseExtra(TouchOfKarma)
 	end
-	if self.use_cds and InvokeXuenTheWhiteTiger:Usable() then
+	if self.use_cds and InvokeXuenTheWhiteTiger:Usable() and (
+		not StormEarthAndFire.known or
+		StormEarthAndFire:Ready() or
+		(Target.boss and Target.timeToDie < (StormEarthAndFire:CooldownExpected() + 15))
+	) and (
+		Player.enemies > 2 or
+		Acclamation:Up() or
+		(not OrderedElements.known and Player:TimeInCombat() < 5)
+	) and (
+		Player.chi.current > 5 or
+		(Player.energy.current < 50 and (Player.chi.current > 3 or Player.enemies == 1)) or
+		(OrderedElements.known and Player.chi.current > 2) or
+		(TigerPalm:Previous() and not OrderedElements.known and Player:TimeInCombat() < 5)
+	) then
 		return UseCooldown(InvokeXuenTheWhiteTiger)
 	end
 	if self.use_cds and StormEarthAndFire:Usable() and StormEarthAndFire:Down() and (
-		Pet.Xuen:Up() or
-		(Target.timeToDie > 15 and StormEarthAndFire:FullRechargeTime() < InvokeXuenTheWhiteTiger:Cooldown()) or
-		(Target.boss and Target.timeToDie < 20) or
-		(StormEarthAndFire:Charges() >= 2 and InvokeXuenTheWhiteTiger:Cooldown() > StormEarthAndFire:FullRechargeTime() and FistsOfFury:Ready(9) and Player.chi.current >= 2 and WhirlingDragonPunch:Ready(12))
+		not InvokeXuenTheWhiteTiger.known or
+		not InvokeXuenTheWhiteTiger:Ready()
+	) and (
+		Player.enemies > 2 or
+		not OrderedElements.known or
+		not RisingSunKick:Ready()
+	) and (
+		Player.chi.current > 3 or
+		(OrderedElements.known and Player.chi.current > 1)
+	) and (
+		(StormEarthAndFire:FullRechargeTime() < InvokeXuenTheWhiteTiger:CooldownExpected() and (
+			Pet.Xuen:Remains() > 6 or
+			(InvokersDelight.known and InvokersDelight:Remains() > 8) or
+			Player:BloodlustActive() or
+			StormEarthAndFire:FullRechargeTime() < 6
+		)) or
+		(Target.boss and Target.timeToDie < 30)
 	) then
 		return UseCooldown(StormEarthAndFire)
-	end
-	if TouchOfDeath:Usable() and TouchOfDeath:Combo() then
-		return UseCooldown(TouchOfDeath)
 	end
 end
 
@@ -2641,109 +2666,123 @@ actions.default_aoe+=/spinning_crane_kick,if=combo_strike&buff.ordered_elements.
 actions.default_aoe+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.ordered_elements.up&!talent.hit_combo&cooldown.fists_of_fury.remains
 actions.default_aoe+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury.remains
 ]]
-	if TigerPalm:Usable() and TigerPalm:Combo() and (not TeachingsOfTheMonastery.known or not TeachingsOfTheMonastery:Capped()) and Player.chi.deficit >= (2 + (CombatWisdom:Up() and 1 or 0)) then
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 and (
+		(EnergyBurst.known and BlackoutKick.Proc:Down() and (not OrderedElements.known or OrderedElements:Down()) and (
+			(Player.energy.current > (InnerPeace.known and 55 or 60) and not TeachingsOfTheMonastery:Capped()) or
+			(Player.chi.current < 3 and FistsOfFury:Ready(1))
+		)) or
+		(CelestialConduit.known and OrderedElements.known and OrderedElements:Up() and (not StrikeOfTheWindlord.known or StrikeOfTheWindlord:Previous() or not StrikeOfTheWindlord:Ready()) and CelestialConduit:Ready(2))
+	) then
 		return TigerPalm
 	end
-	if DanceOfChiJi.known and SpinningCraneKick:Usable() and Target.timeToDie > SpinningCraneKick:Duration() and SpinningCraneKick:Max() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
+	if TouchOfDeath:Usable() and TouchOfDeath:Combo() then
+		UseCooldown(TouchOfDeath)
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (
+		(DanceOfChiJi.known and DanceOfChiJi:Capped()) or
+		(JadeIgnition.known and ChiEnergy:Capped() and FistsOfFury:Ready(5))
+	) then
 		return SpinningCraneKick
 	end
-	if Thunderfist.known and StrikeOfTheWindlord:Usable() then
-		return StrikeOfTheWindlord
-	end
-	if WhirlingDragonPunch:Usable() and Player.enemies > 8 then
-		return WhirlingDragonPunch
-	end
-	if RevolvingWhirl.known and WhirlingDragonPunch:Usable() and not DanceOfChiJi:Capped() then
-		return WhirlingDragonPunch
-	end
-	if FistsOfFury:Usable() then
-		return FistsOfFury
-	end
-	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and (
-		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Capped())
+	if CelestialConduit:Usable() and CelestialConduit:Combo() and (
+		(Player.major_cd_remains > 0 and (not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())) or
+		(Target.boss and Target.timeToDie < 15)
 	) then
-		return BlackoutKick
+		UseCooldown(CelestialConduit)
 	end
-	if WhirlingDragonPunch:Usable() and Player.enemies >= 5 then
-		return WhirlingDragonPunch
-	end
-	if RisingSunKick:Usable() and (
-		(WhirlingDragonPunch.known and WhirlingDragonPunch:Ready(3) and not FistsOfFury:Ready(3))
+	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
+		(not XuensBattlegear.known and WhirlingDragonPunch:Ready(1) and not FistsOfFury:Ready(1) and (not RevolvingWhirl.known or (not DanceOfChiJi:Capped() and Player.enemies > 2))) or
+		(XuensBattlegear.known and Player.major_cd_remains == 0 and PressurePoint:Up())
 	) then
 		return RisingSunKick
 	end
-	if ExpelHarm:Usable() and (
-		(Player.chi.current == 1 and (RisingSunKick:Ready(1) or StrikeOfTheWindlord:Ready(1))) or
-		(Player.chi.current == 2 and FistsOfFury:Ready(1))
-	) then
-		return ExpelHarm
+	if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() and (not RevolvingWhirl.known or (not DanceOfChiJi:Capped() and Player.enemies > 2)) then
+		return WhirlingDragonPunch
 	end
-	if JadeIgnition.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and FistsOfFury:Ready(5) and ChiEnergy:Stack() > 10 then
-		return SpinningCraneKick
-	end
-	if ChiBurst:Usable() and Player.chi.current < 5 and (Player.energy.current < 60 or Player:BloodlustActive()) then
-		return ChiBurst
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and (Player.chi.current > 2 or not FistsOfFury:Ready(3)) and SpinningCraneKick:Max() and (Player:BloodlustActive() or InvokersDelight:Up()) then
-		return SpinningCraneKick
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and (Player.chi.current > 4 or not FistsOfFury:Ready(3)) and SpinningCraneKick:Max() then
-		return SpinningCraneKick
-	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped() then
+	if EnergyBurst.known and BlackoutKick:Usable() and BlackoutKick:Combo() and Player.energy.current < 55 and BlackoutKick.Proc:Up() then
 		return BlackoutKick
 	end
-	if StrikeOfTheWindlord:Usable() then
+	if StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() and Player:TimeInCombat() > 5 and (FlurryStrikes.known or not InvokeXuenTheWhiteTiger.known or not InvokeXuenTheWhiteTiger:Ready(15)) then
 		return StrikeOfTheWindlord
 	end
-	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and not SpinningCraneKick:Max() then
+	if KnowledgeOfTheBrokenTemple.known and ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Capped() then
 		return BlackoutKick
 	end
-	if ChiBurst:Usable() and Player.chi.deficit >= 2 then
-		return ChiBurst
-	end
-	if LastEmperorsCapacitor.known and CracklingJadeLightning:Usable() and (
-		(LastEmperorsCapacitor:Stack() > 19 and Player:EnergyTimeToMax() > (CracklingJadeLightning:CastTime() - 1) and not RisingSunKick:Ready(CracklingJadeLightning:CastTime())) or
-		(Target.boss and LastEmperorsCapacitor:Stack() > 14 and Target.timeToDie < 5)
-	) then
+	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() then
 		return CracklingJadeLightning
+	end
+	if FistsOfFury:Usable() and FistsOfFury:Combo() then
+		return FistsOfFury
+	end
+	if WisdomOfTheWall.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 1 and Player:EnergyTimeToMax() <= (3 * Player.gcd) and WisdomOfTheWall.Flurry:Up() then
+		return TigerPalm
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (
+		Player.chi.current > 5 or
+		(JadeIgnition.known and DanceOfChiJi:Up() and ChiEnergy:Capped() and FistsOfFury:Ready(5))
+	) then
+		return SpinningCraneKick
+	end
+	if XuensBattlegear.known and RisingSunKick:Usable() and RisingSunKick:Combo() and PressurePoint:Up() and not FistsOfFury:Ready(2) then
+		return RisingSunKick
+	end
+	if ShadowboxingTreads.known and CourageousImpulse.known and BlackoutKick:Usable() and BlackoutKick:Combo() and BlackoutKick.Proc:Capped() then
+		return BlackoutKick
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and SpinningCraneKick:Max() and (
+		DanceOfChiJi:Up() or
+		(CraneVortex.known and OrderedElements.known and Player.enemies > 2 and OrderedElements:Up())
+	) then
+		return SpinningCraneKick
+	end
+	if TigerPalm:Usable() and TigerPalm:Combo() and (
+		(FlurryStrikes.known and OrderedElements.known and OrderedElements:Up() and Player:EnergyTimeToMax() <= (3 * Player.gcd)) or
+		(Player.chi.deficit >= 2 and (not OrderedElements.known or OrderedElements:Down() or Player:EnergyTimeToMax() <= (3 * Player.gcd)))
+	) then
+		return TigerPalm
+	end
+	if JadefireStomp:Usable() and JadefireStomp:Combo() and (JadefireHarmony.known or SingularlyFocusedJade.known) then
+		UseCooldown(JadefireStomp)
+	end
+	if CraneVortex.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and SpinningCraneKick:Max() and Player.chi.current > 4 and Player.enemies > 2 and (not OrderedElements.known or OrderedElements:Down()) then
+		return SpinningCraneKick
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and (
+		(not FistsOfFury:Ready() and (TeachingsOfTheMonastery:Stack() > 3 or OrderedElements:Up()) and (ShadowboxingTreads.known or BlackoutKick.Proc:Up())) or
+		(FistsOfFury:Ready() and Player.chi.current < 3) or
+		(ShadowboxingTreads.known and CourageousImpulse.known and BlackoutKick.Proc:Up())
+	) then
+		return BlackoutKick
+	end
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (Player.chi.current > 3 or Player.energy.current > 55) then
+		return SpinningCraneKick
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() and (
+		Player.chi.current > 2 or
+		Player.energy.current > 60 or
+		BlackoutKick.Proc:Up() or
+		(OrderedElements.known and OrderedElements:Up())
+	) then
+		return BlackoutKick
 	end
 	if JadefireStomp:Usable() and JadefireStomp:Combo() then
 		UseCooldown(JadefireStomp)
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= (2 + (CombatWisdom:Up() and 1 or 0)) then
+	if OrderedElements.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 1 and OrderedElements:Up() then
 		return TigerPalm
 	end
-	if ExpelHarm:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
-		return ExpelHarm
-	end
-	if ChiBurst:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
+	if ChiBurst:Usable() and ChiBurst:Combo() then
 		return ChiBurst
 	end
-	if ChiWave:Usable() then
-		return ChiWave
+	if OrderedElements.known and OrderedElements:Up() then
+		if HitCombo.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and SpinningCraneKick:Max() then
+			return SpinningCraneKick
+		end
+		if not HitCombo.known and BlackoutKick:Usable() and not FistsOfFury:Ready() then
+			return BlackoutKick
+		end
 	end
-	if ExpelHarm:Usable() and Player.chi.deficit >= 1 then
-		return ExpelHarm
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and Player.enemies >= 5 then
-		return BlackoutKick
-	end
-	if JadeIgnition.known and SpinningCraneKick:Usable() and (
-		(SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and ChiEnergy:Capped(5 * Player.enemies) and (not StormEarthAndFire.known or StormEarthAndFire:Down()) and (
-			(not RisingSunKick:Ready(2) and not FistsOfFury:Ready(2)) or
-			(Player.chi.current > 3 and RisingSunKick:Ready(3) and not FistsOfFury:Ready(3)) or
-			(Player.chi.current > 4 and not RisingSunKick:Ready(3) and FistsOfFury:Ready(3)) or
-			(Player.chi.deficit <= 1 and Player:EnergyTimeToMax() < 2)
-		)) or
-		(Player.enemies == 1 and Target.timeToDie < 7 and ChiEnergy:Stack() > 10)
-	) then
-		return SpinningCraneKick
-	end
-	if FlyingSerpentKick:Usable() then
-		UseCooldown(FlyingSerpentKick)
-	end
-	if TigerPalm:Usable() and TigerPalm:Combo() then
+	if TigerPalm:Usable() and Player.chi.current < 3 and FistsOfFury:Ready(1) then
 		return TigerPalm
 	end
 end
@@ -2791,122 +2830,153 @@ actions.default_cleave+=/spinning_crane_kick,if=combo_strike&buff.ordered_elemen
 actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.ordered_elements.up&!talent.hit_combo&cooldown.fists_of_fury.remains
 actions.default_cleave+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury.remains
 ]]
-	if TigerPalm:Usable() and TigerPalm:Combo() and (not TeachingsOfTheMonastery.known or not TeachingsOfTheMonastery:Capped()) and Player.chi.deficit >= (2 + (CombatWisdom:Up() and 1 or 0)) then
-		return TigerPalm
+	if XuensBattlegear.known and RisingSunKick:Usable() and RisingSunKick:Combo() and Player.enemies < 4 and PressurePoint:Up() and not FistsOfFury:Ready(4) then
+		return RisingSunKick
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and not TeachingsOfTheMonastery:Capped() then
-		return TigerPalm
-	end
-	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and DanceOfChiJi:Up() then
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player.enemies > 3 and DanceOfChiJi:Capped() then
 		return SpinningCraneKick
 	end
-	if Thunderfist.known and StrikeOfTheWindlord:Usable() and (
-		not self.use_cds or
-		not InvokeXuenTheWhiteTiger:Ready(20) or
-		(Target.boss and Target.timeToDie < 5)
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 and (
+		((not EnergyBurst.known or BlackoutKick.Proc:Down()) and (not OrderedElements.known or OrderedElements:Down()) and (
+			(Player.energy.current > (InnerPeace.known and 55 or 60) and not TeachingsOfTheMonastery:Capped()) or
+			(Player.chi.current < 3 and FistsOfFury:Ready(1))
+		)) or
+		(CelestialConduit.known and OrderedElements.known and OrderedElements:Up() and (not StrikeOfTheWindlord.known or StrikeOfTheWindlord:Previous() or not StrikeOfTheWindlord:Ready()) and CelestialConduit:Ready(2)) or
+		(HeartOfTheJadeSerpent.known and (not OrderedElements.known or OrderedElements:Down()) and (HeartOfTheJadeSerpent.CDR:Down() or HeartOfTheJadeSerpent.CDRCelestial:Down()))
+	) then
+		return TigerPalm
+	end
+	if TouchOfDeath:Usable() and TouchOfDeath:Combo() then
+		UseCooldown(TouchOfDeath)
+	end
+	if CelestialConduit:Usable() and CelestialConduit:Combo() and (
+		(Player.major_cd_remains > 0 and (not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())) or
+		(Target.boss and Target.timeToDie < 15)
+	) then
+		UseCooldown(CelestialConduit)
+	end
+	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
+		(Pet.Xuen:Down() and TigerPalm:Previous() and Player:TimeInCombat() < 5) or
+		(HeartOfTheJadeSerpent.known and XuensBattlegear.known and HeartOfTheJadeSerpent.CDRCelestial:Up() and PressurePoint:Up())
+	) then
+		return RisingSunKick
+	end
+	if HeartOfTheJadeSerpent.known then
+		if FistsOfFury:Usable() and FistsOfFury:Combo() and HeartOfTheJadeSerpent.CDRCelestial:Up() then
+			return FistsOfFury
+		end
+		if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() and HeartOfTheJadeSerpent.CDRCelestial:Up() then
+			return WhirlingDragonPunch
+		end
+	end
+	if GaleForce.known and InvokersDelight.known and StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() and InvokersDelight:Up() and (
+		Player:BloodlustActive() or
+		(HeartOfTheJadeSerpent.known and not CelestialConduit:Ready() and HeartOfTheJadeSerpent.CDRCelestial:Down())
 	) then
 		return StrikeOfTheWindlord
 	end
-	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and (
-		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Capped())
-	) then
-		return BlackoutKick
-	end
-	if RevolvingWhirl.known and WhirlingDragonPunch:Usable() and not DanceOfChiJi:Capped() then
-		return WhirlingDragonPunch
-	end
-	if FistsOfFury:Usable() then
+	if self.haste_buffed and FistsOfFury:Usable() and FistsOfFury:Combo() then
 		return FistsOfFury
 	end
-	if RisingSunKick:Usable() and (
-		(PressurePoint.known and PressurePoint:Up())
-	) then
+	if self.haste_buffed and RisingSunKick:Usable() and RisingSunKick:Combo() and Player.enemies < 3 then
 		return RisingSunKick
 	end
-	if ExpelHarm:Usable() and (
-		(Player.chi.current == 1 and (RisingSunKick:Ready(1) or StrikeOfTheWindlord:Ready(1))) or
-		(Player.chi.current == 2 and FistsOfFury:Ready(1))
-	) then
-		return ExpelHarm
-	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped(1) then
+	if KnowledgeOfTheBrokenTemple.known and BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Capped() and (ShadowboxingTreads.known or Player.enemies < 3) then
 		return BlackoutKick
 	end
-	if StrikeOfTheWindlord:Usable() then
-		return StrikeOfTheWindlord
-	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Up() and (ShadowboxingTreads.known or not RisingSunKick:Ready(1)) then
-		return BlackoutKick
-	end
-	if WhirlingDragonPunch:Usable() then
+	if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() and (not RevolvingWhirl.known or Player.enemies < 3 or (not DanceOfChiJi:Capped() and Player.enemies > 2)) then
 		return WhirlingDragonPunch
 	end
-	if ChiBurst:Usable() and Player.chi.current < 5 and (Player.energy.current < 60 or Player:BloodlustActive()) then
-		return ChiBurst
+	if StrikeOfTheWindlord:Usable() and Player:TimeInCombat() > 5 and (FlurryStrikes.known or not InvokeXuenTheWhiteTiger.known or not InvokeXuenTheWhiteTiger:Ready(15)) then
+		return StrikeOfTheWindlord
 	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped() then
-		return BlackoutKick
+	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() then
+		return CracklingJadeLightning
 	end
-	if JadeIgnition.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and not FistsOfFury:Ready(3) and ChiEnergy:Stack() > 15 then
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
 		return SpinningCraneKick
 	end
-	if RisingSunKick:Usable() and not FistsOfFury:Ready(4) and Player.chi.current > 3 then
+	if WisdomOfTheWall.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.enemies < 4 and Player:EnergyTimeToMax() <= (3 * Player.gcd) and WisdomOfTheWall.Flurry:Up() then
+		return TigerPalm
+	end
+	if FistsOfFury:Usable() and FistsOfFury:Combo() then
+		return FistsOfFury
+	end
+	if WisdomOfTheWall.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.enemies < 5 and Player:EnergyTimeToMax() <= (3 * Player.gcd) and WisdomOfTheWall.Flurry:Up() then
+		return TigerPalm
+	end
+	if JadeIgnition.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() and ChiEnergy:Capped() then
+		return SpinningCraneKick
+	end
+	if RisingSunKick:Usable() and RisingSunKick:Combo() and (GloryOfTheDawn.known or Player.enemies < 3) and (
+		Player.chi.current > 4 or
+		(Player.chi.current > 2 and Player.energy.current > 50) or
+		not FistsOfFury:Ready(2)
+	) then
 		return RisingSunKick
 	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and not RisingSunKick:Ready() and Player.chi.current > 4 then
-		return SpinningCraneKick
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() then
-		return BlackoutKick
-	end
-	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and not SpinningCraneKick:Max() and MarkOfTheCrane:Remains() < 3 then
-		return BlackoutKick
-	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and Player.chi.current > 5 then
-		return SpinningCraneKick
-	end
-	if LastEmperorsCapacitor.known and CracklingJadeLightning:Usable() and (
-		(LastEmperorsCapacitor:Stack() > 19 and Player:EnergyTimeToMax() > (CracklingJadeLightning:CastTime() - 1) and not RisingSunKick:Ready(CracklingJadeLightning:CastTime())) or
-		(Target.boss and LastEmperorsCapacitor:Stack() > 14 and Target.timeToDie < 5)
+	if ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and (
+		(CourageousImpulse.known and BlackoutKick.Proc:Capped()) or
+		(Player.enemies < 3 and TeachingsOfTheMonastery:Capped())
 	) then
-		return CracklingJadeLightning
+		return BlackoutKick
+	end
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() then
+		return SpinningCraneKick
+	end
+	if ShadowboxingTreads.known and CourageousImpulse.known and BlackoutKick:Usable() and BlackoutKick:Combo() and BlackoutKick.Proc:Up() then
+		return BlackoutKick
+	end
+	if TigerPalm:Usable() and TigerPalm:Combo() and (
+		(FlurryStrikes.known and Player.enemies < 5 and Player:EnergyTimeToMax() <= (3 * Player.gcd)) or
+		(Player.chi.deficit >= 2 and (not OrderedElements.known or OrderedElements:Down() or Player:EnergyTimeToMax() <= (3 * Player.gcd)))
+	) then
+		return TigerPalm
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Stack() > 3 and not (FistsOfFury:Ready() or RisingSunKick:Ready()) then
+		return BlackoutKick
+	end
+	if JadefireStomp:Usable() and JadefireStomp:Combo() and (JadefireHarmony.known or SingularlyFocusedJade.known) then
+		UseCooldown(JadefireStomp)
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() and (
+		(OrderedElements.known and OrderedElements:Up()) or
+		(TeachingsOfTheMonastery:Stack() > 3 and (ShadowboxingTreads.known or BlackoutKick.Proc:Up()))
+	) then
+		return BlackoutKick
+	end
+	if CraneVortex.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player.chi.current > 4 and Player.enemies > 2 and (not OrderedElements.known or OrderedElements:Down()) then
+		return SpinningCraneKick
+	end
+	if ChiBurst:Usable() and ChiBurst:Combo() and (not OrderedElements.known or OrderedElements:Down()) then
+		return ChiBurst
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() and (
+		Player.chi.current > 2 or
+		Player.energy.current > 60 or
+		BlackoutKick.Proc:Up() or
+		(OrderedElements.known and OrderedElements:Up())
+	) then
+		return BlackoutKick
 	end
 	if JadefireStomp:Usable() and JadefireStomp:Combo() then
 		UseCooldown(JadefireStomp)
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= (2 + (CombatWisdom:Up() and 1 or 0)) then
+	if OrderedElements.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 1 and OrderedElements:Up() then
 		return TigerPalm
 	end
-	if ExpelHarm:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
-		return ExpelHarm
-	end
-	if ChiBurst:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
+	if ChiBurst:Usable() and ChiBurst:Combo() then
 		return ChiBurst
 	end
-	if ChiWave:Usable() then
-		return ChiWave
+	if OrderedElements.known and OrderedElements:Up() then
+		if HitCombo.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() then
+			return SpinningCraneKick
+		end
+		if not HitCombo.known and BlackoutKick:Usable() and not FistsOfFury:Ready() then
+			return BlackoutKick
+		end
 	end
-	if ExpelHarm:Usable() and Player.chi.deficit >= 1 then
-		return ExpelHarm
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and Player.enemies >= 5 then
-		return BlackoutKick
-	end
-	if JadeIgnition.known and SpinningCraneKick:Usable() and (
-		(SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and ChiEnergy:Capped(5 * Player.enemies) and (not StormEarthAndFire.known or StormEarthAndFire:Down()) and (
-			(not RisingSunKick:Ready(2) and not FistsOfFury:Ready(2)) or
-			(Player.chi.current > 3 and RisingSunKick:Ready(3) and not FistsOfFury:Ready(3)) or
-			(Player.chi.current > 4 and not RisingSunKick:Ready(3) and FistsOfFury:Ready(3)) or
-			(Player.chi.deficit <= 1 and Player:EnergyTimeToMax() < 2)
-		)) or
-		(Player.enemies == 1 and Target.timeToDie < 7 and ChiEnergy:Stack() > 10)
-	) then
-		return SpinningCraneKick
-	end
-	if FlyingSerpentKick:Usable() then
-		UseCooldown(FlyingSerpentKick)
-	end
-	if TigerPalm:Usable() and TigerPalm:Combo() then
+	if TigerPalm:Usable() and Player.chi.current < 3 and FistsOfFury:Ready(1) then
 		return TigerPalm
 	end
 end
@@ -2940,7 +3010,7 @@ actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remain
 actions.default_st+=/spinning_crane_kick,if=buff.dance_of_chiji.stack=2&combo_strike
 actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=talent.courageous_impulse&combo_strike&buff.bok_proc.stack=2
 actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&buff.ordered_elements.up&cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>2
-actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes
+actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&chi.deficit>1
 actions.default_st+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up&(buff.ordered_elements.up|energy.time_to_max>=gcd.max*3&talent.sequenced_strikes&talent.energy_burst|!talent.sequenced_strikes|!talent.energy_burst|buff.dance_of_chiji.remains<=gcd.max*3)
 actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes
 actions.default_st+=/jadefire_stomp,if=talent.Singularly_Focused_Jade|talent.jadefire_harmony
@@ -2955,117 +3025,173 @@ actions.default_st+=/spinning_crane_kick,if=combo_strike&buff.ordered_elements.u
 actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.ordered_elements.up&!talent.hit_combo&cooldown.fists_of_fury.remains
 actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury.remains
 ]]
-	if TigerPalm:Usable() and TigerPalm:Combo() and (not TeachingsOfTheMonastery.known or not TeachingsOfTheMonastery:Capped()) and Player.chi.deficit >= (2 + (CombatWisdom:Up() and 1 or 0)) then
+	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
+		(XuensBattlegear.known and PressurePoint:Up()) or
+		(OrderedElements.known and Player.major_cd_remains > 0 and OrderedElements:Remains() <= (3 * Player.gcd))
+	) then
+		return RisingSunKick
+	end
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 and (
+		((not EnergyBurst.known or BlackoutKick.Proc:Down()) and (not OrderedElements.known or OrderedElements:Down()) and (
+			(Player.energy.current > (InnerPeace.known and 55 or 60) and not TeachingsOfTheMonastery:Capped()) or
+			(Player.chi.current < 3 and FistsOfFury:Ready(1))
+		)) or
+		(CelestialConduit.known and OrderedElements.known and OrderedElements:Up() and (not StrikeOfTheWindlord.known or StrikeOfTheWindlord:Previous() or not StrikeOfTheWindlord:Ready()) and CelestialConduit:Ready(2)) or
+		(HeartOfTheJadeSerpent.known and (not OrderedElements.known or OrderedElements:Down()) and (HeartOfTheJadeSerpent.CDR:Down() or HeartOfTheJadeSerpent.CDRCelestial:Down()))
+	) then
 		return TigerPalm
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.current < 2 and (RisingSunKick:Ready(1) or FistsOfFury:Ready(1) or StrikeOfTheWindlord:Ready(1)) and not TeachingsOfTheMonastery:Capped() then
+	if TouchOfDeath:Usable() and TouchOfDeath:Combo() then
+		UseCooldown(TouchOfDeath)
+	end
+	if OrderedElements.known and InvokersDelight.known and RisingSunKick:Usable() and RisingSunKick:Combo() and Player.major_cd_remains == 0 and InvokersDelight:Up() then
+		return RisingSunKick
+	end
+	if CelestialConduit:Usable() and CelestialConduit:Combo() and (
+		(Player.major_cd_remains > 0 and (not OrderedElements.known or OrderedElements:Up()) and (not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())) or
+		(Target.boss and Target.timeToDie < 15)
+	) then
+		UseCooldown(CelestialConduit)
+	end
+	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
+		(Pet.Xuen:Down() and TigerPalm:Previous() and Player:TimeInCombat() < 5) or
+		(OrderedElements.known and Player.major_cd_remains > 0)
+	) then
+		return RisingSunKick
+	end
+	if GaleForce.known and InvokersDelight.known and StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() and InvokersDelight:Up() and (
+		Player:BloodlustActive() or
+		(HeartOfTheJadeSerpent.known and not CelestialConduit:Ready() and HeartOfTheJadeSerpent.CDRCelestial:Down())
+	) then
+		return StrikeOfTheWindlord
+	end
+	if self.haste_buffed then
+		if RisingSunKick:Usable() and RisingSunKick:Combo() then
+			return RisingSunKick
+		end
+		if FistsOfFury:Usable() and FistsOfFury:Combo() then
+			return FistsOfFury
+		end
+	end
+	if OrderedElements.known and BlackoutKick:Usable() and BlackoutKick:Combo() and OrderedElements:Up() and TeachingsOfTheMonastery:Stack() > 3 and not RisingSunKick:Ready(1) and not FistsOfFury:Ready(2) then
+		return BlackoutKick
+	end
+	if self.haste_buffed then
+		if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
+			return SpinningCraneKick
+		end
+		if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() then
+			return WhirlingDragonPunch
+		end
+		if FlurryStrikes.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit > 1 and Player:EnergyTimeToMax() <= (3 * Player.gcd) then
+			return TigerPalm
+		end
+	end
+	if KnowledgeOfTheBrokenTemple.known and BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Stack() > 4 and not RisingSunKick:Ready(1) and not FistsOfFury:Ready(2) then
+		return BlackoutKick
+	end
+	if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() and (
+		KnowledgeOfTheBrokenTemple.known or
+		(OrderedElements.known and OrderedElements:Up()) or
+		(not DanceOfChiJi:Capped() and (not HeartOfTheJadeSerpent.known or HeartOfTheJadeSerpent.CDRCelestial:Down()))
+	) then
+		return WhirlingDragonPunch
+	end
+	if StrikeOfTheWindlord:Usable() and Player:TimeInCombat() > 5 and (FlurryStrikes.known or not InvokeXuenTheWhiteTiger.known or not InvokeXuenTheWhiteTiger:Ready(15)) then
+		return StrikeOfTheWindlord
+	end
+	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
+		Player.chi.current > 4 or
+		(Player.chi.current > 2 and Player.energy.current > 50) or
+		not FistsOfFury:Ready(2)
+	) then
+		return RisingSunKick
+	end
+	if TigerPalm:Usable() and TigerPalm:Combo() and Player:EnergyTimeToMax() <= (3 * Player.gcd) and (
+		Player.chi.deficit >= 2 or
+		(WisdomOfTheWall.known and WisdomOfTheWall.Flurry:Up())
+	) then
 		return TigerPalm
 	end
-	if ExpelHarm:Usable() and (
-		(Player.chi.current == 1 and (RisingSunKick:Ready(1) or StrikeOfTheWindlord:Ready(1))) or
-		(Player.chi.current == 2 and FistsOfFury:Ready(1))
-	) then
-		return ExpelHarm
-	end
-	if StrikeOfTheWindlord:Usable() and (Thunderfist.known or (Target.boss and Target.timeToDie < 5)) then
-		return StrikeOfTheWindlord
-	end
-	if RevolvingWhirl.known and WhirlingDragonPunch:Usable() and not DanceOfChiJi:Capped() then
-		return WhirlingDragonPunch
-	end
-	if RisingSunKick:Usable() and FistsOfFury:Ready(1) then
-		return RisingSunKick
-	end
-	if FistsOfFury:Usable() and (not XuensBattlegear.known or PressurePoint:Down()) and (not JadefireStomp.known or JadefireBrand:Remains() > 2 or not JadefireStomp:Ready()) then
-		return FistsOfFury
-	end
-	if JadefireHarmony.known and JadefireStomp:Usable() and JadefireBrand:Remains() < 3 then
-		UseCooldown(JadefireStomp)
-	end
-	if XuensBattlegear.known and RisingSunKick:Usable() and PressurePoint:Up() then
-		return RisingSunKick
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and (
-		(XuensBattlegear.known and PressurePoint:Up() and Player.chi.current > 2 and RisingSunKick:Previous()) or
-		(TeachingsOfTheMonastery.known and TeachingsOfTheMonastery:Capped())
-	) then
+	if KnowledgeOfTheBrokenTemple.known and MemoryOfTheMonastery.known and BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Capped() and MemoryOfTheMonastery:Down() and not FistsOfFury:Ready() then
 		return BlackoutKick
 	end
-	if RisingSunKick:Usable() then
-		return RisingSunKick
-	end
-	if FistsOfFury:Usable() then
+	if FistsOfFury:Usable() and FistsOfFury:Combo() then
 		return FistsOfFury
 	end
-	if WhirlingDragonPunch:Usable() and PressurePoint:Down() then
-		return WhirlingDragonPunch
-	end
-	if ChiBurst:Usable() and Player:BloodlustActive() and Player.chi.current < 5 then
-		return ChiBurst
-	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Capped(1) then
-		return BlackoutKick
-	end
-	if ChiBurst:Usable() and Player.chi.current < 5 and Player.energy.current < 60 then
-		return ChiBurst
-	end
-	if StrikeOfTheWindlord:Usable() then
-		return StrikeOfTheWindlord
-	end
-	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and DanceOfChiJi:Up() then
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (DanceOfChiJi:Capped() or (DanceOfChiJi:Up() and DanceOfChiJi:Remains() < 2)) and (not OrderedElements.known or OrderedElements:Down()) then
 		return SpinningCraneKick
 	end
-	if TeachingsOfTheMonastery.known and BlackoutKick:Usable() and TeachingsOfTheMonastery:Up() and not RisingSunKick:Ready(1) then
-		return BlackoutKick
-	end
-	if WhirlingDragonPunch:Usable() then
+	if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() then
 		return WhirlingDragonPunch
 	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() then
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Capped() and not RisingSunKick:Ready(1) and not FistsOfFury:Ready(2) then
 		return BlackoutKick
 	end
-	if LastEmperorsCapacitor.known and CracklingJadeLightning:Usable() and (
-		(LastEmperorsCapacitor:Stack() > 19 and Player:EnergyTimeToMax() > (CracklingJadeLightning:CastTime() - 1) and not RisingSunKick:Ready(CracklingJadeLightning:CastTime())) or
-		(Target.boss and LastEmperorsCapacitor:Stack() > 14 and Target.timeToDie < 5)
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
+		return SpinningCraneKick
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and (
+		(CourageousImpulse.known and BlackoutKick.Proc:Capped()) or
+		(OrderedElements.known and OrderedElements:Up() and not RisingSunKick:Ready(1) and not FistsOfFury:Ready(2))
 	) then
+		return BlackoutKick
+	end
+	if FlurryStrikes.known and TigerPalm:Usable() and TigerPalm:Combo() and Player:EnergyTimeToMax() <= (3 * Player.gcd) and Player.chi.deficit > 1 then
+		return TigerPalm
+	end
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() and (
+		not SequencedStrikes.known or
+		not EnergyBurst.known or
+		DanceOfChiJi:Remains() <= (3 * Player.gcd) or
+		(OrderedElements.known and OrderedElements:Up()) or
+		Player:EnergyTimeToMax() >= (3 * Player.gcd)
+	) then
+		return SpinningCraneKick
+	end
+	if FlurryStrikes.known and TigerPalm:Usable() and TigerPalm:Combo() and Player:EnergyTimeToMax() <= (3 * Player.gcd) then
+		return TigerPalm
+	end
+	if JadefireStomp:Usable() and JadefireStomp:Combo() and (JadefireHarmony.known or SingularlyFocusedJade.known) then
+		UseCooldown(JadefireStomp)
+	end
+	if ChiBurst:Usable() and ChiBurst:Combo() and (not OrderedElements.known or OrderedElements:Down()) then
+		return ChiBurst
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() and (
+		(OrderedElements.known and OrderedElements:Up()) or
+		(EnergyBurst.known and Player.chi.deficit >= 1 and BlackoutKick.Proc:Up())
+	) then
+		return BlackoutKick
+	end
+	if LastEmperorsCapacitor.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and (not OrderedElements.known or OrderedElements:Down()) then
 		return CracklingJadeLightning
+	end
+	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() and (
+		Player.chi.current > 2 or
+		Player.energy.current > 60 or
+		BlackoutKick.Proc:Up()
+	) then
+		return BlackoutKick
 	end
 	if JadefireStomp:Usable() and JadefireStomp:Combo() then
 		UseCooldown(JadefireStomp)
 	end
-	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= (2 + (CombatWisdom:Up() and 1 or 0)) then
+	if OrderedElements.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 1 and OrderedElements:Up() then
 		return TigerPalm
 	end
-	if ExpelHarm:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
-		return ExpelHarm
-	end
-	if ChiBurst:Usable() and ((Player.chi.deficit >= 1 and Player.enemies == 1) or (Player.chi.deficit >= 2 and Player.enemies >= 2)) then
+	if ChiBurst:Usable() and ChiBurst:Combo() then
 		return ChiBurst
 	end
-	if ChiWave:Usable() then
-		return ChiWave
+	if OrderedElements.known and OrderedElements:Up() then
+		if HitCombo.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() then
+			return SpinningCraneKick
+		end
+		if not HitCombo.known and BlackoutKick:Usable() and not FistsOfFury:Ready() then
+			return BlackoutKick
+		end
 	end
-	if ExpelHarm:Usable() and Player.chi.deficit >= 1 then
-		return ExpelHarm
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and Player.enemies >= 5 then
-		return BlackoutKick
-	end
-	if JadeIgnition.known and SpinningCraneKick:Usable() and (
-		(SpinningCraneKick:Combo() and Target.timeToDie > SpinningCraneKick:Duration() and ChiEnergy:Capped(5 * Player.enemies) and (not StormEarthAndFire.known or StormEarthAndFire:Down()) and (
-			(not RisingSunKick:Ready(2) and not FistsOfFury:Ready(2)) or
-			(Player.chi.current > 3 and RisingSunKick:Ready(3) and not FistsOfFury:Ready(3)) or
-			(Player.chi.current > 4 and not RisingSunKick:Ready(3) and FistsOfFury:Ready(3)) or
-			(Player.chi.deficit <= 1 and Player:EnergyTimeToMax() < 2)
-		)) or
-		(Player.enemies == 1 and Target.timeToDie < 7 and ChiEnergy:Stack() > 10)
-	) then
-		return SpinningCraneKick
-	end
-	if FlyingSerpentKick:Usable() then
-		UseCooldown(FlyingSerpentKick)
-	end
-	if TigerPalm:Usable() and TigerPalm:Combo() then
+	if TigerPalm:Usable() and Player.chi.current < 3 and FistsOfFury:Ready(1) then
 		return TigerPalm
 	end
 end
@@ -3097,7 +3223,28 @@ APL[SPEC.WINDWALKER].trinkets = function(self)
 actions.trinkets=use_item,name=treacherous_transmitter,if=!fight_style.dungeonslice&(cooldown.invoke_xuen_the_white_tiger.remains<4|talent.xuens_bond&pet.xuen_the_white_tiger.active)|fight_style.dungeonslice&((fight_style.DungeonSlice&active_enemies=1&(time<10|talent.xuens_bond&talent.celestial_conduit)|!fight_style.dungeonslice|active_enemies>1)&cooldown.storm_earth_and_fire.ready&(target.time_to_die>14&!fight_style.dungeonroute|target.time_to_die>22)&(active_enemies>2|debuff.acclamation.up|!talent.ordered_elements&time<5)&(chi>2&talent.ordered_elements|chi>5|chi>3&energy<50|energy<50&active_enemies=1|prev.tiger_palm&!talent.ordered_elements&time<5)|fight_remains<30)|buff.invokers_delight.up
 actions.trinkets+=/do_treacherous_transmitter_task,if=pet.xuen_the_white_tiger.active|fight_remains<20
 ]]
-
+	if Trinket1:Usable() and (
+		(not InvokeXuenTheWhiteTiger.known and not StormEarthAndFire.known) or
+		(Player.major_cd_remains > 8 and (
+			not InvokeXuenTheWhiteTiger.known or
+			(Target.boss and Target.timeToDie < (InvokeXuenTheWhiteTiger:CooldownExpected() + 8))
+		)) or
+		(InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Up()) or
+		(Target.boss and Target.timeToDie < 22)
+	) then
+		return UseCooldown(Trinket1)
+	end
+	if Trinket2:Usable() and (
+		(not InvokeXuenTheWhiteTiger.known and not StormEarthAndFire.known) or
+		(Player.major_cd_remains > 8 and (
+			not InvokeXuenTheWhiteTiger.known or
+			(Target.boss and Target.timeToDie < (InvokeXuenTheWhiteTiger:CooldownExpected() + 8))
+		)) or
+		(InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Up()) or
+		(Target.boss and Target.timeToDie < 22)
+	) then
+		return UseCooldown(Trinket2)
+	end
 end
 
 APL.Interrupt = function(self)
