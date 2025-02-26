@@ -303,8 +303,6 @@ local Player = {
 	},
 	main_freecast = false,
 	major_cd_remains = 0,
-	sck_mod = 1,
-	sck_motc = 0,
 }
 
 -- base mana pool max for each level
@@ -1153,18 +1151,14 @@ local SpearHandStrike = Ability:Add(116705, false, true)
 SpearHandStrike.cooldown_duration = 15
 SpearHandStrike.triggers_gcd = false
 SpearHandStrike.off_gcd = true
-local SummonWhiteTigerStatue = Ability:Add(388686, true, true)
-SummonWhiteTigerStatue.buff_duration = 30
-SummonWhiteTigerStatue.cooldown_duration = 120
-SummonWhiteTigerStatue.Pulse = Ability:Add(389541, false, true)
-SummonWhiteTigerStatue.Pulse.tick_interval = 2
-SummonWhiteTigerStatue.Pulse:AutoAoe()
 local TigersLust = Ability:Add(116841, true, false)
 TigersLust.buff_duration = 6
 TigersLust.cooldown_duration = 30
 local TouchOfDeath = Ability:Add(322109, false, true)
 TouchOfDeath.cooldown_duration = 180
 TouchOfDeath.triggers_combo = true
+local XuensBond = Ability:Add(392986, true, true, 393058)
+XuensBond.buff_duration = 24
 --- Multiple Specialization Talents
 local RushingJadeWindPulse = Ability:Add(148187, false, true)
 RushingJadeWindPulse:AutoAoe(true)
@@ -1203,6 +1197,7 @@ GiftOfTheOx.Pickup = Ability:Add(124507, true, true)
 local InvokeNiuzaoTheBlackOx = Ability:Add(132578, true, true)
 InvokeNiuzaoTheBlackOx.cooldown_duration = 180
 InvokeNiuzaoTheBlackOx.buff_duration = 25
+InvokeNiuzaoTheBlackOx.summoning = false
 local KegSmash = Ability:Add(121253, false, true)
 KegSmash.cooldown_duration = 8
 KegSmash.buff_duration = 15
@@ -1287,6 +1282,7 @@ InvokersDelight.buff_duration = 20
 local InvokeXuenTheWhiteTiger = Ability:Add(123904, false, true)
 InvokeXuenTheWhiteTiger.cooldown_duration = 120
 InvokeXuenTheWhiteTiger.buff_duration = 20
+InvokeXuenTheWhiteTiger.summoning = false
 local JadefireBrand = Ability:Add(395414, false, true)
 JadefireBrand.buff_duration = 10
 local JadefireHarmony = Ability:Add(391412, false, true)
@@ -1299,9 +1295,6 @@ local JadeIgnition = Ability:Add(392979, false, true)
 local KnowledgeOfTheBrokenTemple = Ability:Add(451529, false, true)
 local LastEmperorsCapacitor = Ability:Add(392989, true, true, 393039)
 LastEmperorsCapacitor.max_stack = 20
-local MarkOfTheCrane = Ability:Add(220357, false, true, 228287)
-MarkOfTheCrane.buff_duration = 20
-MarkOfTheCrane:AutoAoe(false, 'apply')
 local MemoryOfTheMonastery = Ability:Add(454969, true, true, 454970)
 MemoryOfTheMonastery.buff_duration = 5
 MemoryOfTheMonastery.max_stack = 8
@@ -1544,7 +1537,6 @@ end
 -- Summoned Pets
 Pet.Xuen = SummonedPet:Add(63508, 20, InvokeXuenTheWhiteTiger)
 Pet.Niuzao = SummonedPet:Add(73967, 25, InvokeNiuzaoTheBlackOx)
-Pet.WhiteTigerStatue = SummonedPet:Add(196581, 10, SummonWhiteTigerStatue)
 
 -- End Summoned Pets
 
@@ -1839,7 +1831,6 @@ function Player:UpdateKnown()
 		ExpelHarm.known = false
 	end
 	CelestialConduit.Pulse.known = CelestialConduit.known
-	SummonWhiteTigerStatue.Pulse.known = SummonWhiteTigerStatue.known
 	JadefireBrand.known = JadefireHarmony.known
 	PressurePoint.known = XuensBattlegear.known
 	FuryOfXuen.Buff.known = FuryOfXuen.known
@@ -2006,8 +1997,6 @@ function Player:Update()
 	end
 
 	self.major_cd_remains = (StormEarthAndFire.known and StormEarthAndFire:Remains()) or 0
-	self.sck_mod = SpinningCraneKick.known and SpinningCraneKick:Modifier() or 1
-	self.sck_motc = MarkOfTheCrane.known and SpinningCraneKick:Stack() or 0
 
 	self.main = APL[self.spec]:Main()
 
@@ -2170,18 +2159,8 @@ function SpinningCraneKick:Stack()
 	return GetSpellCount(self.spellId)
 end
 
-function SpinningCraneKick:Max()
-	if MarkOfTheCrane.known then
-		return Player.sck_motc >= min(5, Player.enemies)
-	end
-	return true
-end
-
 function SpinningCraneKick:Modifier()
 	local mod = 1
-	if MarkOfTheCrane.known then
-		mod = mod * (1 + (0.18 * Player.sck_motc))
-	end
 	if CraneVortex.known then
 		mod = mod * (1 + (0.30))
 	end
@@ -2294,15 +2273,25 @@ function LegSweep:Available()
 end
 
 function InvokeXuenTheWhiteTiger:Remains()
-	return Pet.Xuen:Remains()
+	return Pet.Xuen:Remains(true)
 end
+
+function InvokeXuenTheWhiteTiger:CooldownDuration()
+	local duration = Ability.CooldownDuration(self)
+	if XuensBond.known then
+		duration = duration - 30
+	end
+	return max(0, duration)
+end
+
+function InvokeXuenTheWhiteTiger:CastSuccess(...)
+	Ability.CastSuccess(self, ...)
+	self.summoning = true
+end
+InvokeNiuzaoTheBlackOx.CastSuccess = InvokeXuenTheWhiteTiger.CastSuccess
 
 function InvokeNiuzaoTheBlackOx:Remains()
 	return Pet.Niuzao:Remains()
-end
-
-function SummonWhiteTigerStatue:Remains()
-	return Pet.WhiteTigerStatue:Remains()
 end
 
 function TeachingsOfTheMonastery:MaxStack()
@@ -2311,8 +2300,8 @@ end
 
 function CracklingJadeLightning:EnergyCost()
 	local cost = Ability.EnergyCost(self)
-	if TheEmperorsCapacitor.known then
-		cost = cost - (5 * TheEmperorsCapacitor:Stack())
+	if LastEmperorsCapacitor.known then
+		cost = cost - (5 * LastEmperorsCapacitor:Stack())
 	end
 	return max(0, cost)
 end
@@ -2326,6 +2315,21 @@ function TigerPalm:EnergyCost()
 end
 
 -- End Ability Modifications
+
+-- Start Summoned Pet Modifications
+
+function Pet.Xuen:AddUnit(guid)
+	local unit = SummonedPet.AddUnit(self, guid)
+	if InvokeXuenTheWhiteTiger.summoning then
+		InvokeXuenTheWhiteTiger.summoning = false -- summoned a full duration Xuen
+		unit.initial = true
+	else -- summoned a Fury of Xuen short duration Xuen
+		unit.expires = Player.time + FuryOfXuen.Buff:Duration()
+	end
+	return unit
+end
+
+-- End Summoned Pet Modifications
 
 local function UseCooldown(ability, overwrite)
 	if Opt.cooldown and (not Opt.boss_only or Target.boss) and (not Player.cd or overwrite) then
@@ -2507,7 +2511,7 @@ APL[SPEC.WINDWALKER].Main = function(self)
 	self.use_cds = Opt.cooldown and (
 		(Target.boss or Target.player or (not Opt.boss_only and Target.timeToDie > Opt.cd_ttd)) or
 		Player.major_cd_remains > 0 or
-		(InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Remains() > 10)
+		(InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Up())
 	)
 --[[
 actions.precombat=snapshot_stats
@@ -2615,6 +2619,7 @@ actions.cooldowns+=/ancestral_call,if=cooldown.invoke_xuen_the_white_tiger.remai
 		Player.chi.current > 3 or
 		(OrderedElements.known and Player.chi.current > 1)
 	) and (
+		InvokeXuenTheWhiteTiger:Remains() > 8 or
 		(StormEarthAndFire:FullRechargeTime() < InvokeXuenTheWhiteTiger:CooldownExpected() and (
 			Pet.Xuen:Remains() > 6 or
 			(InvokersDelight.known and InvokersDelight:Remains() > 8) or
@@ -2729,7 +2734,7 @@ actions.default_aoe+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fur
 	if ShadowboxingTreads.known and CourageousImpulse.known and BlackoutKick:Usable() and BlackoutKick:Combo() and BlackoutKick.Proc:Capped() then
 		return BlackoutKick
 	end
-	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and SpinningCraneKick:Max() and (
+	if SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (
 		DanceOfChiJi:Up() or
 		(CraneVortex.known and OrderedElements.known and Player.enemies > 2 and OrderedElements:Up())
 	) then
@@ -2744,7 +2749,7 @@ actions.default_aoe+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fur
 	if JadefireStomp:Usable() and JadefireStomp:Combo() and (JadefireHarmony.known or SingularlyFocusedJade.known) then
 		UseCooldown(JadefireStomp)
 	end
-	if CraneVortex.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and SpinningCraneKick:Max() and Player.chi.current > 4 and Player.enemies > 2 and (not OrderedElements.known or OrderedElements:Down()) then
+	if CraneVortex.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player.chi.current > 4 and Player.enemies > 2 and (not OrderedElements.known or OrderedElements:Down()) then
 		return SpinningCraneKick
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and (
@@ -2775,7 +2780,7 @@ actions.default_aoe+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fur
 		return ChiBurst
 	end
 	if OrderedElements.known and OrderedElements:Up() then
-		if HitCombo.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and SpinningCraneKick:Max() then
+		if HitCombo.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() then
 			return SpinningCraneKick
 		end
 		if not HitCombo.known and BlackoutKick:Usable() and not FistsOfFury:Ready() then
@@ -3229,7 +3234,7 @@ actions.trinkets+=/do_treacherous_transmitter_task,if=pet.xuen_the_white_tiger.a
 			not InvokeXuenTheWhiteTiger.known or
 			(Target.boss and Target.timeToDie < (InvokeXuenTheWhiteTiger:CooldownExpected() + 8))
 		)) or
-		(InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Up()) or
+		(InvokeXuenTheWhiteTiger.known and Pet.Xuen:Remains() > 10) or
 		(Target.boss and Target.timeToDie < 22)
 	) then
 		return UseCooldown(Trinket1)
@@ -3240,7 +3245,7 @@ actions.trinkets+=/do_treacherous_transmitter_task,if=pet.xuen_the_white_tiger.a
 			not InvokeXuenTheWhiteTiger.known or
 			(Target.boss and Target.timeToDie < (InvokeXuenTheWhiteTiger:CooldownExpected() + 8))
 		)) or
-		(InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Up()) or
+		(InvokeXuenTheWhiteTiger.known and Pet.Xuen:Remains() > 10) or
 		(Target.boss and Target.timeToDie < 22)
 	) then
 		return UseCooldown(Trinket2)
@@ -3722,14 +3727,7 @@ function UI:UpdateDisplay()
 	if Player.major_cd_remains > 0 then
 		text_bl = format('%.1fs', Player.major_cd_remains)
 	end
-	if MarkOfTheCrane.known then
-		if Player.main == SpinningCraneKick then
-			text_center = format('%d%%', Player.sck_mod * 100)
-		end
-		if Player.sck_motc > 0 then
-			text_tl = format('|cFF%s%d', SpinningCraneKick:Max() and '00FF00' or 'FF0000', Player.sck_motc)
-		end
-	elseif GiftOfTheOx.known then
+	if GiftOfTheOx.known then
 		text_tl = GiftOfTheOx.count
 	end
 	if border ~= msmdPanel.border.overlay then
