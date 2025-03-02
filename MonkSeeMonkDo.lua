@@ -1309,6 +1309,12 @@ RushingJadeWindWindwalker.hasted_duration = true
 RushingJadeWindWindwalker.hasted_ticks = true
 local SequencedStrikes = Ability:Add(451515, false, true)
 local SingularlyFocusedJade = Ability:Add(451573, false, true)
+local SlicingWinds = Ability:Add(1217413, true, true)
+SlicingWinds.buff_duration = 1.4
+SlicingWinds.cooldown_duration = 30
+SlicingWinds.triggers_combo = true
+SlicingWinds.Damage = Ability:Add(1217411, false, true)
+SlicingWinds.Damage:AutoAoe()
 local StormEarthAndFire = Ability:Add(137639, true, true)
 StormEarthAndFire.cooldown_duration = 90
 StormEarthAndFire.buff_duration = 15
@@ -1853,6 +1859,10 @@ function Player:UpdateKnown()
 	if RushingJadeWindWindwalker.known then
 		RushingJadeWind = RushingJadeWindWindwalker
 		RushingJadeWindPulse.known = true
+	end
+	if SlicingWinds.known then
+		SlicingWinds.Damage.known = true
+		FlyingSerpentKick.known = false
 	end
 
 	Abilities:Update()
@@ -2518,7 +2528,9 @@ actions.precombat=snapshot_stats
 actions.precombat+=/use_item,name=imperfect_ascendancy_serum
 ]]
 	if Player:TimeInCombat() == 0 then
-		if FlyingSerpentKick:Usable() then
+		if SlicingWinds:Usable() then
+			UseCooldown(SlicingWinds)
+		elseif FlyingSerpentKick:Usable() then
 			UseCooldown(FlyingSerpentKick)
 		end
 	end
@@ -2541,6 +2553,8 @@ actions+=/lights_judgment,if=buff.storm_earth_and_fire.down
 actions+=/bag_of_tricks,if=buff.storm_earth_and_fire.down
 ]]
 	self.haste_buffed = Player.group_size > 1 and Player:BloodlustActive() and PowerInfusion:Up()
+	self.xuen_wait_sotw = self.use_cds and InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Ready(15)
+	self.xuen_wait_fof = self.use_cds and InvokeXuenTheWhiteTiger.known and InvokeXuenTheWhiteTiger:Ready(10 - (XuensBattlegear.known and 1 or 0))
 	if FortifyingBrew:Usable() and Player.health.pct < 15 then
 		UseCooldown(FortifyingBrew)
 	end
@@ -2716,19 +2730,19 @@ actions.default_aoe+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fur
 	if EnergyBurst.known and BlackoutKick:Usable() and BlackoutKick:Combo() and Player.energy.current < 55 and BlackoutKick.Proc:Up() then
 		return BlackoutKick
 	end
-	if StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() and Player:TimeInCombat() > 5 and (FlurryStrikes.known or not InvokeXuenTheWhiteTiger.known or not InvokeXuenTheWhiteTiger:Ready(15)) then
+	if StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() and Player:TimeInCombat() > 5 and (FlurryStrikes.known or not self.xuen_wait_sotw) then
 		return StrikeOfTheWindlord
 	end
 	if SlicingWinds:Usable() and SlicingWinds:Combo() then
-		return SlicingWinds
+		UseCooldown(SlicingWinds)
 	end
 	if KnowledgeOfTheBrokenTemple.known and ShadowboxingTreads.known and BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Capped() then
 		return BlackoutKick
 	end
-	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and (not self.use_cds or not InvokeXuenTheWhiteTiger.known or not InvokeXuenTheWhiteTiger:Ready(10)) then
+	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and not self.xuen_wait_fof then
 		return CracklingJadeLightning
 	end
-	if FistsOfFury:Usable() and FistsOfFury:Combo() and (not self.use_cds or FlurryStrikes.known or not InvokeXuenTheWhiteTiger:Ready(10 - (XuensBattlegear.known and 1 or 0))) then
+	if FistsOfFury:Usable() and FistsOfFury:Combo() and (FlurryStrikes.known or not self.xuen_wait_fof) then
 		return FistsOfFury
 	end
 	if WisdomOfTheWall.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 1 and Player:EnergyTimeToMax() <= (3 * Player.gcd) and WisdomOfTheWall.Flurry:Up() then
@@ -2806,52 +2820,55 @@ end
 
 APL[SPEC.WINDWALKER].default_cleave = function(self)
 --[[
-actions.default_cleave=rising_sun_kick,target_if=max:target.time_to_die,if=buff.pressure_point.up&active_enemies<4&cooldown.fists_of_fury.remains>4
+actions.default_cleave=spinning_crane_kick,if=buff.dance_of_chiji.stack=2&combo_strike
+actions.default_cleave+=/rising_sun_kick,target_if=max:target.time_to_die,if=buff.pressure_point.up&active_enemies<4&cooldown.fists_of_fury.remains>4
 actions.default_cleave+=/spinning_crane_kick,target_if=max:target.time_to_die,if=combo_strike&buff.dance_of_chiji.stack=2&active_enemies>3
-actions.default_cleave+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=(energy>55&talent.inner_peace|energy>60&!talent.inner_peace)&combo_strike&chi.max-chi>=2&buff.teachings_of_the_monastery.stack<buff.teachings_of_the_monastery.max_stack&(talent.energy_burst&!buff.bok_proc.up|!talent.energy_burst)&!buff.ordered_elements.up|(talent.energy_burst&!buff.bok_proc.up|!talent.energy_burst)&!buff.ordered_elements.up&!cooldown.fists_of_fury.remains&chi<3|(prev.strike_of_the_windlord|cooldown.strike_of_the_windlord.remains)&cooldown.celestial_conduit.remains<2&buff.ordered_elements.up&chi<5&combo_strike|(!buff.heart_of_the_jade_serpent_cdr.up|!buff.heart_of_the_jade_serpent_cdr_celestial.up)&combo_strike&chi.deficit>=2&!buff.ordered_elements.up
-actions.default_cleave+=/touch_of_death
-actions.default_cleave+=/celestial_conduit,target_if=max:debuff.acclamation.stack,if=buff.storm_earth_and_fire.up&cooldown.strike_of_the_windlord.remains&(talent.xuens_bond|!talent.xuens_bond&buff.invokers_delight.up)|fight_remains<15
-actions.default_cleave+=/rising_sun_kick,target_if=max:target.time_to_die,if=!pet.xuen_the_white_tiger.active&prev.tiger_palm&time<5|buff.heart_of_the_jade_serpent_cdr_celestial.up&buff.pressure_point.up
+actions.default_cleave+=/tiger_palm,if=(energy>55&talent.inner_peace|energy>60&!talent.inner_peace)&combo_strike&chi.max-chi>=2&buff.teachings_of_the_monastery.stack<buff.teachings_of_the_monastery.max_stack&(talent.energy_burst&!buff.bok_proc.up|!talent.energy_burst)&!buff.ordered_elements.up|(talent.energy_burst&!buff.bok_proc.up|!talent.energy_burst)&!buff.ordered_elements.up&!cooldown.fists_of_fury.remains&chi<3|(prev.strike_of_the_windlord|cooldown.strike_of_the_windlord.remains)&cooldown.celestial_conduit.remains<2&buff.ordered_elements.up&chi<5&combo_strike|(!buff.heart_of_the_jade_serpent_cdr.up|!buff.heart_of_the_jade_serpent_cdr_celestial.up)&combo_strike&chi.deficit>=2&!buff.ordered_elements.up
+actions.default_cleave+=/touch_of_death,if=!buff.heart_of_the_jade_serpent_cdr.up&!buff.heart_of_the_jade_serpent_cdr_celestial.up
+actions.default_cleave+=/whirling_dragon_punch,target_if=max:target.time_to_die,if=buff.heart_of_the_jade_serpent_cdr.up
+actions.default_cleave+=/celestial_conduit,if=buff.storm_earth_and_fire.up&cooldown.strike_of_the_windlord.remains&(!buff.heart_of_the_jade_serpent_cdr.up|debuff.gale_force.remains<5)&(talent.xuens_bond|!talent.xuens_bond&buff.invokers_delight.up)|fight_remains<15|fight_style.dungeonroute&buff.invokers_delight.up&cooldown.strike_of_the_windlord.remains&buff.storm_earth_and_fire.remains<8
+actions.default_cleave+=/rising_sun_kick,target_if=max:target.time_to_die,if=!pet.xuen_the_white_tiger.active&prev.tiger_palm&time<5|buff.heart_of_the_jade_serpent_cdr_celestial.up&buff.pressure_point.up&cooldown.fists_of_fury.remains
 actions.default_cleave+=/fists_of_fury,target_if=max:target.time_to_die,if=buff.heart_of_the_jade_serpent_cdr_celestial.up
 actions.default_cleave+=/whirling_dragon_punch,target_if=max:target.time_to_die,if=buff.heart_of_the_jade_serpent_cdr_celestial.up
-actions.default_cleave+=/strike_of_the_windlord,target_if=max:target.time_to_die,if=talent.gale_force&buff.invokers_delight.up&(buff.bloodlust.up|cooldown.celestial_conduit.remains&!buff.heart_of_the_jade_serpent_cdr_celestial.up)
+actions.default_cleave+=/strike_of_the_windlord,target_if=max:target.time_to_die,if=talent.gale_force&buff.invokers_delight.up&(buff.bloodlust.up|!buff.heart_of_the_jade_serpent_cdr_celestial.up)
 actions.default_cleave+=/fists_of_fury,target_if=max:target.time_to_die,if=buff.power_infusion.up&buff.bloodlust.up
 actions.default_cleave+=/rising_sun_kick,target_if=max:target.time_to_die,if=buff.power_infusion.up&buff.bloodlust.up&active_enemies<3
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.teachings_of_the_monastery.stack=8&(active_enemies<3|talent.shadowboxing_treads)
+actions.default_cleave+=/blackout_kick,if=buff.teachings_of_the_monastery.stack=8&(active_enemies<3|talent.shadowboxing_treads)
 actions.default_cleave+=/whirling_dragon_punch,target_if=max:target.time_to_die,if=!talent.revolving_whirl|talent.revolving_whirl&buff.dance_of_chiji.stack<2&active_enemies>2|active_enemies<3
-actions.default_cleave+=/strike_of_the_windlord,target_if=max:debuff.acclamation.stack,if=time>5&(cooldown.invoke_xuen_the_white_tiger.remains>15|talent.flurry_strikes)
-actions.default_cleave+=/crackling_jade_lightning,target_if=max:target.time_to_die,if=buff.the_emperors_capacitor.stack>19&combo_strike&talent.power_of_the_thunder_king
+actions.default_cleave+=/strike_of_the_windlord,if=time>5&(cooldown.invoke_xuen_the_white_tiger.remains>15|talent.flurry_strikes)&(cooldown.fists_of_fury.remains<2|cooldown.celestial_conduit.remains<10)
+actions.default_cleave+=/slicing_winds
+actions.default_cleave+=/crackling_jade_lightning,target_if=max:target.time_to_die,if=buff.the_emperors_capacitor.stack>19&combo_strike&talent.power_of_the_thunder_king&cooldown.invoke_xuen_the_white_tiger.remains>10
 actions.default_cleave+=/spinning_crane_kick,target_if=max:target.time_to_die,if=combo_strike&buff.dance_of_chiji.stack=2
-actions.default_cleave+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&active_enemies<5&buff.wisdom_of_the_wall_flurry.up&active_enemies<4
-actions.default_cleave+=/fists_of_fury,target_if=max:target.time_to_die
-actions.default_cleave+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&active_enemies<5&buff.wisdom_of_the_wall_flurry.up
+actions.default_cleave+=/tiger_palm,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&active_enemies<5&buff.wisdom_of_the_wall_flurry.up&active_enemies<4
+actions.default_cleave+=/fists_of_fury,target_if=max:target.time_to_die,if=(talent.flurry_strikes|talent.xuens_battlegear|!talent.xuens_battlegear&(cooldown.strike_of_the_windlord.remains>1|buff.heart_of_the_jade_serpent_cdr.up|buff.heart_of_the_jade_serpent_cdr_celestial.up))&(talent.flurry_strikes|talent.xuens_battlegear&(cooldown.invoke_xuen_the_white_tiger.remains>5&fight_style.patchwerk|cooldown.invoke_xuen_the_white_tiger.remains>9)|cooldown.invoke_xuen_the_white_tiger.remains>10)
+actions.default_cleave+=/tiger_palm,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&active_enemies<5&buff.wisdom_of_the_wall_flurry.up
 actions.default_cleave+=/spinning_crane_kick,target_if=max:target.time_to_die,if=combo_strike&buff.dance_of_chiji.up&buff.chi_energy.stack>29
 actions.default_cleave+=/rising_sun_kick,target_if=max:target.time_to_die,if=chi>4&(active_enemies<3|talent.glory_of_the_dawn)|chi>2&energy>50&(active_enemies<3|talent.glory_of_the_dawn)|cooldown.fists_of_fury.remains>2&(active_enemies<3|talent.glory_of_the_dawn)
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=talent.shadowboxing_treads&talent.courageous_impulse&combo_strike&buff.bok_proc.stack=2
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.teachings_of_the_monastery.stack=4&!talent.knowledge_of_the_broken_temple&talent.shadowboxing_treads&active_enemies<3
+actions.default_cleave+=/blackout_kick,if=talent.shadowboxing_treads&talent.courageous_impulse&combo_strike&buff.bok_proc.stack=2
+actions.default_cleave+=/blackout_kick,if=buff.teachings_of_the_monastery.stack=4&!talent.knowledge_of_the_broken_temple&talent.shadowboxing_treads&active_enemies<3
 actions.default_cleave+=/spinning_crane_kick,target_if=max:target.time_to_die,if=combo_strike&buff.dance_of_chiji.up
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=talent.shadowboxing_treads&talent.courageous_impulse&combo_strike&buff.bok_proc.up
-actions.default_cleave+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&active_enemies<5
-actions.default_cleave+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&chi.deficit>=2&(!buff.ordered_elements.up|energy.time_to_max<=gcd.max*3)
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&cooldown.fists_of_fury.remains&buff.teachings_of_the_monastery.stack>3&cooldown.rising_sun_kick.remains
-actions.default_cleave+=/jadefire_stomp,target_if=max:debuff.acclamation.stack,if=talent.Singularly_Focused_Jade|talent.jadefire_harmony
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&cooldown.fists_of_fury.remains&(buff.teachings_of_the_monastery.stack>3|buff.ordered_elements.up)&(talent.shadowboxing_treads|buff.bok_proc.up|buff.ordered_elements.up)
+actions.default_cleave+=/blackout_kick,if=talent.shadowboxing_treads&talent.courageous_impulse&combo_strike&buff.bok_proc.up
+actions.default_cleave+=/tiger_palm,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&active_enemies<5
+actions.default_cleave+=/tiger_palm,if=combo_strike&chi.deficit>=2&(!buff.ordered_elements.up|energy.time_to_max<=gcd.max*3)
+actions.default_cleave+=/blackout_kick,if=combo_strike&cooldown.fists_of_fury.remains&buff.teachings_of_the_monastery.stack>3&cooldown.rising_sun_kick.remains
+actions.default_cleave+=/jadefire_stomp,if=talent.Singularly_Focused_Jade|talent.jadefire_harmony
+actions.default_cleave+=/blackout_kick,if=combo_strike&cooldown.fists_of_fury.remains&(buff.teachings_of_the_monastery.stack>3|buff.ordered_elements.up)&(talent.shadowboxing_treads|buff.bok_proc.up|buff.ordered_elements.up)
 actions.default_cleave+=/spinning_crane_kick,target_if=max:target.time_to_die,if=combo_strike&!buff.ordered_elements.up&talent.crane_vortex&active_enemies>2&chi>4
 actions.default_cleave+=/chi_burst,if=!buff.ordered_elements.up
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&(buff.ordered_elements.up|buff.bok_proc.up&chi.deficit>=1&talent.energy_burst)&cooldown.fists_of_fury.remains
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&cooldown.fists_of_fury.remains&(chi>2|energy>60|buff.bok_proc.up)
+actions.default_cleave+=/blackout_kick,if=combo_strike&(buff.ordered_elements.up|buff.bok_proc.up&chi.deficit>=1&talent.energy_burst)&cooldown.fists_of_fury.remains
+actions.default_cleave+=/blackout_kick,if=combo_strike&cooldown.fists_of_fury.remains&(chi>2|energy>60|buff.bok_proc.up)
 actions.default_cleave+=/jadefire_stomp,target_if=max:debuff.acclamation.stack
-actions.default_cleave+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&buff.ordered_elements.up&chi.deficit>=1
+actions.default_cleave+=/tiger_palm,if=combo_strike&buff.ordered_elements.up&chi.deficit>=1
 actions.default_cleave+=/chi_burst
 actions.default_cleave+=/spinning_crane_kick,if=combo_strike&buff.ordered_elements.up&talent.hit_combo
-actions.default_cleave+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.ordered_elements.up&!talent.hit_combo&cooldown.fists_of_fury.remains
+actions.default_cleave+=/blackout_kick,if=buff.ordered_elements.up&!talent.hit_combo&cooldown.fists_of_fury.remains
 actions.default_cleave+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury.remains
 ]]
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
+		return SpinningCraneKick
+	end
 	if XuensBattlegear.known and RisingSunKick:Usable() and RisingSunKick:Combo() and Player.enemies < 4 and PressurePoint:Up() and not FistsOfFury:Ready(4) then
 		return RisingSunKick
-	end
-	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and Player.enemies > 3 and DanceOfChiJi:Capped() then
-		return SpinningCraneKick
 	end
 	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 and (
 		((not EnergyBurst.known or BlackoutKick.Proc:Down()) and (not OrderedElements.known or OrderedElements:Down()) and (
@@ -2863,18 +2880,21 @@ actions.default_cleave+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_
 	) then
 		return TigerPalm
 	end
-	if TouchOfDeath:Usable() and TouchOfDeath:Combo() then
+	if TouchOfDeath:Usable() and TouchOfDeath:Combo() and (not HeartOfTheJadeSerpent.known or (HeartOfTheJadeSerpent.CDR:Down() and HeartOfTheJadeSerpent.CDRCelestial:Down())) then
 		UseCooldown(TouchOfDeath)
 	end
+	if HeartOfTheJadeSerpent.known and WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() and HeartOfTheJadeSerpent.CDR:Up() then
+		return WhirlingDragonPunch
+	end
 	if CelestialConduit:Usable() and CelestialConduit:Combo() and (
-		(Player.major_cd_remains > 0 and (not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())) or
+		(Player.major_cd_remains > 0 and (not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (HeartOfTheJadeSerpent.CDR:Down() or GaleForce:Remains() < 5) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())) or
 		(Target.boss and Target.timeToDie < 15)
 	) then
 		UseCooldown(CelestialConduit)
 	end
 	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
 		(Pet.Xuen:Down() and TigerPalm:Previous() and Player:TimeInCombat() < 5) or
-		(HeartOfTheJadeSerpent.known and XuensBattlegear.known and HeartOfTheJadeSerpent.CDRCelestial:Up() and PressurePoint:Up())
+		(HeartOfTheJadeSerpent.known and XuensBattlegear.known and HeartOfTheJadeSerpent.CDRCelestial:Up() and PressurePoint:Up() and not FistsOfFury:Ready())
 	) then
 		return RisingSunKick
 	end
@@ -2888,7 +2908,8 @@ actions.default_cleave+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_
 	end
 	if GaleForce.known and InvokersDelight.known and StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() and InvokersDelight:Up() and (
 		Player:BloodlustActive() or
-		(HeartOfTheJadeSerpent.known and not CelestialConduit:Ready() and HeartOfTheJadeSerpent.CDRCelestial:Down())
+		not HeartOfTheJadeSerpent.known or
+		HeartOfTheJadeSerpent.CDRCelestial:Down()
 	) then
 		return StrikeOfTheWindlord
 	end
@@ -2904,10 +2925,13 @@ actions.default_cleave+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_
 	if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() and (not RevolvingWhirl.known or Player.enemies < 3 or (not DanceOfChiJi:Capped() and Player.enemies > 2)) then
 		return WhirlingDragonPunch
 	end
-	if StrikeOfTheWindlord:Usable() and Player:TimeInCombat() > 5 and (FlurryStrikes.known or not InvokeXuenTheWhiteTiger.known or not InvokeXuenTheWhiteTiger:Ready(15)) then
+	if StrikeOfTheWindlord:Usable() and Player:TimeInCombat() > 5 and (FlurryStrikes.known or not self.xuen_wait_sotw) and (FistsOfFury:Ready(2) or not CelestialConduit.known or CelestialConduit:Ready(10)) then
 		return StrikeOfTheWindlord
 	end
-	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() then
+	if SlicingWinds:Usable() and SlicingWinds:Combo() then
+		UseCooldown(SlicingWinds)
+	end
+	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and not self.xuen_wait_fof then
 		return CracklingJadeLightning
 	end
 	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
@@ -2916,7 +2940,13 @@ actions.default_cleave+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_
 	if WisdomOfTheWall.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.enemies < 4 and Player:EnergyTimeToMax() <= (3 * Player.gcd) and WisdomOfTheWall.Flurry:Up() then
 		return TigerPalm
 	end
-	if FistsOfFury:Usable() and FistsOfFury:Combo() then
+	if FistsOfFury:Usable() and FistsOfFury:Combo() and (
+		FlurryStrikes.known or
+		(not self.xuen_wait_fof and (
+			XuensBattlegear.known or
+			(not StrikeOfTheWindlord:Ready(1) or (HeartOfTheJadeSerpent.known and (HeartOfTheJadeSerpent.CDR:Up() or HeartOfTheJadeSerpent.CDRCelestial:Up())))
+		))
+	) then
 		return FistsOfFury
 	end
 	if WisdomOfTheWall.known and TigerPalm:Usable() and TigerPalm:Combo() and Player.enemies < 5 and Player:EnergyTimeToMax() <= (3 * Player.gcd) and WisdomOfTheWall.Flurry:Up() then
@@ -3000,52 +3030,75 @@ end
 
 APL[SPEC.WINDWALKER].default_st = function(self)
 --[[
-actions.default_st=rising_sun_kick,if=buff.pressure_point.up|buff.ordered_elements.remains<=gcd.max*3&buff.storm_earth_and_fire.up
-actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=(energy>55&talent.inner_peace|energy>60&!talent.inner_peace)&combo_strike&chi.max-chi>=2&buff.teachings_of_the_monastery.stack<buff.teachings_of_the_monastery.max_stack&(talent.energy_burst&!buff.bok_proc.up|!talent.energy_burst)&!buff.ordered_elements.up|(talent.energy_burst&!buff.bok_proc.up|!talent.energy_burst)&!buff.ordered_elements.up&!cooldown.fists_of_fury.remains&chi<3|(prev.strike_of_the_windlord|cooldown.strike_of_the_windlord.remains)&cooldown.celestial_conduit.remains<2&buff.ordered_elements.up&chi<5&combo_strike|(!buff.heart_of_the_jade_serpent_cdr.up|!buff.heart_of_the_jade_serpent_cdr_celestial.up)&combo_strike&chi.deficit>=2&!buff.ordered_elements.up
+actions.default_st=fists_of_fury,if=buff.heart_of_the_jade_serpent_cdr_celestial.up|buff.heart_of_the_jade_serpent_cdr.up
+actions.default_st+=/rising_sun_kick,if=buff.pressure_point.up&!buff.heart_of_the_jade_serpent_cdr.up&buff.heart_of_the_jade_serpent_cdr_celestial.up|buff.ordered_elements.remains<=gcd.max*3&buff.storm_earth_and_fire.up&talent.ordered_elements
+actions.default_st+=/celestial_conduit,if=buff.storm_earth_and_fire.up&(!buff.heart_of_the_jade_serpent_cdr.up|debuff.gale_force.remains<5)&cooldown.strike_of_the_windlord.remains&(talent.xuens_bond|!talent.xuens_bond&buff.invokers_delight.up)|fight_remains<15|fight_style.dungeonroute&buff.invokers_delight.up&cooldown.strike_of_the_windlord.remains&buff.storm_earth_and_fire.remains<8|fight_remains<10
+actions.default_st+=/slicing_winds,if=buff.heart_of_the_jade_serpent_cdr.up|buff.heart_of_the_jade_serpent_cdr_celestial.up
+actions.default_st+=/spinning_crane_kick,if=buff.dance_of_chiji.stack=2&combo_strike
+actions.default_st+=/rising_sun_kick,if=buff.pressure_point.up|buff.ordered_elements.remains<=gcd.max*3&buff.storm_earth_and_fire.up&talent.ordered_elements
+actions.default_st+=/tiger_palm,if=(energy>55&talent.inner_peace|energy>60&!talent.inner_peace)&combo_strike&chi.max-chi>=2&buff.teachings_of_the_monastery.stack<buff.teachings_of_the_monastery.max_stack&(talent.energy_burst&!buff.bok_proc.up|!talent.energy_burst)&!buff.ordered_elements.up|(talent.energy_burst&!buff.bok_proc.up|!talent.energy_burst)&!buff.ordered_elements.up&!cooldown.fists_of_fury.remains&chi<3|(prev.strike_of_the_windlord|cooldown.strike_of_the_windlord.remains)&cooldown.celestial_conduit.remains<2&buff.ordered_elements.up&chi<5&combo_strike|(!buff.heart_of_the_jade_serpent_cdr.up|!buff.heart_of_the_jade_serpent_cdr_celestial.up)&combo_strike&chi.deficit>=2&!buff.ordered_elements.up
 actions.default_st+=/touch_of_death
-actions.default_st+=/rising_sun_kick,target_if=max:debuff.acclamation.stack,if=buff.invokers_delight.up&!buff.storm_earth_and_fire.up&talent.ordered_elements
-actions.default_st+=/celestial_conduit,if=buff.storm_earth_and_fire.up&(!talent.ordered_elements|buff.ordered_elements.up)&cooldown.strike_of_the_windlord.remains&(talent.xuens_bond|!talent.xuens_bond&buff.invokers_delight.up)|fight_remains<15
-actions.default_st+=/rising_sun_kick,target_if=max:debuff.acclamation.stack,if=!pet.xuen_the_white_tiger.active&prev.tiger_palm&time<5|buff.storm_earth_and_fire.up&talent.ordered_elements
-actions.default_st+=/strike_of_the_windlord,if=talent.gale_force&buff.invokers_delight.up&(buff.bloodlust.up|cooldown.celestial_conduit.remains&!buff.heart_of_the_jade_serpent_cdr_celestial.up)
-actions.default_st+=/rising_sun_kick,target_if=max:debuff.acclamation.stack,if=buff.power_infusion.up&buff.bloodlust.up
-actions.default_st+=/fists_of_fury,target_if=max:debuff.acclamation.stack,if=buff.power_infusion.up&buff.bloodlust.up
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.teachings_of_the_monastery.stack>3&buff.ordered_elements.up&cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>2
+actions.default_st+=/rising_sun_kick,if=buff.invokers_delight.up&!buff.storm_earth_and_fire.up&talent.ordered_elements
+actions.default_st+=/rising_sun_kick,if=!pet.xuen_the_white_tiger.active&prev.tiger_palm&time<5|buff.storm_earth_and_fire.up&talent.ordered_elements
+actions.default_st+=/strike_of_the_windlord,if=talent.celestial_conduit&!buff.invokers_delight.up&!buff.heart_of_the_jade_serpent_cdr_celestial.up&cooldown.fists_of_fury.remains<5&cooldown.invoke_xuen_the_white_tiger.remains>15|fight_remains<12
+actions.default_st+=/strike_of_the_windlord,if=talent.gale_force&buff.invokers_delight.up&(buff.bloodlust.up|!buff.heart_of_the_jade_serpent_cdr_celestial.up)
+actions.default_st+=/strike_of_the_windlord,if=time>5&talent.flurry_strikes
+actions.default_st+=/rising_sun_kick,if=buff.power_infusion.up&buff.bloodlust.up
+actions.default_st+=/fists_of_fury,if=buff.power_infusion.up&buff.bloodlust.up
+actions.default_st+=/blackout_kick,if=buff.teachings_of_the_monastery.stack>3&buff.ordered_elements.up&cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>2
 actions.default_st+=/spinning_crane_kick,if=buff.dance_of_chiji.stack=2&combo_strike&buff.power_infusion.up&buff.bloodlust.up
 actions.default_st+=/whirling_dragon_punch,if=buff.power_infusion.up&buff.bloodlust.up
-actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&buff.power_infusion.up&buff.bloodlust.up
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.teachings_of_the_monastery.stack>4&cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>2
+actions.default_st+=/tiger_palm,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&buff.power_infusion.up&buff.bloodlust.up
+actions.default_st+=/blackout_kick,if=buff.teachings_of_the_monastery.stack>4&cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>2
 actions.default_st+=/whirling_dragon_punch,if=!buff.heart_of_the_jade_serpent_cdr_celestial.up&!buff.dance_of_chiji.stack=2|buff.ordered_elements.up|talent.knowledge_of_the_broken_temple
-actions.default_st+=/strike_of_the_windlord,if=time>5&(cooldown.invoke_xuen_the_white_tiger.remains>15|talent.flurry_strikes)
-actions.default_st+=/rising_sun_kick,target_if=max:debuff.acclamation.stack,if=chi>4|chi>2&energy>50|cooldown.fists_of_fury.remains>2
-actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&buff.wisdom_of_the_wall_flurry.up
-actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&chi.deficit>=2&energy.time_to_max<=gcd.max*3
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.teachings_of_the_monastery.stack>7&talent.memory_of_the_monastery&!buff.memory_of_the_monastery.up&cooldown.fists_of_fury.remains
-actions.default_st+=/fists_of_fury
+actions.default_st+=/crackling_jade_lightning,if=buff.the_emperors_capacitor.stack>19&!buff.heart_of_the_jade_serpent_cdr.up&!buff.heart_of_the_jade_serpent_cdr_celestial.up&combo_strike&(!fight_style.dungeonslice|target.time_to_die>20)&cooldown.invoke_xuen_the_white_tiger.remains>10
+actions.default_st+=/slicing_winds
+actions.default_st+=/fists_of_fury,if=(talent.flurry_strikes|talent.xuens_battlegear|!talent.xuens_battlegear&(cooldown.strike_of_the_windlord.remains>1|buff.heart_of_the_jade_serpent_cdr.up|buff.heart_of_the_jade_serpent_cdr_celestial.up))&(talent.flurry_strikes|talent.xuens_battlegear&cooldown.invoke_xuen_the_white_tiger.remains>5|cooldown.invoke_xuen_the_white_tiger.remains>10)
+actions.default_st+=/rising_sun_kick,if=chi>4|chi>2&energy>50|cooldown.fists_of_fury.remains>2
+actions.default_st+=/tiger_palm,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&buff.wisdom_of_the_wall_flurry.up
+actions.default_st+=/tiger_palm,if=combo_strike&chi.deficit>=2&energy.time_to_max<=gcd.max*3
+actions.default_st+=/blackout_kick,if=buff.teachings_of_the_monastery.stack>7&talent.memory_of_the_monastery&!buff.memory_of_the_monastery.up&cooldown.fists_of_fury.remains
 actions.default_st+=/spinning_crane_kick,if=(buff.dance_of_chiji.stack=2|buff.dance_of_chiji.remains<2&buff.dance_of_chiji.up)&combo_strike&!buff.ordered_elements.up
 actions.default_st+=/whirling_dragon_punch
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.teachings_of_the_monastery.stack=4&!talent.knowledge_of_the_broken_temple&cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>2
 actions.default_st+=/spinning_crane_kick,if=buff.dance_of_chiji.stack=2&combo_strike
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=talent.courageous_impulse&combo_strike&buff.bok_proc.stack=2
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&buff.ordered_elements.up&cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>2
-actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes&chi.deficit>1
+actions.default_st+=/blackout_kick,if=talent.courageous_impulse&combo_strike&buff.bok_proc.stack=2
+actions.default_st+=/blackout_kick,if=combo_strike&buff.ordered_elements.up&cooldown.rising_sun_kick.remains>1&cooldown.fists_of_fury.remains>2
+actions.default_st+=/tiger_palm,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes
 actions.default_st+=/spinning_crane_kick,if=combo_strike&buff.dance_of_chiji.up&(buff.ordered_elements.up|energy.time_to_max>=gcd.max*3&talent.sequenced_strikes&talent.energy_burst|!talent.sequenced_strikes|!talent.energy_burst|buff.dance_of_chiji.remains<=gcd.max*3)
-actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes
+actions.default_st+=/tiger_palm,if=combo_strike&energy.time_to_max<=gcd.max*3&talent.flurry_strikes
 actions.default_st+=/jadefire_stomp,if=talent.Singularly_Focused_Jade|talent.jadefire_harmony
 actions.default_st+=/chi_burst,if=!buff.ordered_elements.up
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&(buff.ordered_elements.up|buff.bok_proc.up&chi.deficit>=1&talent.energy_burst)&cooldown.fists_of_fury.remains
-actions.default_st+=/crackling_jade_lightning,if=buff.the_emperors_capacitor.stack>19&!buff.ordered_elements.up&combo_strike
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&cooldown.fists_of_fury.remains&(chi>2|energy>60|buff.bok_proc.up)
+actions.default_st+=/blackout_kick,if=combo_strike&(buff.ordered_elements.up|buff.bok_proc.up&chi.deficit>=1&talent.energy_burst)&cooldown.fists_of_fury.remains
+actions.default_st+=/blackout_kick,if=combo_strike&cooldown.fists_of_fury.remains&(chi>2|energy>60|buff.bok_proc.up)
 actions.default_st+=/jadefire_stomp
-actions.default_st+=/tiger_palm,target_if=min:debuff.mark_of_the_crane.remains,if=combo_strike&buff.ordered_elements.up&chi.deficit>=1
+actions.default_st+=/tiger_palm,if=combo_strike&buff.ordered_elements.up&chi.deficit>=1
 actions.default_st+=/chi_burst
 actions.default_st+=/spinning_crane_kick,if=combo_strike&buff.ordered_elements.up&talent.hit_combo
-actions.default_st+=/blackout_kick,target_if=min:debuff.mark_of_the_crane.remains,if=buff.ordered_elements.up&!talent.hit_combo&cooldown.fists_of_fury.remains
+actions.default_st+=/blackout_kick,if=buff.ordered_elements.up&!talent.hit_combo&cooldown.fists_of_fury.remains
 actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury.remains
 ]]
+	if HeartOfTheJadeSerpent.known and FistsOfFury:Usable() and FistsOfFury:Combo() and (HeartOfTheJadeSerpent.CDR:Up() or HeartOfTheJadeSerpent.CDRCelestial:Up()) then
+		return FistsOfFury
+	end
 	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
-		(XuensBattlegear.known and PressurePoint:Up()) or
+		(HeartOfTheJadeSerpent.known and XuensBattlegear.known and PressurePoint:Up() and HeartOfTheJadeSerpent.CDR:Down() and HeartOfTheJadeSerpent.CDRCelestial:Up()) or
 		(OrderedElements.known and Player.major_cd_remains > 0 and OrderedElements:Remains() <= (3 * Player.gcd))
 	) then
+		return RisingSunKick
+	end
+	if CelestialConduit:Usable() and CelestialConduit:Combo() and (
+		(Player.major_cd_remains > 0 and (not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (HeartOfTheJadeSerpent.CDR:Down() or GaleForce:Remains() < 5) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())) or
+		(Target.boss and Target.timeToDie < 15)
+	) then
+		UseCooldown(CelestialConduit)
+	end
+	if HeartOfTheJadeSerpent.known and SlicingWinds:Usable() and SlicingWinds:Combo() and (HeartOfTheJadeSerpent.CDR:Up() or HeartOfTheJadeSerpent.CDRCelestial:Up()) then
+		UseCooldown(SlicingWinds)
+	end
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
+		return SpinningCraneKick
+	end
+	if XuensBattlegear.known and RisingSunKick:Usable() and RisingSunKick:Combo() and PressurePoint:Up() then
 		return RisingSunKick
 	end
 	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit >= 2 and (
@@ -3061,24 +3114,22 @@ actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury
 	if TouchOfDeath:Usable() and TouchOfDeath:Combo() then
 		UseCooldown(TouchOfDeath)
 	end
-	if OrderedElements.known and InvokersDelight.known and RisingSunKick:Usable() and RisingSunKick:Combo() and Player.major_cd_remains == 0 and InvokersDelight:Up() then
-		return RisingSunKick
-	end
-	if CelestialConduit:Usable() and CelestialConduit:Combo() and (
-		(Player.major_cd_remains > 0 and (not OrderedElements.known or OrderedElements:Up()) and (not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())) or
-		(Target.boss and Target.timeToDie < 15)
-	) then
-		UseCooldown(CelestialConduit)
-	end
 	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
+		(OrderedElements.known and InvokersDelight.known and Player.major_cd_remains == 0 and InvokersDelight:Up()) or
 		(Pet.Xuen:Down() and TigerPalm:Previous() and Player:TimeInCombat() < 5) or
 		(OrderedElements.known and Player.major_cd_remains > 0)
 	) then
 		return RisingSunKick
 	end
-	if GaleForce.known and InvokersDelight.known and StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() and InvokersDelight:Up() and (
-		Player:BloodlustActive() or
-		(HeartOfTheJadeSerpent.known and not CelestialConduit:Ready() and HeartOfTheJadeSerpent.CDRCelestial:Down())
+	if StrikeOfTheWindlord:Usable() and StrikeOfTheWindlord:Combo() and (
+		(CelestialConduit.known and InvokersDelight:Down() and HeartOfTheJadeSerpent.CDRCelestial:Down() and FistsOfFury:Ready(5) and not self.xuen_wait_sotw) or
+		(GaleForce.known and InvokersDelight.known and InvokersDelight:Up() and (
+			Player:BloodlustActive() or
+			not HeartOfTheJadeSerpent.known or
+			HeartOfTheJadeSerpent.CDRCelestial:Down()
+		)) or
+		(FlurryStrikes.known and Player:TimeInCombat() > 5) or
+		(Target.boss and Target.timeToDie < 12)
 	) then
 		return StrikeOfTheWindlord
 	end
@@ -3094,9 +3145,6 @@ actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury
 		return BlackoutKick
 	end
 	if self.haste_buffed then
-		if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
-			return SpinningCraneKick
-		end
 		if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() then
 			return WhirlingDragonPunch
 		end
@@ -3114,8 +3162,20 @@ actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury
 	) then
 		return WhirlingDragonPunch
 	end
-	if StrikeOfTheWindlord:Usable() and Player:TimeInCombat() > 5 and (FlurryStrikes.known or not InvokeXuenTheWhiteTiger.known or not InvokeXuenTheWhiteTiger:Ready(15)) then
-		return StrikeOfTheWindlord
+	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and (not HeartOfTheJadeSerpent.known or (HeartOfTheJadeSerpent.CDR:Down() and HeartOfTheJadeSerpent.CDRCelestial:Down())) and not self.xuen_wait_fof then
+		return CracklingJadeLightning
+	end
+	if SlicingWinds:Usable() and SlicingWinds:Combo() then
+		UseCooldown(SlicingWinds)
+	end
+	if FistsOfFury:Usable() and FistsOfFury:Combo() and (
+		FlurryStrikes.known or
+		((not self.xuen_wait_fof or (XuensBattlegear.known and not InvokeXuenTheWhiteTiger:Ready(5))) and (
+			XuensBattlegear.known or
+			(not StrikeOfTheWindlord:Ready(1) or (HeartOfTheJadeSerpent.known and (HeartOfTheJadeSerpent.CDR:Up() or HeartOfTheJadeSerpent.CDRCelestial:Up())))
+		))
+	) then
+		return FistsOfFury
 	end
 	if RisingSunKick:Usable() and RisingSunKick:Combo() and (
 		Player.chi.current > 4 or
@@ -3133,20 +3193,11 @@ actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury
 	if KnowledgeOfTheBrokenTemple.known and MemoryOfTheMonastery.known and BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Capped() and MemoryOfTheMonastery:Down() and not FistsOfFury:Ready() then
 		return BlackoutKick
 	end
-	if FistsOfFury:Usable() and FistsOfFury:Combo() then
-		return FistsOfFury
-	end
-	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and (DanceOfChiJi:Capped() or (DanceOfChiJi:Up() and DanceOfChiJi:Remains() < 2)) and (not OrderedElements.known or OrderedElements:Down()) then
+	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() and DanceOfChiJi:Remains() < 2 and (not OrderedElements.known or OrderedElements:Down()) then
 		return SpinningCraneKick
 	end
 	if WhirlingDragonPunch:Usable() and WhirlingDragonPunch:Combo() then
 		return WhirlingDragonPunch
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and TeachingsOfTheMonastery:Capped() and not RisingSunKick:Ready(1) and not FistsOfFury:Ready(2) then
-		return BlackoutKick
-	end
-	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
-		return SpinningCraneKick
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and (
 		(CourageousImpulse.known and BlackoutKick.Proc:Capped()) or
@@ -3154,7 +3205,7 @@ actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury
 	) then
 		return BlackoutKick
 	end
-	if FlurryStrikes.known and TigerPalm:Usable() and TigerPalm:Combo() and Player:EnergyTimeToMax() <= (3 * Player.gcd) and Player.chi.deficit > 1 then
+	if FlurryStrikes.known and TigerPalm:Usable() and TigerPalm:Combo() and Player:EnergyTimeToMax() <= (3 * Player.gcd) then
 		return TigerPalm
 	end
 	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Up() and (
@@ -3176,18 +3227,10 @@ actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury
 		return ChiBurst
 	end
 	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() and (
-		(OrderedElements.known and OrderedElements:Up()) or
-		(EnergyBurst.known and Player.chi.deficit >= 1 and BlackoutKick.Proc:Up())
-	) then
-		return BlackoutKick
-	end
-	if LastEmperorsCapacitor.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and (not OrderedElements.known or OrderedElements:Down()) then
-		return CracklingJadeLightning
-	end
-	if BlackoutKick:Usable() and BlackoutKick:Combo() and not FistsOfFury:Ready() and (
 		Player.chi.current > 2 or
 		Player.energy.current > 60 or
-		BlackoutKick.Proc:Up()
+		BlackoutKick.Proc:Up() or
+		(OrderedElements.known and OrderedElements:Up())
 	) then
 		return BlackoutKick
 	end
@@ -3236,7 +3279,7 @@ actions.aoe_opener=slicing_winds
 actions.aoe_opener+=/tiger_palm,if=chi<6
 ]]
 	if SlicingWinds:Usable() and SlicingWinds:Combo() then
-		return SlicingWinds
+		UseCooldown(SlicingWinds)
 	end
 	if TigerPalm:Usable() and TigerPalm:Combo() and Player.chi.deficit > 0 then
 		return TigerPalm
