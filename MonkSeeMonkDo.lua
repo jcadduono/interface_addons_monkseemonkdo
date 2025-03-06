@@ -2612,10 +2612,14 @@ actions.cooldowns+=/ancestral_call,if=buff.invokers_delight.remains>15|fight_rem
 	end
 	if InvokeXuenTheWhiteTiger:Usable() and (
 		not StormEarthAndFire.known or
-		StormEarthAndFire:Ready() or
+		((not CelestialConduit.known or CelestialConduit:Ready(12) or not CelestialConduit:Ready(30)) and (
+			StormEarthAndFire:Ready(2) or
+			(StormEarthAndFire:Up() and StormEarthAndFire:CooldownExpected() < StormEarthAndFire:Remains())
+		)) or
 		(Target.boss and Target.timeToDie < (StormEarthAndFire:CooldownExpected() + 15))
 	) and (
 		Player.enemies > 2 or
+		not Acclamation.known or
 		Acclamation:Up() or
 		(not OrderedElements.known and Player:TimeInCombat() < 5)
 	) and (
@@ -2626,23 +2630,23 @@ actions.cooldowns+=/ancestral_call,if=buff.invokers_delight.remains>15|fight_rem
 	) then
 		return UseCooldown(InvokeXuenTheWhiteTiger)
 	end
-	if StormEarthAndFire:Usable() and StormEarthAndFire:Down() and (
+	if StormEarthAndFire:Usable() and StormEarthAndFire:Down() and Player.chi.current > (OrderedElements.known and 1 or 3) and (
 		not InvokeXuenTheWhiteTiger.known or
-		not InvokeXuenTheWhiteTiger:Ready()
+		not InvokeXuenTheWhiteTiger:Ready() or
+		InvokeXuenTheWhiteTiger:Up()
 	) and (
 		Player.enemies > 2 or
 		not OrderedElements.known or
 		not RisingSunKick:Ready()
 	) and (
-		Player.chi.current > 3 or
-		(OrderedElements.known and Player.chi.current > 1)
-	) and (
-		InvokeXuenTheWhiteTiger:Remains() > 8 or
-		(StormEarthAndFire:FullRechargeTime() < InvokeXuenTheWhiteTiger:CooldownExpected() and (
-			Pet.Xuen:Remains() > 6 or
-			(InvokersDelight.known and InvokersDelight:Remains() > 8) or
+		(InvokeXuenTheWhiteTiger:Remains() > 8 and (not CelestialConduit.known or CelestialConduit:Ready(10) or CelestialConduit:Cooldown() > InvokeXuenTheWhiteTiger:Remains())) or
+		(StormEarthAndFire:FullRechargeTime() < (InvokeXuenTheWhiteTiger:CooldownExpected() + 2) and (Player.enemies > 1 or Target.timeToDie > 15) and (
+			(FuryOfXuen.known and Pet.Xuen:Remains() > 8) or
+			(StrikeOfTheWindlord.known and GaleForce.known and not self.xuen_wait_sotw and StrikeOfTheWindlord:Ready()) or
+			(LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and not self.xuen_wait_fof and LastEmperorsCapacitor:Capped(1)) or
 			Player:BloodlustActive() or
-			StormEarthAndFire:FullRechargeTime() < 6
+			PowerInfusion:Up() or
+			StormEarthAndFire:FullRechargeTime() < 10
 		)) or
 		(Target.boss and Target.timeToDie < 30)
 	) then
@@ -2713,7 +2717,10 @@ actions.default_aoe+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fur
 		return WhirlingDragonPunch
 	end
 	if CelestialConduit:Usable() and CelestialConduit:Combo() and (
-		(Player.major_cd_remains > 0 and (not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (HeartOfTheJadeSerpent.CDR:Down() or GaleForce:Remains() < 5) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())) or
+		(Player.major_cd_remains > 0 and (not InvokeXuenTheWhiteTiger.known or InvokeXuenTheWhiteTiger:Up() or not InvokeXuenTheWhiteTiger:Ready(30)) and (
+			Player.major_cd_remains < (5 * Player.haste_factor) or
+			((not StrikeOfTheWindlord.known or not StrikeOfTheWindlord:Ready()) and (HeartOfTheJadeSerpent.CDR:Down() or GaleForce:Remains() < 5) and (XuensBond.known or not InvokersDelight.known or InvokersDelight:Up())))
+		) or
 		(Target.boss and Target.timeToDie < 15)
 	) then
 		UseCooldown(CelestialConduit)
