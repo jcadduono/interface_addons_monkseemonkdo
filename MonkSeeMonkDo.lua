@@ -2747,7 +2747,7 @@ actions.default_aoe+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fur
 		return BlackoutKick
 	end
 	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and not self.xuen_wait_fof then
-		return CracklingJadeLightning
+		UseCooldown(CracklingJadeLightning)
 	end
 	if FistsOfFury:Usable() and FistsOfFury:Combo() and (FlurryStrikes.known or not self.xuen_wait_fof) then
 		return FistsOfFury
@@ -2939,7 +2939,7 @@ actions.default_cleave+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_
 		UseCooldown(SlicingWinds)
 	end
 	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and not self.xuen_wait_fof then
-		return CracklingJadeLightning
+		UseCooldown(CracklingJadeLightning)
 	end
 	if DanceOfChiJi.known and SpinningCraneKick:Usable() and SpinningCraneKick:Combo() and DanceOfChiJi:Capped() then
 		return SpinningCraneKick
@@ -3169,8 +3169,8 @@ actions.default_st+=/tiger_palm,if=prev.tiger_palm&chi<3&!cooldown.fists_of_fury
 	) then
 		return WhirlingDragonPunch
 	end
-	if LastEmperorsCapacitor.known and PowerOfTheThunderKing.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and (not HeartOfTheJadeSerpent.known or (HeartOfTheJadeSerpent.CDR:Down() and HeartOfTheJadeSerpent.CDRCelestial:Down())) and not self.xuen_wait_fof then
-		return CracklingJadeLightning
+	if LastEmperorsCapacitor.known and CracklingJadeLightning:Usable() and CracklingJadeLightning:Combo() and LastEmperorsCapacitor:Capped() and (not HeartOfTheJadeSerpent.known or (HeartOfTheJadeSerpent.CDR:Down() and HeartOfTheJadeSerpent.CDRCelestial:Down())) and not self.xuen_wait_fof then
+		UseCooldown(CracklingJadeLightning)
 	end
 	if SlicingWinds:Usable() and SlicingWinds:Combo() then
 		UseCooldown(SlicingWinds)
