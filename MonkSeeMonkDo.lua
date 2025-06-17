@@ -4098,7 +4098,7 @@ end
 
 function Events:UNIT_MAXPOWER(unitId)
 	if unitId == 'player' then
-		Player.level = UnitLevel(unitId)
+		Player.level = UnitEffectiveLevel(unitId)
 		Player.mana.base = Player.BaseMana[Player.level]
 		Player.mana.max = UnitPowerMax(unitId, 0)
 		Player.energy.max = UnitPowerMax(unitId, 3)
